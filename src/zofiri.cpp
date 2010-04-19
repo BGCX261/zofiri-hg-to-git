@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 }
 
 // One round on the compiler is faster than multiple.
-// But if these grow much, then it might be better to a pass on each file.
+// But if these grow much, then it might be better to make a pass on each file.
 #include "sim.cpp"
 #include "viz.cpp"
 #include "world.cpp"

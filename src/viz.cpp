@@ -64,13 +64,15 @@ Viz::Viz(Sim* s): sim(s) {
 
 IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
 	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
-	const btVector3& btHalfExtents = shape->getHalfExtentsWithoutMargin();
+	const btVector3& btHalfExtents = shape->getHalfExtentsWithMargin();
+	//cout << "btBoxShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
 	vector3df halfExtents(btHalfExtents.x(), btHalfExtents.y(), btHalfExtents.z());
+	//cout << "btBoxShape halfExtents: " << halfExtents.X << " " << halfExtents.Y << " " << halfExtents.Z << endl;
 	S3DVertex vertices[24];
 	u16 indices[36];
 	u32 v = 0;
 	u32 i = 0;
-	//cout << "START indices: " << indices << ", vertices: " << vertices << " at " << v << "\n";
+	//cout << "START indices: " << indices << ", vertices: " << vertices << " at " << v << endl;
 	buildPlaneVertices(halfExtents, material, vector3df(-1,0,0), vertices, v, indices, i);
 	buildPlaneVertices(halfExtents, material, vector3df(1,0,0), vertices, v, indices, i);
 	buildPlaneVertices(halfExtents, material, vector3df(0,-1,0), vertices, v, indices, i);
@@ -187,7 +189,7 @@ IMesh* Viz::createPlaneMesh() {
 	// Lighting only affects vertices with gradients between.
 	// Resolution for more nodes, so local lighting works better.
 	u32 res = 4;
-	f32 extent = 1e3;
+	f32 extent = sim->m(10);
 	S3DVertex vertices[(res+1)*(res+1)];
 	u16 indices[6*res*res];
 	u32 i = 0;
@@ -286,19 +288,24 @@ void Viz::run() {
 	for(int b = 0; b < bodies.size(); b++) {
 		btCollisionObject* object = bodies[b];
 		Material* material = BodyInfo::of(object)->material;
+		//cout << "Color " << hex << material->color.color << dec;
 		IMesh* mesh;
 		btCollisionShape* shape = object->getCollisionShape();
 		switch(shape->getShapeType()) {
 		case BOX_SHAPE_PROXYTYPE:
+			//cout << " box ";
 			mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
 			break;
 		case CAPSULE_SHAPE_PROXYTYPE:
+			//cout << " capsule ";
 			mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
 			break;
 		case STATIC_PLANE_PROXYTYPE:
+			//cout << " plan ";
 			mesh = createPlaneMesh();
 			break;
 		case SPHERE_SHAPE_PROXYTYPE:
+			//cout << " sphere ";
 			mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
 			break;
 		default:
@@ -307,14 +314,15 @@ void Viz::run() {
 		IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
 		BodyInfo::of(object)->sceneNode = node;
 		btVector3& origin = object->getWorldTransform().getOrigin();
+		//cout << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
 		node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
 	}
 
 	// ICameraSceneNode* camera =
 	// Normal:
-	scene()->addCameraSceneNode(0, vector3df(-80,120,80), vector3df(-5,50,-5));
+	scene()->addCameraSceneNode(0, sim->m(vector3df(-0.8,1.2,0.8)), sim->m(vector3df(-0.05,0.5,-0.05)));
 	// Close-up on hand:
-	//ICameraSceneNode* camera = scene()->addCameraSceneNode(0, vector3df(-10,140,10), vector3df(10,90,-10));
+	//ICameraSceneNode* camera = scene()->addCameraSceneNode(0, 1e-2*vector3df(-10,140,10), 1e-2*vector3df(10,90,-10));
 	//camera->setPosition(camera->getPosition() - 0.5 * (camera->getPosition() - camera->getTarget()));
 	//camera->setUpVector(vector3df(0,0,1));
 	//camera->setViewMatrixAffector(matrix4().setScale(vector3df(-1,1,1)));
@@ -331,7 +339,7 @@ void Viz::run() {
 	light->setLightType(ELT_DIRECTIONAL);
 	light->setRadius(4000);
 	// And a point light for nice effect.
-	scene()->addLightSceneNode(0, vector3df(50,300,100), SColor(0xFFFFFFFF), 200);
+	scene()->addLightSceneNode(0, sim->m(vector3df(0.5,3.0,1.0)), SColor(0xFFFFFFFF), sim->m(2.0));
 	while(device->run()) {
 		if(device->isWindowActive()) {
 			video()->beginScene();
@@ -372,8 +380,6 @@ void Viz::update(btRigidBody* body) {
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
 	btScalar yaw, pitch, roll;
 	transform.getBasis().getEulerYPR(yaw, pitch, roll);
-	// TODO Am I using the Euler angles 100% correctly here?
-	// TODO They look okay-ish, but I haven't verified thoroughly.
 	// TODO Vectorize the radToDeg transform?
 	node->setRotation(vector3df(radToDeg(roll), radToDeg(pitch), radToDeg(yaw)));
 }

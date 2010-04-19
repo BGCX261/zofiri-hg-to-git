@@ -57,6 +57,16 @@ struct Sim {
 
 	btDefaultCollisionConfiguration collisionConfiguration;
 
+	/**
+	 * Converts the value in centimeters to whatever unit we use internally.
+	 * This relates to needs perhaps in Bullet to scale differently depending
+	 * on the precision we need. We could perhaps get even fancier in the
+	 * future, too, but this at least helps tag units.
+	 */
+	template<typename Num> Num cm(Num centimeters) {
+		return m(0.01 * centimeters);
+	}
+
 	btRigidBody* createBody(
 		btCollisionShape* shape,
 		const btTransform& transform,
@@ -65,11 +75,23 @@ struct Sim {
 
 	btRigidBody* createPlane();
 
+	/**
+	 * Converts the value in meters to whatever unit we use internally.
+	 * This relates to needs perhaps in Bullet to scale differently depending
+	 * on the precision we need. We could perhaps get even fancier in the
+	 * future, too, but this at least helps tag units.
+	 */
+	template<typename Num> Num m(Num meters) {
+		return Num(unitsRatio * meters);
+	}
+
 	btCollisionDispatcher* dispatcher;
 
 	btDiscreteDynamicsWorld* dynamics;
 
 	btSequentialImpulseConstraintSolver solver;
+
+	btScalar unitsRatio;
 
 	/**
 	 * Not disposed.

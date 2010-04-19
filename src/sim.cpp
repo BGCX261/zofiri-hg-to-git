@@ -42,8 +42,10 @@ void MotionState::setWorldTransform(const btTransform& worldTransform) {
 Sim::Sim() {
 	dispatcher = new btCollisionDispatcher(&collisionConfiguration);
 	dynamics = new btDiscreteDynamicsWorld(dispatcher, &broadphase, &solver, &collisionConfiguration);
-	dynamics->setGravity(10 * dynamics->getGravity());
+	unitsRatio = 100;
 	viz = 0;
+	// Weaken gravity a bit. Copes this way better at larger ratios.
+	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
 }
 
 Sim::~Sim() {
@@ -52,6 +54,8 @@ Sim::~Sim() {
 }
 
 btScalar Sim::calcVolume(btCollisionShape* shape) {
+	// Just stick to internal units here for now.
+	// Let people convert outside as needed.
 	switch(shape->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
 		return calcVolumeBox(reinterpret_cast<btBoxShape*>(shape));

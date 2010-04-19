@@ -7,8 +7,8 @@ Hand::Hand(World* w): world(w) {
 	Material* material = new Material(SColor(0xFFFFFF00));
 	//material->friction = ...
 	metacarpal = sim->createBody(
-		new btCapsuleShapeX(1,5),
-		btTransform(btQuaternion::getIdentity(), btVector3(10,100,-10)),
+		new btCapsuleShapeX(sim->cm(1.0),sim->cm(5.0)),
+		btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.1,1,-0.1))),
 		material
 	);
 	// Make the hand float using a kinematic metacarpal.
@@ -19,12 +19,12 @@ Hand::Hand(World* w): world(w) {
 	metacarpal->setFriction(500);
 	sim->dynamics->addRigidBody(metacarpal);
 	for (int f = 0; f < 4; f++) {
-		buildFinger(metacarpal, 4, btVector3(2.2 * (f-1.5), -1.1, 0));
+		buildFinger(metacarpal, 4, sim->cm(btVector3(2.2 * (f-1.5), -1.1, 0)));
 	}
-	buildFinger(metacarpal, 3, btVector3(2.2 * (0.5), 0, -1.5));
-	buildFinger(metacarpal, 3, btVector3(2.2 * (-0.5), 0, -1.5));
+	buildFinger(metacarpal, 3, sim->cm(btVector3(2.2 * (0.5), 0, -1.5)));
+	buildFinger(metacarpal, 3, sim->cm(btVector3(2.2 * (-0.5), 0, -1.5)));
 	// Open the hand at first.
-	grip(2);
+	grip(sim->m(2));
 }
 
 void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& position) {
@@ -41,7 +41,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 	btTransform constraintTransformB(
 		//metacarpal->getWorldTransform().getRotation(),
 		btQuaternion::getIdentity(),
-		btVector3(0, 2, 0)
+		sim->cm(btVector3(0, 2, 0))
 	);
 	btTransform transformB(
 		btQuaternion::getIdentity(),
@@ -50,7 +50,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 	transformB.getOrigin() += baseOrigin - constraintTransformB.getOrigin();
 	btRigidBody* a = metacarpal;
 	for (u32 p = 0; p < count; p++) {
-		btRigidBody* b = sim->createBody(new btCapsuleShape(1,1.5), transformB, BodyInfo::of(a)->material);
+		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BodyInfo::of(a)->material);
 		b->setFriction(500);
 		//b->setDamping(0.5,0.5);
 		sim->dynamics->addRigidBody(b);
@@ -77,7 +77,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 		(isThumb ? thumbJoints : fingerJoints).push_back(joint);
 		a = b;
 		transformB.getOrigin() += -2 * constraintTransformB.getOrigin();
-		constraintTransformA.setOrigin(btVector3(0,-2,0));
+		constraintTransformA.setOrigin(sim->cm(btVector3(0,-2,0)));
 	}
 }
 
@@ -101,17 +101,18 @@ bool Hand::grip(btScalar targetVel) {
 	// TODO Maybe some kind of controller class with active controller list?
 	// TODO Distinguish true convergence vs. no-progress/error states.
 	//cout << maxVel << "\n";
-	return maxVel < 4;
+	return maxVel < world->sim->cm(4.0);
 }
 
 Stacker::Stacker(Hand* h): hand(h) {
 	cargo = findBlock(SColor(0xFFFF0000));
 	mode = OPEN;
 	// TODO Use PD on the speed.
-	speed = 0.1;
+	speed = h->world->sim->cm(0.1);
 }
 
 void Stacker::act() {
+	Sim& sim = *hand->world->sim;
 	if (!cargo) {
 		return;
 	}
@@ -128,13 +129,13 @@ void Stacker::act() {
 	// TODO This doesn't deal with the case where the hand is _under_ the cargo.
 	if (mode == CLOSED) {
 		// The hand closing has converged. Lift it.
-		if (handOrigin.getY() < 100) {
+		if (handOrigin.getY() < sim.m(1.0)) {
 			//cout << "Lifting!\n";
 			handOrigin.setY(handOrigin.getY() + speed);
 			handMotionState->setWorldTransform(handTransform);
 		} else {
 			if (trackToTarget(SColor(0xFF0000FF))) {
-				hand->grip(2);
+				hand->grip(sim.m(2.0));
 				mode = OPENING;
 				btRigidBody* green = findBlock(SColor(0xFF00FF00));
 				cargo = cargo == green ? 0 : green;
@@ -142,29 +143,29 @@ void Stacker::act() {
 		}
 		if (cargoDelta.length() > 3 * shape->getHalfExtentsWithoutMargin().length()) {
 			//cout << "Opening!\n";
-			hand->grip(2);
+			hand->grip(sim.m(2.0));
 			mode = OPENING;
 		}
 	} else if (cargo) {
 		btVector3 deltaXz(cargoDelta.x(), 0, cargoDelta.z());
 		btScalar dxz = deltaXz.length();
-		if (dxz > 0.1) {
+		if (dxz > sim.cm(0.1)) {
 			// Move closer to the xz of the cargo.
 			handOrigin += speed * deltaXz / dxz;
 			handMotionState->setWorldTransform(handTransform);
 		}
-		if (dxz < 1) {
+		if (dxz < sim.cm(1.0)) {
 			// Mostly over the cargo. See if we are just a little over the cargo.
 			btScalar dy = abs_(cargoDelta.y()) - shape->getHalfExtentsWithoutMargin().y();
-			if (dy < 6) {
+			if (dy < sim.cm(6.0)) {
 				// Just a little over it. Start closing the hand.
 				mode = CLOSING;
-				if (hand->grip(-4)) {
+				if (hand->grip(sim.m(-4.0))) {
 					//cout << "CLOSED!!!\n";
 					mode = CLOSED;
 				}
 			}
-			if (dy > 4) {
+			if (dy > sim.cm(4.0)) {
 				// Keep lowering over the target.
 				handOrigin.setY(handOrigin.getY() - speed);
 				handMotionState->setWorldTransform(handTransform);
@@ -186,6 +187,7 @@ btRigidBody* Stacker::findBlock(SColor color) {
 }
 
 bool Stacker::trackToTarget(SColor color) {
+	Sim& sim = *hand->world->sim;
 	btTransform handTransform;
 	btMotionState* handMotionState = hand->metacarpal->getMotionState();
 	handMotionState->getWorldTransform(handTransform);
@@ -194,7 +196,7 @@ bool Stacker::trackToTarget(SColor color) {
 	btVector3 delta = target->getWorldTransform().getOrigin() - handOrigin;
 	btVector3 deltaXz(delta.x(), 0, delta.z());
 	btScalar dxz = deltaXz.length();
-	if (dxz > 0.1) {
+	if (dxz > sim.cm(0.1)) {
 		// Move closer to the xz of the cargo.
 		handOrigin += speed * deltaXz / dxz;
 		handMotionState->setWorldTransform(handTransform);
@@ -208,13 +210,13 @@ World::World(Sim* s): sim(s) {
 	btRigidBody* plane = sim->createPlane();
 	sim->dynamics->addRigidBody(plane);
 	// Tables.
-	//buildTable(sim, btVector3(50,3,50), btVector3(0,60,0));
-	buildTable(btVector3(15,3,15), btVector3(20,60,20));
-	buildTable(btVector3(25,3,25), btVector3(-30,60,-30));
+	buildTable(sim->cm(btVector3(15,3,15)), sim->cm(btVector3(20,60,20)));
+	buildTable(sim->cm(btVector3(25,3,25)), sim->cm(btVector3(-30,60,-30)));
 	// Blocks.
-	buildBlock(SColor(0xFFFF0000), btVector3(15,67.25,15));
-	buildBlock(SColor(0xFF00FF00), btVector3(-15,67.25,-15));
-	buildBlock(SColor(0xFF0000FF), btVector3(-20,97.25,-20));
+	//cout << "Building blocks." << endl;
+	buildBlock(SColor(0xFFFF0000), sim->cm(btVector3(15,67.25,15)));
+	buildBlock(SColor(0xFF00FF00), sim->cm(btVector3(-15,67.25,-15)));
+	buildBlock(SColor(0xFF0000FF), sim->cm(btVector3(-20,97.25,-20)));
 	// Hand.
 	hand = new Hand(this);
 	stacker = new Stacker(hand);
@@ -226,9 +228,11 @@ World::World(Sim* s): sim(s) {
 
 void World::buildBlock(SColor color, const btVector3& position) {
 	Material* material = new Material(color);
-	material->density = 0.1;
-	btRigidBody* block = sim->createBody(
-		new btBoxShape(btVector3(4,4,4)),
+	material->density = 0.1; // TODO Units!!!
+    btVector3 halfExtents = sim->cm(btVector3(4.0, 4.0, 4.0));
+	//cout << "block halfExtents: " << halfExtents.x() << " " << halfExtents.y() << " " << halfExtents.z() << endl;
+    btRigidBody *block = sim->createBody(
+    	new btBoxShape(halfExtents),
 		btTransform(btQuaternion::getIdentity(), position),
 		material
 	);
@@ -251,8 +255,8 @@ void World::buildTable(const btVector3& halfExtents, const btVector3& position) 
 	//table->setActivationState(DISABLE_DEACTIVATION);
 	sim->dynamics->addRigidBody(table);
 	// Legs.
-	btScalar offset = 0.25;
-	btVector3 legSize(2, (position.y()-halfExtents.y())/2 - offset, 2);
+	btScalar offset = sim->cm(0.25);
+	btVector3 legSize(sim->cm(2.0), (position.y()-halfExtents.y())/2 - offset, sim->cm(2.0));
 	//cout << "legSize: " << legSize.x() << ", " << legSize.y() << ", " << legSize.z() << "\n";
 	btTransform constraintTransformTable(btQuaternion::getIdentity(), btVector3(0,0,0));
 	btTransform constraintTransformLeg(btQuaternion::getIdentity(), btVector3(0,0,0));
@@ -309,9 +313,9 @@ void World::reset() {
 		btScalar dy = 15 * drand48() + 3 + tableSize.y() + blockShape->getHalfExtentsWithoutMargin().x();
 		btScalar dz = sin(angle) * radius;
 		// Place the block there.
-		blockTransform.setOrigin(tableTransform.getOrigin() + btVector3(dx,dy,dz));
+		blockTransform.setOrigin(tableTransform.getOrigin() + sim->cm(btVector3(dx,dy,dz)));
 		blockTransform.setRotation(btQuaternion(pi(2*drand48()),pi(2*drand48()),pi(2*drand48())));
-		cout << blockTransform.getOrigin().x() << ", " << blockTransform.getOrigin().y() << ", " << blockTransform.getOrigin().z() << "\n";
+		//cout << blockTransform.getOrigin().x() << ", " << blockTransform.getOrigin().y() << ", " << blockTransform.getOrigin().z() << "\n";
 		block->getMotionState()->setWorldTransform(blockTransform);
 		block->setWorldTransform(blockTransform);
 	}

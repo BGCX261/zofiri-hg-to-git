@@ -6,7 +6,7 @@ Hand::Hand(World* w): world(w) {
 	Sim* sim = world->sim;
 	Material* material = new Material(SColor(0xFFFFFF00));
 	//material->friction = ...
-	metacarpal = sim->createBody(
+	carpal = sim->createBody(
 		new btCapsuleShapeX(sim->cm(1.0),sim->cm(5.0)),
 		btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.1,1,-0.1))),
 		material
@@ -14,15 +14,15 @@ Hand::Hand(World* w): world(w) {
 	// Make the hand float using a kinematic metacarpal.
 	// TODO Arm and body simulation with inverse kinematics or dynamics or whatnot.
 	//metacarpal->setMassProps(0, btVector3(0,0,0));
-	metacarpal->setCollisionFlags(metacarpal->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-	metacarpal->setActivationState(DISABLE_DEACTIVATION);
-	metacarpal->setFriction(500);
-	sim->dynamics->addRigidBody(metacarpal);
+	carpal->setCollisionFlags(carpal->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+	carpal->setActivationState(DISABLE_DEACTIVATION);
+	carpal->setFriction(500);
+	sim->dynamics->addRigidBody(carpal);
 	for (int f = 0; f < 4; f++) {
-		buildFinger(metacarpal, 4, sim->cm(btVector3(2.2 * (f-1.5), -1.1, 0)));
+		buildFinger(carpal, 4, sim->cm(btVector3(2.2 * (f-1.5), -1.1, 0)));
 	}
-	buildFinger(metacarpal, 3, sim->cm(btVector3(2.2 * (0.5), 0, -1.5)));
-	buildFinger(metacarpal, 3, sim->cm(btVector3(2.2 * (-0.5), 0, -1.5)));
+	buildFinger(carpal, 3, sim->cm(btVector3(2.2 * (0.5), 0, -1.5)));
+	buildFinger(carpal, 3, sim->cm(btVector3(2.2 * (-0.5), 0, -1.5)));
 	// Open the hand at first.
 	grip(sim->m(2));
 }
@@ -48,17 +48,30 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 		constraintTransformA.getOrigin()
 	);
 	transformB.getOrigin() += baseOrigin - constraintTransformB.getOrigin();
+	btVector3 hingeAxis(1,0,0);
 	btRigidBody* a = metacarpal;
 	for (u32 p = 0; p < count; p++) {
 		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BodyInfo::of(a)->material);
 		b->setFriction(500);
 		//b->setDamping(0.5,0.5);
 		sim->dynamics->addRigidBody(b);
+		btHingeConstraint* hinge = new btHingeConstraint(
+			*a, *b,
+			constraintTransformA.getOrigin(), constraintTransformB.getOrigin(),
+			hingeAxis, hingeAxis,
+			false
+		);
 		btGeneric6DofConstraint* joint = new btGeneric6DofConstraint(
 			*a, *b,
 			constraintTransformA, constraintTransformB,
 			false
 		);
+		// TODO Put spread hinges on metacarpals instead of fore/back.
+		if (isThumb) {
+			hinge->setLimit(pi(-0.3), pi(0.3));
+		} else {
+			hinge->setLimit(pi(-0.4), pi(0.1));
+		}
 		joint->setAngularLowerLimit(btVector3(pi(-0.4), pi(-0.01), pi(-0.1) * abs_(position.getX())/8));
 		joint->setAngularUpperLimit(btVector3(pi(0.1), pi(0.01), pi(0.1) * abs_(position.getX())/8));
 		if (isThumb) {
@@ -68,12 +81,17 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 		//joint->getRotationalLimitMotor(0)->m_damping = 0;
 		//joint->getRotationalLimitMotor(0)->m_ERP = 0.01;
 		// Curl in.
+		hinge->enableMotor(true);
+		hinge->setMaxMotorImpulse(400);
+		//hinge->setMotorTarget(pi(-0.4), 0.1);
 		joint->getRotationalLimitMotor(0)->m_enableMotor = true;
 		joint->getRotationalLimitMotor(0)->m_maxMotorForce = 400;
 		// Spread apart for ball grasp.
 		joint->getRotationalLimitMotor(2)->m_enableMotor = true;
 		joint->getRotationalLimitMotor(2)->m_maxMotorForce = 400;
-		sim->dynamics->addConstraint(joint);
+		sim->dynamics->addConstraint(hinge);
+		//sim->dynamics->addConstraint(joint);
+		(isThumb ? thumbHinges : fingerHinges).push_back(hinge);
 		(isThumb ? thumbJoints : fingerJoints).push_back(joint);
 		a = b;
 		transformB.getOrigin() += -2 * constraintTransformB.getOrigin();
@@ -82,20 +100,32 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 }
 
 bool Hand::grip(btScalar targetVel) {
-	const btVector3& handVel = metacarpal->getLinearVelocity();
+	const btVector3& handVel = carpal->getLinearVelocity();
 	btScalar maxVel = 0;
-	for (vector<btGeneric6DofConstraint*>::iterator j = fingerJoints.begin(); j < fingerJoints.end(); j++) {
-		btGeneric6DofConstraint* joint = *j;
-		joint->getRotationalLimitMotor(0)->m_targetVelocity = targetVel;
+	for (vector<btHingeConstraint*>::iterator j = fingerHinges.begin(); j < fingerHinges.end(); j++) {
+		btHingeConstraint* joint = *j;
+		joint->setMotorTarget(targetVel < 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
 		maxVel = max_(vel, maxVel);
 	}
-	for (vector<btGeneric6DofConstraint*>::iterator j = thumbJoints.begin(); j < thumbJoints.end(); j++) {
-		btGeneric6DofConstraint* joint = *j;
-		joint->getRotationalLimitMotor(0)->m_targetVelocity = -targetVel;
+	for (vector<btHingeConstraint*>::iterator j = thumbHinges.begin(); j < thumbHinges.end(); j++) {
+		btHingeConstraint* joint = *j;
+		joint->setMotorTarget(targetVel > 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
 		maxVel = max_(vel, maxVel);
 	}
+	//	for (vector<btGeneric6DofConstraint*>::iterator j = fingerJoints.begin(); j < fingerJoints.end(); j++) {
+	//		btGeneric6DofConstraint* joint = *j;
+	//		joint->getRotationalLimitMotor(0)->m_targetVelocity = targetVel;
+	//		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
+	//		maxVel = max_(vel, maxVel);
+	//	}
+	//	for (vector<btGeneric6DofConstraint*>::iterator j = thumbJoints.begin(); j < thumbJoints.end(); j++) {
+	//		btGeneric6DofConstraint* joint = *j;
+	//		joint->getRotationalLimitMotor(0)->m_targetVelocity = -targetVel;
+	//		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
+	//		maxVel = max_(vel, maxVel);
+	//	}
 	// Test for convergence.
 	// TODO Some memory to make sure it's consistent across time.
 	// TODO Maybe some kind of controller class with active controller list?
@@ -118,7 +148,7 @@ void Stacker::act() {
 	}
 	//cout << "Acting!\n";
 	// Get some hand information ready.
-	btMotionState* handMotionState = hand->metacarpal->getMotionState();
+	btMotionState* handMotionState = hand->carpal->getMotionState();
 	btTransform handTransform;
 	handMotionState->getWorldTransform(handTransform);
 	btVector3& handOrigin = handTransform.getOrigin();
@@ -189,7 +219,7 @@ btRigidBody* Stacker::findBlock(SColor color) {
 bool Stacker::trackToTarget(SColor color) {
 	Sim& sim = *hand->world->sim;
 	btTransform handTransform;
-	btMotionState* handMotionState = hand->metacarpal->getMotionState();
+	btMotionState* handMotionState = hand->carpal->getMotionState();
 	handMotionState->getWorldTransform(handTransform);
 	btVector3& handOrigin = handTransform.getOrigin();
 	btRigidBody* target = findBlock(color);

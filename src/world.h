@@ -13,6 +13,7 @@ struct Hand {
 
 	void buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& position);
 
+	vector<btHingeConstraint*> fingerHinges;
 	vector<btGeneric6DofConstraint*> fingerJoints;
 
 	/**
@@ -20,8 +21,9 @@ struct Hand {
 	 */
 	bool grip(btScalar targetVel);
 
-	btRigidBody* metacarpal;
+	btRigidBody* carpal;
 
+	vector<btHingeConstraint*> thumbHinges;
 	vector<btGeneric6DofConstraint*> thumbJoints;
 
 	World* world;

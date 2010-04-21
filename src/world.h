@@ -3,7 +3,7 @@
 #ifndef zofiri_world_h
 #define zofiri_world_h
 
-namespace zofiri {
+namespace zof {
 
 void updateWorld(btDynamicsWorld *dynamics, btScalar timeStep);
 

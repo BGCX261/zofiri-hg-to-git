@@ -1,6 +1,6 @@
 #include "zofiri.h"
 
-namespace zofiri {
+namespace zof {
 
 void buildPlaneVertices(
 	const vector3df& halfExtents,

@@ -1,6 +1,6 @@
 #include "zofiri.h"
 
-namespace zofiri {
+namespace zof {
 
 Hand::Hand(World* w): world(w) {
 	Sim* sim = world->sim;

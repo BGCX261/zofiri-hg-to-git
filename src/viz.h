@@ -1,9 +1,9 @@
-#include "zofiri.h"
-
 #ifndef zofiri_viz_h
 #define zofiri_viz_h
 
-namespace zofiri {
+#include "zofiri.h"
+
+namespace zof {
 
 struct Viz {
 

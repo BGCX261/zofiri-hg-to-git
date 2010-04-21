@@ -16,6 +16,10 @@ link_directories(
 add_executable(
 	zofiri
 	zofiri.cpp
+	net.cpp
+	sim.cpp
+	viz.cpp
+	world.cpp
 )
 
 target_link_libraries(

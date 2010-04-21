@@ -1,6 +1,6 @@
 #include "zofiri.h"
 
-namespace zofiri {
+namespace zof {
 
 BodyInfo::BodyInfo():
 		material(Material::defaultMaterial()),
@@ -77,13 +77,13 @@ btScalar Sim::calcVolumeBox(btBoxShape* shape) {
 
 btScalar Sim::calcVolumeCapsule(btCapsuleShape* shape) {
 	btScalar radius = shape->getRadius();
-	btScalar sphereVol = 4.0/3.0 * pi() * pow(radius, 3);
-	btScalar cylinderVol = pi() * radius * radius * 2 * shape->getHalfHeight();
+	btScalar sphereVol = pi(4.0/3.0) * pow(radius, 3);
+	btScalar cylinderVol = pi(2.0) * radius * radius * shape->getHalfHeight();
 	return sphereVol + cylinderVol;
 }
 
 btScalar Sim::calcVolumeSphere(btSphereShape* shape) {
-	return 4.0/3.0 * pi() * pow(shape->getRadius(), 3);
+	return pi(4.0/3.0) * pow(shape->getRadius(), 3);
 }
 
 btRigidBody* Sim::createBody(btCollisionShape* shape, const btTransform& transform, Material* material) {

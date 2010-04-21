@@ -1,9 +1,9 @@
-#include "zofiri.h"
-
 #ifndef zofiri_sim_h
 #define zofiri_sim_h
 
-namespace zofiri {
+#include "zofiri.h"
+
+namespace zof {
 
 struct BodyInfo {
 

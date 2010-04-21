@@ -1,18 +1,21 @@
 #include "zofiri.h"
 
-using namespace zofiri;
+#include <string>
+
+using namespace zof;
 
 int main(int argc, char** argv) {
 	srand(time(0));
 	srand48(time(0));
+	Server server(10000);
+	// TODO Need some kind of auto.
+	Socket* socket = server.accept();
+	std::string line;
+	socket->readLine(line);
+	cout << line.c_str() << endl;
+	delete socket;
 	Sim sim;
 	World world(&sim);
 	Viz viz(&sim);
 	viz.run();
 }
-
-// One round on the compiler is faster than multiple.
-// But if these grow much, then it might be better to make a pass on each file.
-#include "sim.cpp"
-#include "viz.cpp"
-#include "world.cpp"

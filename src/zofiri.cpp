@@ -5,14 +5,18 @@
 using namespace zof;
 
 int main(int argc, char** argv) {
-	// Randomize the universe.
-	srand(time(0));
-	srand48(time(0));
-	// TODO Note that none of this shows 3rd party dependencies.
-	// TODO Hide them for more abstraction and faster builds.
-	Sim sim;
-	World world(&sim);
-	Viz viz(&sim);
-	Pub pub(&viz);
-	viz.run();
+	try {
+		// Randomize the universe.
+		srand(time(0));
+		srand48(time(0));
+		// TODO Note that none of this shows 3rd party dependencies.
+		// TODO Hide them for more abstraction and faster builds.
+		Sim sim;
+		World world(&sim);
+		Viz viz(&sim);
+		Pub pub(&viz);
+		viz.run();
+	} catch (const char* message) {
+		cout << message << endl;
+	}
 }

@@ -1,4 +1,5 @@
 #include "pub.h"
+#include <string>
 
 namespace zof {
 
@@ -13,9 +14,14 @@ Pub::~Pub() {
 }
 
 void Pub::update() {
-	Socket* socket = server->select();
-	if (socket) {
-		// Read messages, apply updates, and send data.
+	vector<Socket*> sockets;
+	server->select(&sockets);
+	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
+		Socket* socket = *s;
+		std::string line;
+		socket->readLine(&line);
+		cout << "Client says: " << line << endl;
+		// TODO Apply updates, and send data.
 	}
 }
 

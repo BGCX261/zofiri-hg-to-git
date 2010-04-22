@@ -344,20 +344,6 @@ void Viz::run() {
 		if(device->isWindowActive()) {
 			video()->beginScene();
 			//camera->setProjectionMatrix(projection);
-			try {
-				if(pub) {
-					pub->update();
-				}
-				if(sim) {
-					sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
-				}
-			} catch(void* err) {
-				// TODO Log? Could get tedious.
-				// TODO I did already have a case of errors, but I didn't see them.
-				// TODO I wonder why. (Sarcasm there.)
-				// TODO Maybe still throttle logging somewhere at the logging layer?
-				// This is the top of a loop and a good place to catch errors.
-			}
 			scene()->drawAll();
 			video()->endScene();
 			//char name[100];
@@ -365,8 +351,21 @@ void Viz::run() {
 			//snprintf(name, 99, "shots/shot-%05d.png", screenCount++);
 			//video()->writeImageToFile(video()->createScreenShot(), name, 0);
 		} else {
-			// TODO Run the simulation anyway?
 			device->yield();
+		}
+		try {
+			if(pub) {
+				pub->update();
+			}
+			if(sim) {
+				sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
+			}
+		} catch(void* err) {
+			// TODO Log? Could get tedious.
+			// TODO I did already have a case of errors, but I didn't see them.
+			// TODO I wonder why. (Sarcasm there.)
+			// TODO Maybe still throttle logging somewhere at the logging layer?
+			// This is the top of a loop and a good place to catch errors.
 		}
 	}
 

@@ -2,6 +2,7 @@
 #define zofiri_net_h
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -26,19 +27,24 @@ struct Server {
 	Socket* accept();
 
 	/**
-	 * Returns a socket ready for reading or null if none.
-	 * It is not necessary to delete the socket. It might be
+	 * Returns all socket ready for reading or null if none.
+	 * It is not necessary to delete the sockets. They might be
 	 * saved for future selections. Any open sockets will be
 	 * closed when needed or when the server is closed.
 	 *
 	 * TODO Make this a callback, so we can check immediately on return?
 	 */
-	Socket* select();
+	void select(vector<Socket*>* sockets);
 
 private:
 
 	// TODO Might have to generalize this a bit for windows.
 	int id;
+
+	/**
+	 * All currently open sockets from this server.
+	 */
+	vector<Socket*> sockets;
 
 };
 
@@ -56,7 +62,7 @@ struct Socket {
 	 *
 	 * Return false only on end-of-stream.
 	 */
-	bool readAvailable(std::string& line, bool clear=true);
+	bool readAvailable(std::string* line, bool clear=true);
 
 	/**
 	 * Reads one line from the socket. The trailing LF or CRLF is not
@@ -66,16 +72,18 @@ struct Socket {
 	 *
 	 * TODO Move this feature set away from Socket.
 	 */
-	bool readLine(std::string& line, bool clear=true);
+	bool readLine(std::string* line, bool clear=true);
 
 	/**
 	 * Writes the null-terminated text followed by a newline.
 	 *
 	 * TODO Move this feature set away from Socket.
 	 */
-	void writeLine(char* text);
+	void writeLine(const char* text);
 
 private:
+
+	friend struct Server;
 
 	// TODO Might have to generalize this a bit for windows.
 	int id;

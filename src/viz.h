@@ -28,7 +28,10 @@ struct Viz {
 	 */
 	IrrlichtDevice* device;
 
-	void update(btRigidBody* body);
+	/**
+	 * Not disposed.
+	 */
+	Pub* pub;
 
 	void run();
 
@@ -40,6 +43,8 @@ struct Viz {
 	 * Not disposed.
 	 */
 	Sim* sim;
+
+	void update(btRigidBody* body);
 
 	IVideoDriver* video() {
 		return device->getVideoDriver();

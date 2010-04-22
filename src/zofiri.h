@@ -22,15 +22,17 @@ struct BodyInfo;
 struct Hand;
 struct Material;
 struct MotionState;
+struct Pub;
 struct Sim;
 struct Viz;
 struct World;
 
 }
 
+#include "mat.h"
 #include "net.h"
+#include "pub.h"
 #include "sim.h"
-#include "util.h"
 #include "viz.h"
 #include "world.h"
 

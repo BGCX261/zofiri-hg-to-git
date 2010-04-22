@@ -345,6 +345,9 @@ void Viz::run() {
 			video()->beginScene();
 			//camera->setProjectionMatrix(projection);
 			try {
+				if(pub) {
+					pub->update();
+				}
 				if(sim) {
 					sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
 				}

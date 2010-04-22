@@ -7,6 +7,8 @@ using namespace std;
 
 namespace zof {
 
+// TODO Net struct for setup/teardown.
+
 struct Socket;
 
 struct Server {
@@ -18,7 +20,20 @@ struct Server {
 	 */
 	~Server();
 
+	/**
+	 * Hang waiting for a socket.
+	 */
 	Socket* accept();
+
+	/**
+	 * Returns a socket ready for reading or null if none.
+	 * It is not necessary to delete the socket. It might be
+	 * saved for future selections. Any open sockets will be
+	 * closed when needed or when the server is closed.
+	 *
+	 * TODO Make this a callback, so we can check immediately on return?
+	 */
+	Socket* select();
 
 private:
 
@@ -35,6 +50,13 @@ struct Socket {
 	 * Closes the socket.
 	 */
 	~Socket();
+
+	/**
+	 * Read all the data currently available.
+	 *
+	 * Return false only on end-of-stream.
+	 */
+	bool readAvailable(std::string& line, bool clear=true);
 
 	/**
 	 * Reads one line from the socket. The trailing LF or CRLF is not

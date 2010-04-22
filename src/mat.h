@@ -1,5 +1,7 @@
-#ifndef zof_util_h
-#define zof_util_h
+#ifndef zof_mat_h
+#define zof_mat_h
+
+// For math and matrix purposes.
 
 namespace zof {
 

@@ -57,6 +57,10 @@ Socket* Server::accept() {
 	return new Socket(socketId);
 }
 
+Socket* Server::select() {
+	return 0;
+}
+
 Socket::Socket(int id) {
 	this->id = id;
 }

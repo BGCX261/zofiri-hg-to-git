@@ -17,6 +17,7 @@ add_executable(
 	zofiri
 	zofiri.cpp
 	net.cpp
+	pub.cpp
 	sim.cpp
 	viz.cpp
 	world.cpp

@@ -1,5 +1,6 @@
 #include "zofiri.h"
 
+#include <stdlib.h>
 #include <string>
 
 using namespace zof;
@@ -19,4 +20,5 @@ int main(int argc, char** argv) {
 	} catch (const char* message) {
 		cout << message << endl;
 	}
+	exit(0);
 }

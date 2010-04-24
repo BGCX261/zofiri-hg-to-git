@@ -32,6 +32,12 @@ Server::Server(int port) {
 	if(id < 0) {
 		throw "failed to open server socket";
 	}
+	// Allow reuse to avoid restart blocking pain.
+	int reuse = 1;
+	if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+		throw "failed to set reuseaddr on server socket";
+	}
+	// Get ready to bind and listen.
 	sockaddr_in serverAddress;
 	bzero(&serverAddress, sizeof(serverAddress));
 	serverAddress.sin_addr.s_addr = INADDR_ANY;

@@ -21,6 +21,8 @@ struct Pub {
 
 	~Pub();
 
+	void processLine(const std::string& line);
+
 	/**
 	 * Reads incoming messages, if any, and updates the sim or viz.
 	 * If no messages, just returns right away.

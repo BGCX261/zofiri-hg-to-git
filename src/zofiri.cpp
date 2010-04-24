@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
 		World world(&sim);
 		Viz viz(&sim);
 		Pub pub(&viz);
+		pub.world = &world;
 		viz.run();
 	} catch (const char* message) {
 		cout << message << endl;

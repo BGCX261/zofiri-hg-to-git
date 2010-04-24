@@ -341,7 +341,7 @@ void Viz::run() {
 	// And a point light for nice effect.
 	scene()->addLightSceneNode(0, sim->m(vector3df(0.5,3.0,1.0)), SColor(0xFFFFFFFF), sim->m(2.0));
 	while(device->run()) {
-		if(device->isWindowActive()) {
+		if(true || device->isWindowActive()) {
 			video()->beginScene();
 			//camera->setProjectionMatrix(projection);
 			scene()->drawAll();

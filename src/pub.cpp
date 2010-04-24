@@ -13,24 +13,42 @@ Pub::~Pub() {
 	delete server;
 }
 
+void Pub::processCommand(const vector<std::string*>& words) {
+	std::string* command = words.front();
+	if (*command == "reset") {
+		cout << "Yeah!! -> " << *command << endl;
+		world->reset();
+	}
+}
+
 void Pub::processLine(const std::string& line) {
 	const char* delims = " \t";
 	bool last = false;
-	size_t pos = 0;
+	// TODO Track indent level?
+	std::string::size_type pos = line.find_first_not_of(delims);
+	if (pos == std::string::npos) {
+		// Whitespace only.
+		return;
+	}
+	vector<std::string*> words;
 	while (!last) {
-		size_t nextPos = line.find_first_of(delims, pos);
+		std::string::size_type nextPos = line.find_first_of(delims, pos);
 		if (nextPos == std::string::npos) {
 			nextPos = line.length();
 			last = true;
 		}
-		std::string part = line.substr(pos, nextPos - pos);
-		cout << part << endl;
+		std::string* part = new std::string(line.substr(pos, nextPos - pos));
+		words.push_back(part);
 		if (!last) {
 			pos = line.find_first_not_of(delims, nextPos);
 			if (pos == std::string::npos) {
 				last = true;
 			}
 		}
+	}
+	processCommand(words);
+	for (vector<std::string*>::iterator w = words.begin(); w < words.end(); w++) {
+		delete *w;
 	}
 }
 

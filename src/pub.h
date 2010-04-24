@@ -21,6 +21,8 @@ struct Pub {
 
 	~Pub();
 
+	void processCommand(const vector<std::string*>& words);
+
 	void processLine(const std::string& line);
 
 	/**
@@ -30,6 +32,11 @@ struct Pub {
 	void update();
 
 	Viz* viz;
+
+	/**
+	 * TODO Delete this once "world" is gone. Everything just needs to be in sim.
+	 */
+	World* world;
 
 private:
 

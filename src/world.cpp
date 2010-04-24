@@ -348,6 +348,7 @@ void World::reset() {
 		//cout << blockTransform.getOrigin().x() << ", " << blockTransform.getOrigin().y() << ", " << blockTransform.getOrigin().z() << "\n";
 		block->getMotionState()->setWorldTransform(blockTransform);
 		block->setWorldTransform(blockTransform);
+		block->activate(true);
 	}
 }
 

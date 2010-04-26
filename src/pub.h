@@ -21,7 +21,13 @@ struct Pub {
 
 	~Pub();
 
-	void processCommand(const vector<std::string*>& words);
+	/**
+	 * All command objects are deleted on destruct.
+	 * Remove first if you don't want that.
+	 */
+	std::map<std::string, Command*> commands;
+
+	void processCommand(const vector<std::string*>& args);
 
 	void processLine(const std::string& line);
 
@@ -42,6 +48,10 @@ private:
 
 	Server* server;
 
+};
+
+struct Command {
+	virtual void perform(const vector<std::string*>& args) = 0;
 };
 
 }

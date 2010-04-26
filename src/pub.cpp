@@ -3,20 +3,43 @@
 
 namespace zof {
 
+struct AddBodyCommand: public Command {
+	AddBodyCommand(Pub* pub): pub(pub) {}
+	virtual void perform(const vector<std::string*>& args) {
+		// TODO btRigidBody* body = pub->viz->sim->createBody(shape, transform, material);
+		// TODO More?
+		// TODOpub->viz->sim->dynamics->addRigidBody(body);
+		cout << "Called addBody!" << endl;
+	}
+	Pub* pub;
+};
+
+void initCommands(Pub* pub) {
+	pub->commands["addBody"] = new AddBodyCommand(pub);
+}
+
 Pub::Pub(Viz* viz, int port) {
 	server = new Server(port);
 	this->viz = viz;
 	viz->pub = this;
+	initCommands(this);
 }
 
 Pub::~Pub() {
 	delete server;
+	for (std::map<std::string,Command*>::iterator c = commands.begin(); c != commands.end(); c++) {
+		delete c->second;
+	}
 }
 
-void Pub::processCommand(const vector<std::string*>& words) {
-	std::string* command = words.front();
-	if (*command == "reset") {
-		cout << "Yeah!! -> " << *command << endl;
+void Pub::processCommand(const vector<std::string*>& args) {
+	std::string* commandName = args.front();
+	// TODO Use map of commands to callbacks.
+	std::map<std::string,Command*>::iterator c = commands.find(*commandName);
+	if (c != commands.end()) {
+		c->second->perform(args);
+	} else if (*commandName == "reset") {
+		cout << "Yeah!! -> " << *commandName << endl;
 		world->reset();
 	}
 }

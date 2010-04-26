@@ -19,9 +19,11 @@ struct Hand {
 	/**
 	 * Set positive targetVel to open, negative to close.
 	 */
-	bool grip(btScalar targetVel);
+	bool grip();
 
 	btRigidBody* carpal;
+
+	btScalar target;
 
 	vector<btHingeConstraint*> thumbHinges;
 	vector<btGeneric6DofConstraint*> thumbJoints;

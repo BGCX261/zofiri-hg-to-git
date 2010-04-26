@@ -4,6 +4,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <iostream>
 #include <irrlicht.h>
+#include <map>
 #include <math.h>
 #include <vector>
 
@@ -19,6 +20,7 @@ namespace zof {
 
 // For circular references:
 struct BodyInfo;
+struct Command;
 struct Hand;
 struct Material;
 struct MotionState;

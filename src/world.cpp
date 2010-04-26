@@ -24,7 +24,7 @@ Hand::Hand(World* w): world(w) {
 	buildFinger(carpal, 3, sim->cm(btVector3(2.2 * (0.5), 0, -1.5)));
 	buildFinger(carpal, 3, sim->cm(btVector3(2.2 * (-0.5), 0, -1.5)));
 	// Open the hand at first.
-	grip(sim->m(2));
+	target = sim->m(2);
 }
 
 void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& position) {
@@ -99,18 +99,18 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 	}
 }
 
-bool Hand::grip(btScalar targetVel) {
+bool Hand::grip() {
 	const btVector3& handVel = carpal->getLinearVelocity();
 	btScalar maxVel = 0;
 	for (vector<btHingeConstraint*>::iterator j = fingerHinges.begin(); j < fingerHinges.end(); j++) {
 		btHingeConstraint* joint = *j;
-		joint->setMotorTarget(targetVel < 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
+		joint->setMotorTarget(target < 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
 		maxVel = max_(vel, maxVel);
 	}
 	for (vector<btHingeConstraint*>::iterator j = thumbHinges.begin(); j < thumbHinges.end(); j++) {
 		btHingeConstraint* joint = *j;
-		joint->setMotorTarget(targetVel > 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
+		joint->setMotorTarget(target > 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
 		maxVel = max_(vel, maxVel);
 	}
@@ -165,7 +165,7 @@ void Stacker::act() {
 			handMotionState->setWorldTransform(handTransform);
 		} else {
 			if (trackToTarget(SColor(0xFF0000FF))) {
-				hand->grip(sim.m(2.0));
+				hand->target = sim.m(2.0);
 				mode = OPENING;
 				btRigidBody* green = findBlock(SColor(0xFF00FF00));
 				cargo = cargo == green ? 0 : green;
@@ -173,7 +173,7 @@ void Stacker::act() {
 		}
 		if (cargoDelta.length() > 3 * shape->getHalfExtentsWithoutMargin().length()) {
 			//cout << "Opening!\n";
-			hand->grip(sim.m(2.0));
+			hand->target = sim.m(2.0);
 			mode = OPENING;
 		}
 	} else if (cargo) {
@@ -190,7 +190,8 @@ void Stacker::act() {
 			if (dy < sim.cm(6.0)) {
 				// Just a little over it. Start closing the hand.
 				mode = CLOSING;
-				if (hand->grip(sim.m(-4.0))) {
+				hand->target = sim.m(-4.0);
+				if (hand->grip()) {
 					//cout << "CLOSED!!!\n";
 					mode = CLOSED;
 				}
@@ -202,6 +203,7 @@ void Stacker::act() {
 			}
 		}
 	}
+	hand->grip();
 }
 
 btRigidBody* Stacker::findBlock(SColor color) {

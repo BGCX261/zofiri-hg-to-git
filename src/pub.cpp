@@ -5,13 +5,14 @@ namespace zof {
 
 struct AddBodyCommand: public Command {
 	AddBodyCommand(Pub* pub): pub(pub) {}
-	virtual void perform(const vector<std::string*>& args) {
-	    btRigidBody* body = pub->viz->sim->createBody(
-	    	new btBoxShape(pub->viz->sim->m(btVector3(0.1,0.1,0.1))),
+	virtual std::string perform(const vector<std::string>& args) {
+		Sim* sim = pub->viz->sim;
+		btRigidBody* body = sim->createBody(
+			new btBoxShape(sim->m(btVector3(0.1,0.1,0.1))),
 			btTransform(btQuaternion::getIdentity(), pub->viz->sim->m(btVector3(0.0,2.0,0.0)))
 		);
-		pub->viz->sim->addBody(body);
-		cout << "Called addBody!" << endl;
+		sim->addBody(body);
+		return "";
 	}
 	Pub* pub;
 };
@@ -34,14 +35,14 @@ Pub::~Pub() {
 	}
 }
 
-void Pub::processCommand(const vector<std::string*>& args) {
-	std::string* commandName = args.front();
+void Pub::processCommand(const vector<std::string>& args) {
+	std::string commandName = args.front();
 	// TODO Use map of commands to callbacks.
-	std::map<std::string,Command*>::iterator c = commands.find(*commandName);
+	std::map<std::string,Command*>::iterator c = commands.find(commandName);
 	if (c != commands.end()) {
 		c->second->perform(args);
-	} else if (*commandName == "reset") {
-		cout << "Yeah!! -> " << *commandName << endl;
+	} else if (commandName == "reset") {
+		cout << "Yeah!! -> " << commandName << endl;
 		world->reset();
 	}
 }
@@ -55,15 +56,15 @@ void Pub::processLine(const std::string& line) {
 		// Whitespace only.
 		return;
 	}
-	vector<std::string*> words;
+	vector<std::string> args;
 	while (!last) {
 		std::string::size_type nextPos = line.find_first_of(delims, pos);
 		if (nextPos == std::string::npos) {
 			nextPos = line.length();
 			last = true;
 		}
-		std::string* part = new std::string(line.substr(pos, nextPos - pos));
-		words.push_back(part);
+		std::string part = line.substr(pos, nextPos - pos);
+		args.push_back(part);
 		if (!last) {
 			pos = line.find_first_not_of(delims, nextPos);
 			if (pos == std::string::npos) {
@@ -71,10 +72,7 @@ void Pub::processLine(const std::string& line) {
 			}
 		}
 	}
-	processCommand(words);
-	for (vector<std::string*>::iterator w = words.begin(); w < words.end(); w++) {
-		delete *w;
-	}
+	processCommand(args);
 }
 
 void Pub::update() {

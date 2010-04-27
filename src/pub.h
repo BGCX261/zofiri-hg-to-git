@@ -27,7 +27,7 @@ struct Pub {
 	 */
 	std::map<std::string, Command*> commands;
 
-	void processCommand(const vector<std::string*>& args);
+	void processCommand(const vector<std::string>& args);
 
 	void processLine(const std::string& line);
 
@@ -51,7 +51,12 @@ private:
 };
 
 struct Command {
-	virtual void perform(const vector<std::string*>& args) = 0;
+	/**
+	 * TODO Build out a full process model with IO streams?
+	 * TODO That might likely require separate threads.
+	 * TODO For now, just assume short IO, therefore strings.
+	 */
+	virtual std::string perform(const vector<std::string>& args) = 0;
 };
 
 }

@@ -62,6 +62,38 @@ Viz::Viz(Sim* s): sim(s) {
 	sim->viz = this;
 }
 
+void Viz::addBody(btCollisionObject* body) {
+	Material* material = BodyInfo::of(body)->material;
+	//cout << "Color " << hex << material->color.color << dec;
+	IMesh* mesh;
+	btCollisionShape* shape = body->getCollisionShape();
+	switch(shape->getShapeType()) {
+	case BOX_SHAPE_PROXYTYPE:
+		//cout << " box ";
+		mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
+		break;
+	case CAPSULE_SHAPE_PROXYTYPE:
+		//cout << " capsule ";
+		mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
+		break;
+	case STATIC_PLANE_PROXYTYPE:
+		//cout << " plan ";
+		mesh = createPlaneMesh();
+		break;
+	case SPHERE_SHAPE_PROXYTYPE:
+		//cout << " sphere ";
+		mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
+		break;
+	default:
+		throw "unsupported shape kind";
+	}
+	IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
+	BodyInfo::of(body)->sceneNode = node;
+	btVector3& origin = body->getWorldTransform().getOrigin();
+	//cout << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
+	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
+}
+
 IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
 	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
 	const btVector3& btHalfExtents = shape->getHalfExtentsWithMargin();
@@ -287,35 +319,7 @@ void Viz::run() {
 	btCollisionObjectArray& bodies = sim->dynamics->getCollisionObjectArray();
 	for(int b = 0; b < bodies.size(); b++) {
 		btCollisionObject* object = bodies[b];
-		Material* material = BodyInfo::of(object)->material;
-		//cout << "Color " << hex << material->color.color << dec;
-		IMesh* mesh;
-		btCollisionShape* shape = object->getCollisionShape();
-		switch(shape->getShapeType()) {
-		case BOX_SHAPE_PROXYTYPE:
-			//cout << " box ";
-			mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
-			break;
-		case CAPSULE_SHAPE_PROXYTYPE:
-			//cout << " capsule ";
-			mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
-			break;
-		case STATIC_PLANE_PROXYTYPE:
-			//cout << " plan ";
-			mesh = createPlaneMesh();
-			break;
-		case SPHERE_SHAPE_PROXYTYPE:
-			//cout << " sphere ";
-			mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
-			break;
-		default:
-			throw "unsupported shape kind";
-		}
-		IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
-		BodyInfo::of(object)->sceneNode = node;
-		btVector3& origin = object->getWorldTransform().getOrigin();
-		//cout << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
-		node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
+		addBody(object);
 	}
 
 	// ICameraSceneNode* camera =

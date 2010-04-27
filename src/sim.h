@@ -45,6 +45,8 @@ struct Sim {
 
 	~Sim();
 
+	void addBody(btRigidBody* body);
+
 	btDbvtBroadphase broadphase;
 
 	btScalar calcVolume(btCollisionShape* shape);

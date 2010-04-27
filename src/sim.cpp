@@ -53,6 +53,13 @@ Sim::~Sim() {
 	delete dispatcher;
 }
 
+void Sim::addBody(btRigidBody* body) {
+	dynamics->addRigidBody(body);
+	if (viz) {
+		viz->addBody(body);
+	}
+}
+
 btScalar Sim::calcVolume(btCollisionShape* shape) {
 	// Just stick to internal units here for now.
 	// Let people convert outside as needed.

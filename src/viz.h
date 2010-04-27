@@ -9,7 +9,7 @@ struct Viz {
 
 	Viz(Sim* sim);
 
-	IMesh* buildMesh(btRigidBody* body);
+	void addBody(btCollisionObject* body);
 
 	IMesh* buildBoxMesh(btBoxShape* shape, Material* material);
 

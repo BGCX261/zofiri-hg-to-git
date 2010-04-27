@@ -6,9 +6,11 @@ namespace zof {
 struct AddBodyCommand: public Command {
 	AddBodyCommand(Pub* pub): pub(pub) {}
 	virtual void perform(const vector<std::string*>& args) {
-		// TODO btRigidBody* body = pub->viz->sim->createBody(shape, transform, material);
-		// TODO More?
-		// TODOpub->viz->sim->dynamics->addRigidBody(body);
+	    btRigidBody* body = pub->viz->sim->createBody(
+	    	new btBoxShape(pub->viz->sim->m(btVector3(0.1,0.1,0.1))),
+			btTransform(btQuaternion::getIdentity(), pub->viz->sim->m(btVector3(0.0,2.0,0.0)))
+		);
+		pub->viz->sim->addBody(body);
 		cout << "Called addBody!" << endl;
 	}
 	Pub* pub;

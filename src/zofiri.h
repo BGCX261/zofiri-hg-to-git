@@ -26,6 +26,7 @@ struct Material;
 struct MotionState;
 struct Pub;
 struct Sim;
+struct Transaction;
 struct Viz;
 struct World;
 

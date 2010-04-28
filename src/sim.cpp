@@ -49,6 +49,7 @@ Sim::Sim() {
 }
 
 Sim::~Sim() {
+	// TODO delete bodies, constraints, materials, shapes, ...
 	delete dynamics;
 	delete dispatcher;
 }
@@ -136,6 +137,11 @@ btRigidBody* Sim::createPlane() {
 	body->setUserPointer(info);
 	motionState->m_userPointer = body;
 	return body;
+}
+
+int Sim::generateId() {
+	// TODO We could do better than this.
+	return rand();
 }
 
 }

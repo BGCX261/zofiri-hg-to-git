@@ -47,6 +47,12 @@ struct Sim {
 
 	void addBody(btRigidBody* body);
 
+	/**
+	 * Mapped for protocol access.
+	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.
+	 */
+	std::map<int, btRigidBody*> bodies;
+
 	btDbvtBroadphase broadphase;
 
 	btScalar calcVolume(btCollisionShape* shape);
@@ -69,6 +75,11 @@ struct Sim {
 		return m(0.01 * centimeters);
 	}
 
+	/**
+	 * Mapped for protocol access.
+	 */
+	std::map<int, btTypedConstraint*> constraints;
+
 	btRigidBody* createBody(
 		btCollisionShape* shape,
 		const btTransform& transform,
@@ -76,6 +87,18 @@ struct Sim {
 	);
 
 	btRigidBody* createPlane();
+
+	btCollisionDispatcher* dispatcher;
+
+	btDiscreteDynamicsWorld* dynamics;
+
+	/**
+	 * Required to generate an ID that hasn't been generated yet.
+	 * Semirandom values might be created, but there's no guarantee of that,
+	 * and there's especially no guarantee of strong random values.
+	 * TODO We don't really guarantee uniqueness yet. We need to control our own seed.
+	 */
+	int generateId();
 
 	/**
 	 * Converts the value in meters to whatever unit we use internally.
@@ -87,9 +110,15 @@ struct Sim {
 		return Num(unitsRatio * meters);
 	}
 
-	btCollisionDispatcher* dispatcher;
+	/**
+	 * Mapped for protocol access.
+	 */
+	std::map<int, Material*> materials;
 
-	btDiscreteDynamicsWorld* dynamics;
+	/**
+	 * Mapped for protocol access.
+	 */
+	std::map<int, btCollisionShape*> shapes;
 
 	btSequentialImpulseConstraintSolver solver;
 

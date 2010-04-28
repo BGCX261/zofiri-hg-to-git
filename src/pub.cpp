@@ -4,21 +4,19 @@
 namespace zof {
 
 struct AddBodyCommand: public Command {
-	AddBodyCommand(Pub* pub): pub(pub) {}
-	virtual std::string perform(const vector<std::string>& args) {
-		Sim* sim = pub->viz->sim;
+	virtual std::string perform(Transaction* tx) {
+		Sim* sim = tx->pub->viz->sim;
 		btRigidBody* body = sim->createBody(
 			new btBoxShape(sim->m(btVector3(0.1,0.1,0.1))),
-			btTransform(btQuaternion::getIdentity(), pub->viz->sim->m(btVector3(0.0,2.0,0.0)))
+			btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.0,2.0,0.0)))
 		);
 		sim->addBody(body);
 		return "";
 	}
-	Pub* pub;
 };
 
 void initCommands(Pub* pub) {
-	pub->commands["addBody"] = new AddBodyCommand(pub);
+	pub->commands["addBody"] = new AddBodyCommand();
 }
 
 Pub::Pub(Viz* viz, int port) {
@@ -35,26 +33,65 @@ Pub::~Pub() {
 	}
 }
 
-void Pub::processCommand(const vector<std::string>& args) {
-	std::string commandName = args.front();
-	// TODO Use map of commands to callbacks.
-	std::map<std::string,Command*>::iterator c = commands.find(commandName);
-	if (c != commands.end()) {
-		c->second->perform(args);
-	} else if (commandName == "reset") {
-		cout << "Yeah!! -> " << commandName << endl;
-		world->reset();
+void Pub::update() {
+	vector<Socket*> sockets;
+	server->select(&sockets);
+	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
+		Socket* socket = *s;
+		std::string line;
+		// TODO We need this non-blocking and caching between sessions.
+		// TODO For now we could get hung still.
+		// TODO Create transaction object!!!
+		Transaction tx(this);
+		while (socket->readLine(&line) && line != ";") {
+			tx.processLine(line);
+		}
+		// TODO Apply updates, and send data.
 	}
 }
 
-void Pub::processLine(const std::string& line) {
+Transaction::Transaction(Pub* pub) {
+	this->pub = pub;
+}
+
+std::string Transaction::processCommand(const vector<std::string>& args) {
+	std::string result;
+	this->args = args;
+	if (args.empty()) {
+		return result;
+	}
+	std::string commandName = args.front();
+	std::string varName;
+	if (commandName[0] == '$') {
+		varName = commandName;
+		if (args.size() < 2 || args[1] != "=") {
+			throw "var assignment without =";
+		}
+		this->args.erase(this->args.begin(), this->args.begin() + 2);
+		if (this->args.empty()) {
+			return result;
+		}
+		commandName = this->args.front();
+	}
+	// TODO Perform var substitution among the args.
+	std::map<std::string,Command*>::iterator c = pub->commands.find(commandName);
+	if (c != pub->commands.end()) {
+		result = c->second->perform(this);
+	}
+	if (!varName.empty()) {
+		vars[varName] = result;
+	}
+	return result;
+}
+
+std::string Transaction::processLine(const std::string& line) {
 	const char* delims = " \t";
 	bool last = false;
-	// TODO Track indent level?
+	// TODO Handle quotes. Double and single per bash?
 	std::string::size_type pos = line.find_first_not_of(delims);
 	if (pos == std::string::npos) {
 		// Whitespace only.
-		return;
+		return "";
 	}
 	vector<std::string> args;
 	while (!last) {
@@ -72,22 +109,7 @@ void Pub::processLine(const std::string& line) {
 			}
 		}
 	}
-	processCommand(args);
-}
-
-void Pub::update() {
-	vector<Socket*> sockets;
-	server->select(&sockets);
-	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
-		Socket* socket = *s;
-		std::string line;
-		// TODO We need this non-blocking and caching between sessions.
-		// TODO For now we could get hung still.
-		while (socket->readLine(&line) && line != ";") {
-			processLine(line);
-		}
-		// TODO Apply updates, and send data.
-	}
+	return processCommand(args);
 }
 
 }

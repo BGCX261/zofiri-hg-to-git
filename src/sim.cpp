@@ -54,11 +54,14 @@ Sim::~Sim() {
 	delete dispatcher;
 }
 
-void Sim::addBody(btRigidBody* body) {
+int Sim::addBody(btRigidBody* body) {
+	int id = generateId();
+	bodies[id] = body;
 	dynamics->addRigidBody(body);
 	if (viz) {
 		viz->addBody(body);
 	}
+	return id;
 }
 
 btScalar Sim::calcVolume(btCollisionShape* shape) {

@@ -1,5 +1,6 @@
 #include "pub.h"
 #include <string>
+#include <sstream>
 
 namespace zof {
 
@@ -10,8 +11,10 @@ struct AddBodyCommand: public Command {
 			new btBoxShape(sim->m(btVector3(0.1,0.1,0.1))),
 			btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.0,2.0,0.0)))
 		);
-		sim->addBody(body);
-		return "";
+		int id = sim->addBody(body);
+		stringstream stream;
+		stream << id;
+		return stream.str();
 	}
 };
 
@@ -44,7 +47,8 @@ void Pub::update() {
 		// TODO Create transaction object!!!
 		Transaction tx(this);
 		while (socket->readLine(&line) && line != ";") {
-			tx.processLine(line);
+			std::string result = tx.processLine(line);
+			socket->writeLine(result.c_str());
 		}
 		// TODO Apply updates, and send data.
 	}

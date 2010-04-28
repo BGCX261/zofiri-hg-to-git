@@ -45,7 +45,7 @@ struct Sim {
 
 	~Sim();
 
-	void addBody(btRigidBody* body);
+	int addBody(btRigidBody* body);
 
 	/**
 	 * Mapped for protocol access.

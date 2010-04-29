@@ -88,7 +88,7 @@ struct Transaction {
 	 * Each transaction can carry its own local vars to avoid round trips
 	 * when composing data across multiple commands.
 	 */
-	std::map<std::string, std::string> vars;
+	std::map<std::string,std::string> vars;
 
 };
 

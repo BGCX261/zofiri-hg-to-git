@@ -146,9 +146,22 @@ std::string Transaction::processCommand(const vector<std::string>& args) {
 		}
 		commandName = this->args.front();
 	}
-	// TODO Perform var substitution among the args.
 	std::map<std::string,Command*>::iterator c = pub->commands.find(commandName);
 	if (c != pub->commands.end()) {
+		// Found the command.
+		// Perform var substitution among the args.
+		for (vector<std::string>::iterator a = this->args.begin(); a < this->args.end(); a++) {
+			const std::string& arg = *a;
+			if (arg[0] == '$') {
+				const std::map<std::string,std::string>::iterator v = vars.find(arg);
+				if (v == vars.end()) {
+					throw "undefined var";
+				} else {
+					*a = v->second;
+				}
+			}
+		}
+		// Call the command.
 		result = c->second->perform(this);
 	}
 	if (!varName.empty()) {

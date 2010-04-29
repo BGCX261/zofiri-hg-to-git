@@ -8,9 +8,8 @@
 
 # One goal is to make this human-hackable (i.e., telnet-friendly).
 
-$m = material 5 89EF90
-$s = box 5 3 10
-$b1 = body $s $m 0 0 0 0 0 0 0
-$b2 = body $s $m 0 0 0 0 0 0 0
-$h = hinge $b1 0 0 0 0 0 0 $b2 0 0 0 0 0 0
+$box = box 0.1 0.1 0.1
+$purple = material 1 800080
+body $box $purple 0 2 0
+# $h = hinge $b1 0 0 0 0 0 0 $b2 0 0 0 0 0 0
 ;

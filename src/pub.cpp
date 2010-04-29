@@ -1,15 +1,36 @@
+#include "etc.h"
 #include "pub.h"
 #include <string>
 #include <sstream>
 
 namespace zof {
 
-struct BodyCommand: public Command {
+struct BodyCommand: Command {
 	virtual std::string perform(Transaction* tx) {
+		if (!(tx->args.size() == 6 || tx->args.size() == 10)) {
+			throw "wrong number of args for body (should be 'body $shape $material $x $y $z [$ax $ay $az $a]')";
+		}
+		int shapeId;
+		tx->args[1] >> shapeId;
+		int materialId;
+		tx->args[2] >> materialId;
+		btVector3 position;
+		tx->args[3] >> position.m_floats[0];
+		tx->args[4] >> position.m_floats[1];
+		tx->args[5] >> position.m_floats[2];
 		Sim* sim = tx->pub->viz->sim;
+		Material* material = sim->getMaterial(materialId);
+		if (!material) {
+			throw "no such material for body";
+		}
+		btCollisionShape* shape = sim->getShape(shapeId);
+		if (!shape) {
+			throw "no such shape for body";
+		}
 		btRigidBody* body = sim->createBody(
-			new btBoxShape(sim->m(btVector3(0.1,0.1,0.1))),
-			btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.0,2.0,0.0)))
+			shape,
+			btTransform(btQuaternion::getIdentity(), sim->m(position)),
+			material
 		);
 		int id = sim->addBody(body);
 		stringstream result;
@@ -18,20 +39,40 @@ struct BodyCommand: public Command {
 	}
 };
 
-struct MaterialCommand: public Command {
+struct BoxCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() < 4) {
+			throw "too few args for box";
+		}
+		// Parse stuff out to build the material.
+		btVector3 halfExtents;
+		tx->args[1] >> halfExtents.m_floats[0];
+		tx->args[2] >> halfExtents.m_floats[1];
+		tx->args[3] >> halfExtents.m_floats[2];
+		// Build and store the shape.
+		Sim* sim = tx->pub->viz->sim;
+		btBoxShape* shape = new btBoxShape(sim->m(halfExtents));
+		int id = sim->addShape(shape);
+		// Return the ID.
+		stringstream result;
+		result << id;
+		return result.str();
+	}
+};
+
+struct MaterialCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (tx->args.size() < 3) {
 			throw "too few args for material";
 		}
 		// Parse stuff out to build the material.
 		// TODO Make helper functions for converting types?
-		stringstream args;
 		btScalar density;
-		args << tx->args[1];
-		args >> density;
+		tx->args[1] >> density;
 		SColor color;
-		args << tx->args[2] << hex;
-		args >> color.color;
+		stringstream args;
+		args << tx->args[2];
+		args >> hex >> color.color;
 		Material* material = new Material(color);
 		material->density = density;
 		// Store the material in the sim.
@@ -45,6 +86,7 @@ struct MaterialCommand: public Command {
 };
 
 void initCommands(Pub* pub) {
+	pub->commands["box"] = new BoxCommand();
 	pub->commands["body"] = new BodyCommand();
 	pub->commands["material"] = new MaterialCommand();
 }

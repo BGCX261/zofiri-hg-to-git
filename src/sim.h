@@ -49,6 +49,8 @@ struct Sim {
 
 	int addMaterial(Material* material);
 
+	int addShape(btCollisionShape* body);
+
 	/**
 	 * Mapped for protocol access.
 	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.
@@ -101,6 +103,12 @@ struct Sim {
 	 * TODO We don't really guarantee uniqueness yet. We need to control our own seed.
 	 */
 	int generateId();
+
+	btRigidBody* getBody(int id);
+
+	Material* getMaterial(int id);
+
+	btCollisionShape* getShape(int id);
 
 	/**
 	 * Converts the value in meters to whatever unit we use internally.

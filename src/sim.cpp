@@ -70,6 +70,12 @@ int Sim::addMaterial(Material* material) {
 	return id;
 }
 
+int Sim::addShape(btCollisionShape* shape) {
+	int id = generateId();
+	shapes[id] = shape;
+	return id;
+}
+
 btScalar Sim::calcVolume(btCollisionShape* shape) {
 	// Just stick to internal units here for now.
 	// Let people convert outside as needed.
@@ -151,6 +157,21 @@ btRigidBody* Sim::createPlane() {
 int Sim::generateId() {
 	// TODO We could do better than this.
 	return rand();
+}
+
+btRigidBody* Sim::getBody(int id) {
+	std::map<int,btRigidBody*>::iterator b = bodies.find(id);
+	return b == bodies.end() ? 0 : b->second;
+}
+
+Material* Sim::getMaterial(int id) {
+	std::map<int,Material*>::iterator m = materials.find(id);
+	return m == materials.end() ? 0 : m->second;
+}
+
+btCollisionShape* Sim::getShape(int id) {
+	std::map<int,btCollisionShape*>::iterator s = shapes.find(id);
+	return s == shapes.end() ? 0 : s->second;
 }
 
 }

@@ -9,7 +9,7 @@ void buildPlaneVertices(
 	S3DVertex* vertices, u32& v,
 	u16* indices, u32& i
 ) {
-	//cout << "indices: " << indices << ", vertices: " << vertices << " at " << v << "\n";
+	//cerr << "indices: " << indices << ", vertices: " << vertices << " at " << v << "\n";
 	// Figure out the orientation.
 	// TODO Is there some simpler way?
 	S3DVertex vertex;
@@ -49,7 +49,7 @@ void buildPlaneVertices(
 		for(s32 j = -1; j <= 1; j += 2, v++) {
 			S3DVertex vertex;
 			vertex.Pos = (k*a + j*b + normal) * halfExtents;
-			//cout << v << ": " << vertex.Pos.X << ", " << vertex.Pos.Y << ", " << vertex.Pos.Z << "\n";
+			//cerr << v << ": " << vertex.Pos.X << ", " << vertex.Pos.Y << ", " << vertex.Pos.Z << "\n";
 			vertex.Color = material->color;
 			vertex.Normal = normal;
 			vertices[v] = vertex;
@@ -64,24 +64,24 @@ Viz::Viz(Sim* s): sim(s) {
 
 void Viz::addBody(btCollisionObject* body) {
 	Material* material = BodyInfo::of(body)->material;
-	//cout << "Color " << hex << material->color.color << dec;
+	//cerr << "Color " << hex << material->color.color << dec;
 	IMesh* mesh;
 	btCollisionShape* shape = body->getCollisionShape();
 	switch(shape->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
-		//cout << " box ";
+		//cerr << " box ";
 		mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
 		break;
 	case CAPSULE_SHAPE_PROXYTYPE:
-		//cout << " capsule ";
+		//cerr << " capsule ";
 		mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
 		break;
 	case STATIC_PLANE_PROXYTYPE:
-		//cout << " plan ";
+		//cerr << " plan ";
 		mesh = createPlaneMesh();
 		break;
 	case SPHERE_SHAPE_PROXYTYPE:
-		//cout << " sphere ";
+		//cerr << " sphere ";
 		mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
 		break;
 	default:
@@ -90,21 +90,21 @@ void Viz::addBody(btCollisionObject* body) {
 	IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
 	BodyInfo::of(body)->sceneNode = node;
 	btVector3& origin = body->getWorldTransform().getOrigin();
-	//cout << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
+	//cerr << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
 }
 
 IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
 	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
 	const btVector3& btHalfExtents = shape->getHalfExtentsWithMargin();
-	//cout << "btBoxShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
+	//cerr << "btBoxShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
 	vector3df halfExtents(btHalfExtents.x(), btHalfExtents.y(), btHalfExtents.z());
-	//cout << "btBoxShape halfExtents: " << halfExtents.X << " " << halfExtents.Y << " " << halfExtents.Z << endl;
+	//cerr << "btBoxShape halfExtents: " << halfExtents.X << " " << halfExtents.Y << " " << halfExtents.Z << endl;
 	S3DVertex vertices[24];
 	u16 indices[36];
 	u32 v = 0;
 	u32 i = 0;
-	//cout << "START indices: " << indices << ", vertices: " << vertices << " at " << v << endl;
+	//cerr << "START indices: " << indices << ", vertices: " << vertices << " at " << v << endl;
 	buildPlaneVertices(halfExtents, material, vector3df(-1,0,0), vertices, v, indices, i);
 	buildPlaneVertices(halfExtents, material, vector3df(1,0,0), vertices, v, indices, i);
 	buildPlaneVertices(halfExtents, material, vector3df(0,-1,0), vertices, v, indices, i);
@@ -364,6 +364,8 @@ void Viz::run() {
 			if(sim) {
 				sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
 			}
+		} catch(const char* err) {
+			cerr << err << endl;
 		} catch(void* err) {
 			// TODO Log? Could get tedious.
 			// TODO I did already have a case of errors, but I didn't see them.

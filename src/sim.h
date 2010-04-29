@@ -47,6 +47,8 @@ struct Sim {
 
 	int addBody(btRigidBody* body);
 
+	int addMaterial(Material* material);
+
 	/**
 	 * Mapped for protocol access.
 	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.

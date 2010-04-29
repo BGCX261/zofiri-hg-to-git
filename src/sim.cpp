@@ -64,6 +64,12 @@ int Sim::addBody(btRigidBody* body) {
 	return id;
 }
 
+int Sim::addMaterial(Material* material) {
+	int id = generateId();
+	materials[id] = material;
+	return id;
+}
+
 btScalar Sim::calcVolume(btCollisionShape* shape) {
 	// Just stick to internal units here for now.
 	// Let people convert outside as needed.

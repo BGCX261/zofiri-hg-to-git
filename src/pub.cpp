@@ -4,7 +4,7 @@
 
 namespace zof {
 
-struct AddBodyCommand: public Command {
+struct BodyCommand: public Command {
 	virtual std::string perform(Transaction* tx) {
 		Sim* sim = tx->pub->viz->sim;
 		btRigidBody* body = sim->createBody(
@@ -12,14 +12,41 @@ struct AddBodyCommand: public Command {
 			btTransform(btQuaternion::getIdentity(), sim->m(btVector3(0.0,2.0,0.0)))
 		);
 		int id = sim->addBody(body);
-		stringstream stream;
-		stream << id;
-		return stream.str();
+		stringstream result;
+		result << id;
+		return result.str();
+	}
+};
+
+struct MaterialCommand: public Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() < 3) {
+			throw "too few args for material";
+		}
+		// Parse stuff out to build the material.
+		// TODO Make helper functions for converting types?
+		stringstream args;
+		btScalar density;
+		args << tx->args[1];
+		args >> density;
+		SColor color;
+		args << tx->args[2] << hex;
+		args >> color.color;
+		Material* material = new Material(color);
+		material->density = density;
+		// Store the material in the sim.
+		Sim* sim = tx->pub->viz->sim;
+		int id = sim->addMaterial(material);
+		// Return the ID.
+		stringstream result;
+		result << id;
+		return result.str();
 	}
 };
 
 void initCommands(Pub* pub) {
-	pub->commands["addBody"] = new AddBodyCommand();
+	pub->commands["body"] = new BodyCommand();
+	pub->commands["material"] = new MaterialCommand();
 }
 
 Pub::Pub(Viz* viz, int port) {

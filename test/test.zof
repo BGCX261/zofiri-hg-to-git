@@ -9,7 +9,9 @@
 # One goal is to make this human-hackable (i.e., telnet-friendly).
 
 $box = box 0.1 0.1 0.1
+$capsule = capsule 0.1 0.1
 $purple = material 1 800080
+body $capsule $purple 0 2 0
 body $box $purple 0 2 0
 # $h = hinge $b1 0 0 0 0 0 0 $b2 0 0 0 0 0 0
 ;

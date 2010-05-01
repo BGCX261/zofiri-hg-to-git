@@ -60,6 +60,26 @@ struct BoxCommand: Command {
 	}
 };
 
+struct CapsuleCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() < 3) {
+			throw "too few args for capsule";
+		}
+		// Parse stuff out to build the material.
+		btScalar radius, spread;
+		tx->args[1] >> radius;
+		tx->args[2] >> spread;
+		// Build and store the shape.
+		Sim* sim = tx->pub->viz->sim;
+		btCapsuleShape* shape = new btCapsuleShape(sim->m(radius), sim->m(spread));
+		int id = sim->addShape(shape);
+		// Return the ID.
+		stringstream result;
+		result << id;
+		return result.str();
+	}
+};
+
 struct MaterialCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (tx->args.size() < 3) {
@@ -86,8 +106,9 @@ struct MaterialCommand: Command {
 };
 
 void initCommands(Pub* pub) {
-	pub->commands["box"] = new BoxCommand();
 	pub->commands["body"] = new BodyCommand();
+	pub->commands["box"] = new BoxCommand();
+	pub->commands["capsule"] = new CapsuleCommand();
 	pub->commands["material"] = new MaterialCommand();
 }
 

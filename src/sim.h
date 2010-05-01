@@ -47,6 +47,8 @@ struct Sim {
 
 	int addBody(btRigidBody* body);
 
+	int addConstraint(btTypedConstraint* constraint);
+
 	int addMaterial(Material* material);
 
 	int addShape(btCollisionShape* body);

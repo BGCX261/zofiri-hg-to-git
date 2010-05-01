@@ -5,6 +5,14 @@
 
 namespace zof {
 
+void logHingeBody(int bodyId, const btVector3& position, const btVector3& axis) {
+	cerr <<
+		"hinge on " << bodyId <<
+		" at " << position.x() << "," << position.y() << "," << position.z() <<
+		" around " << axis.x() << "," << axis.y() << "," << axis.z() <<
+		endl;
+}
+
 struct BodyCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (!(tx->args.size() == 6 || tx->args.size() == 10)) {
@@ -18,6 +26,30 @@ struct BodyCommand: Command {
 		tx->args[3] >> position.m_floats[0];
 		tx->args[4] >> position.m_floats[1];
 		tx->args[5] >> position.m_floats[2];
+		btQuaternion orientation;
+		if (tx->args.size() == 6) {
+			orientation = btQuaternion::getIdentity();
+		} else {
+			// Read the orientation as axis-angle.
+			btVector3 axis;
+			tx->args[6] >> axis.m_floats[0];
+			tx->args[7] >> axis.m_floats[1];
+			tx->args[8] >> axis.m_floats[2];
+			// TODO Pi support function.
+			std::string& angleArg = tx->args[9];
+			btScalar angle;
+			bool usePi = false;
+			std::string::size_type piIndex = angleArg.rfind("pi");
+			if (piIndex == angleArg.size() - 2) {
+				angleArg.erase(angleArg.end() - 2);
+				usePi = true;
+			}
+			angleArg >> angle;
+			if (usePi) {
+				angle = pi(angle);
+			}
+ 			orientation = btQuaternion(axis, angle);
+		}
 		Sim* sim = tx->pub->viz->sim;
 		Material* material = sim->getMaterial(materialId);
 		if (!material) {
@@ -29,7 +61,7 @@ struct BodyCommand: Command {
 		}
 		btRigidBody* body = sim->createBody(
 			shape,
-			btTransform(btQuaternion::getIdentity(), sim->m(position)),
+			btTransform(orientation, sim->m(position)),
 			material
 		);
 		int id = sim->addBody(body);
@@ -80,6 +112,57 @@ struct CapsuleCommand: Command {
 	}
 };
 
+struct HingeCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() != 15) {
+			throw "wrong number of args for hinge (should be 'hinge $body1 $x1 $y1 $z1 $ax1 $ay1 $az1 $body2 $x2 $y2 $z2 $ax2 $ay2 $az2')";
+		}
+		int bodyId1;
+		tx->args[1] >> bodyId1;
+		btVector3 position1;
+		tx->args[2] >> position1.m_floats[0];
+		tx->args[3] >> position1.m_floats[1];
+		tx->args[4] >> position1.m_floats[2];
+		btVector3 axis1;
+		tx->args[5] >> axis1.m_floats[0];
+		tx->args[6] >> axis1.m_floats[1];
+		tx->args[7] >> axis1.m_floats[2];
+		logHingeBody(bodyId1, position1, axis1);
+		int bodyId2;
+		tx->args[8] >> bodyId2;
+		btVector3 position2;
+		tx->args[9] >> position2.m_floats[0];
+		tx->args[10] >> position2.m_floats[1];
+		tx->args[11] >> position2.m_floats[2];
+		btVector3 axis2;
+		tx->args[12] >> axis2.m_floats[0];
+		tx->args[13] >> axis2.m_floats[1];
+		tx->args[14] >> axis2.m_floats[2];
+		logHingeBody(bodyId2, position2, axis1);
+		// Load data.
+		Sim* sim = tx->pub->viz->sim;
+		btRigidBody* body1 = sim->getBody(bodyId1);
+		if (!body1) {
+			throw "no such body1 for hinge";
+		}
+		btRigidBody* body2 = sim->getBody(bodyId2);
+		if (!body2) {
+			throw "no such body2 for hinge";
+		}
+		btTypedConstraint* constraint = new btHingeConstraint(
+			*body1, *body2,
+			position1, position2,
+			axis1, axis2,
+			false
+		);
+		// TODO Any way to control collision allowances?
+		int id = sim->addConstraint(constraint);
+		stringstream result;
+		result << id;
+		return result.str();
+	}
+};
+
 struct MaterialCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (tx->args.size() < 3) {
@@ -109,6 +192,7 @@ void initCommands(Pub* pub) {
 	pub->commands["body"] = new BodyCommand();
 	pub->commands["box"] = new BoxCommand();
 	pub->commands["capsule"] = new CapsuleCommand();
+	pub->commands["hinge"] = new HingeCommand();
 	pub->commands["material"] = new MaterialCommand();
 }
 

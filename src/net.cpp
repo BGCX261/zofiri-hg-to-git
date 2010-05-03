@@ -98,10 +98,20 @@ void Server::select(vector<Socket*>* sockets) {
 			// Don't actually give it to the user until next time, in case no data is ready.
 			// Or should we loop on accepting sockets, then try the open sockets in a next step?
 		}
-		for(vector<Socket*>::iterator s = this->sockets.begin(); s < this->sockets.end(); s++) {
+		vector<Socket*>::iterator s = this->sockets.begin();
+		while(s < this->sockets.end()) {
 			Socket* socket = *s;
 			if (FD_ISSET(socket->id, &ids)) {
-				sockets->push_back(socket);
+				if (socket->closed()) {
+					s = this->sockets.erase(s);
+					delete socket;
+					socket = 0;
+				} else {
+					sockets->push_back(socket);
+				}
+			}
+			if (socket) {
+				s++;
 			}
 		}
 	}
@@ -114,7 +124,16 @@ Socket::Socket(int id) {
 Socket::~Socket() {
 	// TODO closesocket for _WIN32
 	::close(id);
-	id = 0;
+	id = -1;
+}
+
+bool Socket::closed() {
+	char c;
+	if (id >= 0 && !recv(id, &c, 1, MSG_PEEK)) {
+		::close(id);
+		id = -1;
+	}
+	return id < 0;
 }
 
 bool Socket::readLine(std::string* line, bool clear) {
@@ -123,6 +142,9 @@ bool Socket::readLine(std::string* line, bool clear) {
 	bool any = false;
 	if(clear) {
 		line->clear();
+	}
+	if (closed()) {
+		return false;
 	}
 	while(true) {
 		// TODO Change the readline to a generic function.
@@ -147,6 +169,8 @@ bool Socket::readLine(std::string* line, bool clear) {
 			*line += c;
 		} else {
 			// End of stream.
+			cerr << "Totally at the end!" << endl;
+			// id = -1;
 			break;
 		}
 	}

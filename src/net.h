@@ -57,6 +57,8 @@ struct Socket {
 	 */
 	~Socket();
 
+	bool closed();
+
 	/**
 	 * Read all the data currently available.
 	 *

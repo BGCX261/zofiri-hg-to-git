@@ -5,6 +5,13 @@
 
 namespace zof {
 
+void log(const btVector3& vector) {
+	cerr <<
+		"btVector3(" <<
+		vector.x() << "," << vector.y() << "," << vector.z() <<
+		")" << endl;
+}
+
 void logHingeBody(int bodyId, const btVector3& position, const btVector3& axis) {
 	cerr <<
 		"hinge on " << bodyId <<
@@ -215,16 +222,26 @@ void Pub::update() {
 	server->select(&sockets);
 	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
 		Socket* socket = *s;
-		std::string line;
+		cerr << "Found a socket: " << socket << endl;
 		// TODO We need this non-blocking and caching between sessions.
 		// TODO For now we could get hung still.
 		// TODO Create transaction object!!!
 		Transaction tx(this);
+		std::string line;
 		while (socket->readLine(&line) && line != ";") {
+			cerr << "Processing: " << line << endl;
 			std::string result = tx.processLine(line);
 			socket->writeLine(result.c_str());
 		}
-		// TODO Apply updates, and send data.
+		if (line == ";") {
+			cerr << "Processing: " << line << endl;
+			// Give a final status response.
+			socket->writeLine("0");
+			// TODO Apply updates, and send data.
+		}
+	}
+	if (!sockets.empty()) {
+		cerr << "Done with that!" << endl;
 	}
 }
 

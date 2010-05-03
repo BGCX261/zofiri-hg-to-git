@@ -55,10 +55,16 @@ class Transaction:
         """
         self.close()
 
-    def body(self, shapeId, materialId, position, axisAngle):
-        return self.sendForInt('body %d %d %f %f %f %f %f %f %f' % (
-            (shapeId, materialId) + position + axisAngle
-        ))
+    def body(self, shapeId, materialId, position, axisAngle=None):
+        if axisAngle:
+            message = 'body %d %d %f %f %f %f %f %f %f' % (
+                (shapeId, materialId) + tuple(position) + tuple(axisAngle)
+            )
+        else:
+            message = 'body %d %d %f %f %f' % (
+                (shapeId, materialId) + tuple(position)
+            )
+        return self.sendForInt(message)
 
     def capsule(self, radius, spread):
         return self.sendForInt('capsule %f %f' % (radius, spread))
@@ -72,6 +78,11 @@ class Transaction:
             # TODO Could check response.
             self._connection.send(';')
             self._connection = None
+
+    def hinge(self, bodyId1, position1, axis1, bodyId2, position2, axis2):
+        return self.sendForInt('hinge %d %f %f %f %f %f %f %d %f %f %f %f %f %f' % (
+            (bodyId1,) + tuple(position1) + tuple(axis1) + (bodyId2,) + tuple(position2) + tuple(axis2)
+        ))
 
     def material(self, density, color):
         return self.sendForInt('material %f %x' % (density, color))

@@ -6,14 +6,14 @@
 namespace zof {
 
 void log(const btVector3& vector) {
-	cerr <<
+	if (false) cerr <<
 		"btVector3(" <<
 		vector.x() << "," << vector.y() << "," << vector.z() <<
 		")" << endl;
 }
 
 void logHingeBody(int bodyId, const btVector3& position, const btVector3& axis) {
-	cerr <<
+	if (false) cerr <<
 		"hinge on " << bodyId <<
 		" at " << position.x() << "," << position.y() << "," << position.z() <<
 		" around " << axis.x() << "," << axis.y() << "," << axis.z() <<
@@ -158,7 +158,7 @@ struct HingeCommand: Command {
 		}
 		btTypedConstraint* constraint = new btHingeConstraint(
 			*body1, *body2,
-			position1, position2,
+			sim->m(position1), sim->m(position2),
 			axis1, axis2,
 			false
 		);
@@ -222,26 +222,26 @@ void Pub::update() {
 	server->select(&sockets);
 	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
 		Socket* socket = *s;
-		cerr << "Found a socket: " << socket << endl;
+		//cerr << "Found a socket: " << socket << endl;
 		// TODO We need this non-blocking and caching between sessions.
 		// TODO For now we could get hung still.
 		// TODO Create transaction object!!!
 		Transaction tx(this);
 		std::string line;
 		while (socket->readLine(&line) && line != ";") {
-			cerr << "Processing: " << line << endl;
+			//cerr << "Processing: " << line << endl;
 			std::string result = tx.processLine(line);
 			socket->writeLine(result.c_str());
 		}
 		if (line == ";") {
-			cerr << "Processing: " << line << endl;
+			//cerr << "Processing: " << line << endl;
 			// Give a final status response.
 			socket->writeLine("0");
 			// TODO Apply updates, and send data.
 		}
 	}
 	if (!sockets.empty()) {
-		cerr << "Done with that!" << endl;
+		//cerr << "Done with that!" << endl;
 	}
 }
 

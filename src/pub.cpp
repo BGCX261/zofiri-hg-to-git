@@ -169,6 +169,32 @@ struct HingeCommand: Command {
 	}
 };
 
+struct HingeLimitCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() != 4) {
+			throw "wrong number of args for hinge-limit (should be 'hinge-limit $hinge $low $high')";
+		}
+		int hingeId;
+		tx->args[1] >> hingeId;
+		btScalar low, high;
+		tx->args[2] >> low;
+		tx->args[3] >> high;
+		// Load data.
+		Sim* sim = tx->pub->viz->sim;
+		btTypedConstraint* constraint = sim->getConstraint(hingeId);
+		if (!constraint) {
+			throw "no such constraint";
+		}
+		if (constraint->getObjectType() != HINGE_CONSTRAINT_TYPE) {
+			throw "constraint not a hinge";
+		}
+		btHingeConstraint* hinge = dynamic_cast<btHingeConstraint*>(constraint);
+		hinge->setLimit(low, high);
+		// Just non-error case here.
+		return "0";
+	}
+};
+
 struct MaterialCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (tx->args.size() < 3) {
@@ -199,6 +225,7 @@ void initCommands(Pub* pub) {
 	pub->commands["box"] = new BoxCommand();
 	pub->commands["capsule"] = new CapsuleCommand();
 	pub->commands["hinge"] = new HingeCommand();
+	pub->commands["hinge-limit"] = new HingeLimitCommand();
 	pub->commands["material"] = new MaterialCommand();
 }
 

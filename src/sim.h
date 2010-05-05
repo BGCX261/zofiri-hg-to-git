@@ -108,6 +108,8 @@ struct Sim {
 
 	btRigidBody* getBody(int id);
 
+	btTypedConstraint* getConstraint(int id);
+
 	Material* getMaterial(int id);
 
 	btCollisionShape* getShape(int id);

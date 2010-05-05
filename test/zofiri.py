@@ -113,9 +113,14 @@ class Transaction:
             self._connection = None
 
     def hinge(self, body_id1, position1, axis1, body_id2, position2, axis2):
+        # TODO Automate body2 axis at the server?
+        # TODO Should always be the same axes in global frame or not?
         return self._send('hinge %s %f %f %f %f %f %f %s %f %f %f %f %f %f' % (
             (body_id1,) + tuple(position1) + tuple(axis1) + (body_id2,) + tuple(position2) + tuple(axis2)
         ))
+
+    def hinge_limit(self, hinge_id, low_high):
+        return self._send('hinge-limit %s %f %f' % ((hinge_id,) + tuple(low_high)))
 
     def material(self, density, color):
         return self._send('material %f %x' % (density, color))

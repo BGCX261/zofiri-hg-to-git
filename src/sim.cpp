@@ -163,13 +163,18 @@ btRigidBody* Sim::createPlane() {
 }
 
 int Sim::generateId() {
-	// TODO We could do better than this.
+	// TODO We can do better than this.
 	return rand();
 }
 
 btRigidBody* Sim::getBody(int id) {
 	std::map<int,btRigidBody*>::iterator b = bodies.find(id);
 	return b == bodies.end() ? 0 : b->second;
+}
+
+btTypedConstraint* Sim::getConstraint(int id) {
+	std::map<int,btTypedConstraint*>::iterator c = constraints.find(id);
+	return c == constraints.end() ? 0 : c->second;
 }
 
 Material* Sim::getMaterial(int id) {

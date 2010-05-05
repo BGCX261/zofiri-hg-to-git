@@ -218,6 +218,7 @@ Pub::~Pub() {
 }
 
 void Pub::update() {
+	vector<std::string> results;
 	vector<Socket*> sockets;
 	server->select(&sockets);
 	for(vector<Socket*>::iterator s = sockets.begin(); s < sockets.end(); s++) {
@@ -227,17 +228,23 @@ void Pub::update() {
 		// TODO For now we could get hung still.
 		// TODO Create transaction object!!!
 		Transaction tx(this);
+		results.clear();
 		std::string line;
 		while (socket->readLine(&line) && line != ";") {
 			//cerr << "Processing: " << line << endl;
 			std::string result = tx.processLine(line);
-			socket->writeLine(result.c_str());
+			// TODO Manual buffer here, but could we just send and let it buffer elsewhere?
+			// TODO Do we need to support reading before ';'?
+			results.push_back(result);
+		}
+		// cerr << "Results size: " << results.size() << endl;
+		for (vector<std::string>::iterator r = results.begin(); r < results.end(); r++) {
+			socket->writeLine(r->c_str());
 		}
 		if (line == ";") {
-			//cerr << "Processing: " << line << endl;
 			// Give a final status response.
+			//cerr << "Processing: " << line << endl;
 			socket->writeLine("0");
-			// TODO Apply updates, and send data.
 		}
 	}
 	if (!sockets.empty()) {

@@ -1,5 +1,6 @@
 #include <iostream>
 #include "net.h"
+//#include <sys/time.h>
 
 using namespace std;
 
@@ -129,27 +130,34 @@ Socket::~Socket() {
 
 bool Socket::closed() {
 	char c;
-	if (id >= 0 && !recv(id, &c, 1, MSG_PEEK)) {
-		::close(id);
-		id = -1;
+	if (id >= 0) {
+		if (!recv(id, &c, 1, MSG_PEEK)) {
+			::close(id);
+			id = -1;
+		}
 	}
 	return id < 0;
 }
 
 bool Socket::readLine(std::string* line, bool clear) {
+	//long long diff = 0;
+	//timeval start, end;
 	char c;
 	int amount;
 	bool any = false;
 	if(clear) {
 		line->clear();
 	}
-	if (closed()) {
-		return false;
-	}
+	//if (closed()) {
+	//	return false;
+	//}
 	while(true) {
 		// TODO Change the readline to a generic function.
 		// TODO Change the byte giver to one that's buffered?
+		//gettimeofday(&start, 0);
 		amount = recv(id, &c, 1, 0);
+		//gettimeofday(&end, 0);
+		//diff += 1000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000;
 		if(amount < 0) {
 			throw "error reading from socket";
 		}
@@ -170,14 +178,17 @@ bool Socket::readLine(std::string* line, bool clear) {
 		} else {
 			// End of stream.
 			cerr << "Totally at the end!" << endl;
-			// id = -1;
+			::close(id);
+			id = -1;
 			break;
 		}
 	}
+	// cerr << "clock: " << (0.001 * diff) << endl;
 	return any;
 }
 
 void Socket::writeLine(const char* text) {
+	// cerr << "writeLine: " << text << endl;
 	for(; *text; text++) {
 		// TODO Is sending in batches better?
 		send(id, text, 1, 0);

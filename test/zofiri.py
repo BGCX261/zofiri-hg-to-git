@@ -23,22 +23,51 @@ class Connection:
             self._file.close()
         self._file = None
 
+    def read(self):
+        """
+        Reads one result line from the server and returns it as a string,
+        whitespace-stripped on both sides.
+        """
+        # TODO Support quoted args.
+        # TODO Standardize error responses so we can coordinate them here.
+        line = self._file.readline().strip()
+        # print "Received:", line
+        return line
+
     def send(self, line):
         """
         Sends the command line, adding '\n' automatically. Returns the
         result line split into individual result args.
         """
+        # print "Sending:", line
         file = self._file
         file.write(line + '\n')
         file.flush()
-        # TODO Support quoted args.
-        # TODO Support sending multiple before reading.
-        results = file.readline().split()
-        # TODO Standardize error responses so we can coordinate them here.
-        return results
 
     def transaction(self):
         return Transaction(self)
+
+class Result:
+    """
+    Zofiri has variable support that allows for weaving multiple commands
+    in a single transmission. This allows for graph structures rather than
+    just trees as well as allowing a command-oriented protocol, while
+    staying simple and avoiding as much need for round trips. The Result
+    class allows storing temporary var names later to be replaced by the
+    actual result value from the server.
+    """
+
+    def __init__(self, value):
+        """
+        The initial value should begin with a '$' and is used as the variable name.
+        """
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
+
+    def __str__(self):
+        return str(self.value)
 
 class Transaction:
     """
@@ -48,6 +77,8 @@ class Transaction:
 
     def __init__(self, connection):
         self._connection = connection
+        self._results = []
+        self._var_count = 0
         
     def __del__(self):
         """
@@ -55,19 +86,19 @@ class Transaction:
         """
         self.close()
 
-    def body(self, shapeId, materialId, position, axisAngle=None):
-        if axisAngle:
-            message = 'body %d %d %f %f %f %f %f %f %f' % (
-                (shapeId, materialId) + tuple(position) + tuple(axisAngle)
+    def body(self, shape_id, material_id, position, axis_angle=None):
+        if axis_angle:
+            message = 'body %s %s %f %f %f %f %f %f %f' % (
+                (shape_id, material_id) + tuple(position) + tuple(axis_angle)
             )
         else:
-            message = 'body %d %d %f %f %f' % (
-                (shapeId, materialId) + tuple(position)
+            message = 'body %s %s %f %f %f' % (
+                (shape_id, material_id) + tuple(position)
             )
-        return self.sendForInt(message)
+        return self._send(message)
 
     def capsule(self, radius, spread):
-        return self.sendForInt('capsule %f %f' % (radius, spread))
+        return self._send('capsule %f %f' % (radius, spread))
 
     def close(self):
         """
@@ -75,20 +106,34 @@ class Transaction:
         Zofiri doesn't support aborting transactions at the moment.
         """
         if self._connection:
+            # print "Going down!"
             # TODO Could check response.
             self._connection.send(';')
+            self._read_results()
             self._connection = None
 
-    def hinge(self, bodyId1, position1, axis1, bodyId2, position2, axis2):
-        return self.sendForInt('hinge %d %f %f %f %f %f %f %d %f %f %f %f %f %f' % (
-            (bodyId1,) + tuple(position1) + tuple(axis1) + (bodyId2,) + tuple(position2) + tuple(axis2)
+    def hinge(self, body_id1, position1, axis1, body_id2, position2, axis2):
+        return self._send('hinge %s %f %f %f %f %f %f %s %f %f %f %f %f %f' % (
+            (body_id1,) + tuple(position1) + tuple(axis1) + (body_id2,) + tuple(position2) + tuple(axis2)
         ))
 
     def material(self, density, color):
-        return self.sendForInt('material %f %x' % (density, color))
+        return self._send('material %f %x' % (density, color))
 
-    def sendForInt(self, line):
+    def _read_results(self):
+        # print "Results size:", len(self._results)
+        for result in self._results:
+            # Replace the var name with the actual response.
+            result.value = self._connection.read()
+        # Read the commit status, too.
+        self._connection.read()
+
+    def _send(self, line):
         """
-        Send the line and return a single int.
+        Send the line and return a result to be lazily filled.
         """
-        return int(self._connection.send(line)[0])
+        self._var_count += 1;
+        result = Result('$' + str(self._var_count))
+        self._connection.send('%s = %s' % (result, line))
+        self._results.append(result)
+        return result

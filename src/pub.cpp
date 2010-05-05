@@ -162,7 +162,6 @@ struct HingeCommand: Command {
 			axis1, axis2,
 			false
 		);
-		// TODO Any way to control collision allowances?
 		int id = sim->addConstraint(constraint);
 		stringstream result;
 		result << id;

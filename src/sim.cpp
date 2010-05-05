@@ -68,7 +68,7 @@ int Sim::addConstraint(btTypedConstraint* constraint) {
 	int id = generateId();
 	constraints[id] = constraint;
 	// TODO Allow option for collisions between linked bodies?
-	dynamics->addConstraint(constraint, false);
+	dynamics->addConstraint(constraint, true);
 	return id;
 }
 

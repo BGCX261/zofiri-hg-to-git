@@ -1,4 +1,7 @@
-def hand(tx):
+def build_body(tx):
+    build_hand(tx)
+
+def build_hand(tx):
     from math import pi
     from numpy.core import array
     # TODO Support sending all before reading.
@@ -7,9 +10,9 @@ def hand(tx):
     carpal_id = tx.body(tx.capsule(0.01,0.05), metal_id, origin, (0,0,1,0.5*pi))
     # 4 fingers.
     for f in range(4):
-        finger(tx, carpal_id, metal_id, 4, origin, array((0.022*(f-1.5),-0.01,0)))
+        build_finger(tx, carpal_id, metal_id, 4, origin, array((0.022*(f-1.5),-0.01,0)))
 
-def finger(tx, carpalId, material_id, digit_count, origin, position):
+def build_finger(tx, carpalId, material_id, digit_count, origin, position):
     """
     Builds a "finger" chain. Probably base this on general limb linkage
     function later.
@@ -42,7 +45,7 @@ def main():
     conn = Connection()
     tx = conn.transaction()
     try:
-        hand(tx)
+        build_body(tx)
     finally:
         tx.close()
 

@@ -1,6 +1,8 @@
 include_directories(
+  .
   ${BULLET_INCLUDE_DIR}
   ${IRRLICHT_INCLUDE_DIR}
+  ../test
 )
 
 # Use the base dir (in case they are installed there)
@@ -20,7 +22,7 @@ add_executable(
 	pub.cpp
 	sim.cpp
 	viz.cpp
-	world.cpp
+	../test/world.cpp
 )
 
 target_link_libraries(

@@ -125,6 +125,9 @@ class Transaction:
     def material(self, density, color):
         return self._send('material %f %x' % (density, color))
 
+    def shape_scale(self, shape_id, scale):
+        return self._send('shape-scale %s %f %f %f' % ((shape_id,) + tuple(scale)))
+
     def _read_results(self):
         # print "Results size:", len(self._results)
         for result in self._results:

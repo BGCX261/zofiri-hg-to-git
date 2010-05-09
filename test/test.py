@@ -1,3 +1,8 @@
+# TODO Better robot model structures to automate some of these offsets.
+# TODO Should have easy 'attach' features.
+# TODO Then that also gives the model for inverse kinematics/dynamics, too.
+# TODO Should be able to change scales, etc., much easier that way, too.
+
 def build_arm(tx, material_id, side, chest_id, chest_pos):
     from math import pi
     from numpy.core import array
@@ -15,6 +20,9 @@ def build_base(tx, material_id, abdomen_id, abdomen_pos):
     hips_pos = abdomen_pos - (0,0.23,0)
     hips_id = tx.body(tx.capsule(0.12,0.04), material_id, hips_pos)
     hips_hinge_id = tx.hinge(hips_id,(0,0.1,0),(0,1,0), abdomen_id,(0,-0.13,0),(0,1,0))
+    wheel_shape_id = tx.capsule(0.2,0.1)
+    tx.shape_scale(wheel_shape_id, (1,0.1,1))
+    tx.body(wheel_shape_id, material_id, (0,3.5,0))
 
 def build_body(tx):
     from math import pi

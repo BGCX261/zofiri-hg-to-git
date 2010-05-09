@@ -107,6 +107,7 @@ btScalar Sim::calcVolumeBox(btBoxShape* shape) {
 }
 
 btScalar Sim::calcVolumeCapsule(btCapsuleShape* shape) {
+	// TODO Support scaling!
 	btScalar radius = shape->getRadius();
 	btScalar sphereVol = pi(4.0/3.0) * pow(radius, 3);
 	btScalar cylinderVol = pi(2.0) * radius * radius * shape->getHalfHeight();

@@ -220,6 +220,29 @@ struct MaterialCommand: Command {
 	}
 };
 
+struct ShapeScaleCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() != 5) {
+			throw "wrong number of args for shape-scale (should be 'shape-scale $shape $x $y $z')";
+		}
+		int shapeId;
+		tx->args[1] >> shapeId;
+		btVector3 scale;
+		tx->args[2] >> scale.m_floats[0];
+		tx->args[3] >> scale.m_floats[1];
+		tx->args[4] >> scale.m_floats[2];
+		// Load data.
+		Sim* sim = tx->pub->viz->sim;
+		btCollisionShape* shape = sim->getShape(shapeId);
+		if (!shape) {
+			throw "no such shape";
+		}
+		shape->setLocalScaling(scale);
+		// Just non-error case here.
+		return "0";
+	}
+};
+
 void initCommands(Pub* pub) {
 	pub->commands["body"] = new BodyCommand();
 	pub->commands["box"] = new BoxCommand();
@@ -227,6 +250,7 @@ void initCommands(Pub* pub) {
 	pub->commands["hinge"] = new HingeCommand();
 	pub->commands["hinge-limit"] = new HingeLimitCommand();
 	pub->commands["material"] = new MaterialCommand();
+	pub->commands["shape-scale"] = new ShapeScaleCommand();
 }
 
 Pub::Pub(Viz* viz, int port) {

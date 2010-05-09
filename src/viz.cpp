@@ -171,6 +171,9 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 			// TODO Alternatively could calculate normal from latAngle and longAngle.
 			vertex.Normal += vertex.Pos;
 			vertex.Normal /= radius;
+			vertex.Pos.X *= shape->getLocalScaling().x();
+			vertex.Pos.Y *= shape->getLocalScaling().y();
+			vertex.Pos.Z *= shape->getLocalScaling().z();
 			vertices[v] = vertex;
 			if(t < latCountSigned) {
 				u32 v1 = v + 1;

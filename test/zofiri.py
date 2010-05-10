@@ -1,4 +1,6 @@
-class Connection:
+# TODO Move this into main Zofiri src dir?
+
+class Connection(object):
     """
     Represents a connection to a Zofiri server. From here, open transactions
     for individual operations.
@@ -69,7 +71,7 @@ class Result:
     def __str__(self):
         return str(self.value)
 
-class Transaction:
+class Transaction(object):
     """
     A transaction with a Zofiri server. All commands sent on a single transaction
     are executed between simulator time steps by Zofiri.
@@ -96,6 +98,8 @@ class Transaction:
                 (shape_id, material_id) + tuple(position)
             )
         return self._send(message)
+
+    # TODO box (from multisphere)?
 
     def capsule(self, radius, spread):
         return self._send('capsule %f %f' % (radius, spread))
@@ -124,6 +128,8 @@ class Transaction:
 
     def material(self, density, color):
         return self._send('material %f %x' % (density, color))
+
+    # TODO round_box (from multisphere)?
 
     def shape_scale(self, shape_id, scale):
         return self._send('shape-scale %s %f %f %f' % ((shape_id,) + tuple(scale)))

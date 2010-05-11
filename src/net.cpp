@@ -65,7 +65,7 @@ Server::~Server() {
 
 Socket* Server::accept() {
 	sockaddr_in address;
-	size_t addressLength = sizeof(address);
+	socklen_t addressLength = sizeof(address);
 	int socketId = ::accept(id, (sockaddr*)&address, &addressLength);
 	if(socketId < 0) {
 		throw "failed to accept";

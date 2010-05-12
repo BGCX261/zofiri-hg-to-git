@@ -4,9 +4,14 @@ class Material(object):
 
     def __init__(self, density, color):
         """
-        color -- a 32-bit hex ARGB value (or someday mixtures of frequency (mean and std), reflectivity (including specular vs. diffuse and opacity), ...?).
-                 Or emphasize AHSV (i.e., opacity/absorption, frequency, inverse deviation (down to zero), reflectivity?)
-                 Light itself might be best defined in terms of mixtures of frequency (Gaussian mean and std?) with radiant intensity (W/sr) as the Y axis?
+        color -- a 32-bit hex ARGB value (or someday mixtures of
+                 frequency (mean and std), reflectivity (including
+                 specular vs. diffuse and opacity), ...?). Or emphasize
+                 AHSV (i.e., opacity/absorption, frequency, inverse
+                 deviation (down to zero), reflectivity?) Light itself
+                 might be best defined in terms of mixtures of
+                 frequency (Gaussian mean and std?) with radiant
+                 intensity (W/sr) as the Y axis?
         """
         self.density = density
         self.color = color
@@ -40,12 +45,15 @@ class Part(object):
     with joints/sockets defined and a part absorbs that info, or we'd
     just need a function to relink everything and change out whole parts.
     The latter seems simpler (and more intuitive) at this point. So,
-    parts are just parts and incorporat
+    parts are just parts and incorporate shape information and so on.
     """
 
-    def __init__(self):
+    def __init__(self, material=None):
         self.joints = {}
         self.key = None
+        self.material = material
+        # Usually just one socket, but I can imagine other cases, even when
+        # avoiding non-tree linkages.
         self.sockets = {}
 
     def add_joint(self, joint):
@@ -71,18 +79,46 @@ class Part(object):
         empty_joints = self.empty_joints()
         if len(empty_joints) == 1:
             return empty_joints[0]
-        raise PartsError("wrong number of empty joints: %d" % len(empty_joints))
+        raise PartsError("wrong number of empty joints: %d" %
+                         len(empty_joints))
 
     def free_socket(self):
         """Returns the single free socket if exactly one, else error."""
         empty_sockets = self.empty_sockets()
         if len(empty_sockets) == 1:
             return empty_sockets[0]
-        raise PartsError("wrong number of empty sockets: %d" % len(empty_sockets))
+        raise PartsError("wrong number of empty sockets: %d" %
+                         len(empty_sockets))
+
+    def set_material(self, material):
+        """
+        Sets the material for this part and all connected parts without
+        materials already specified. Won't cross material boundaries.
+        That is, if a part with a material separates this part from one
+        without a material, that other part will remain without a
+        material. So this sort of works like a flood-fill.
+        """
+        # TODO Define general fill method with callbacks.
+        # TODO Consider unifying treatment of joints and sockets for cases
+        # like this?
+        self.material = material
+        for joint in self.joints:
+            if joint.connected():
+                other = joint.socket.part
+                if not other.material:
+                    other.set_material(material)
+        for socket in self.sockets:
+            if socket.connected():
+                other = socket.socket.part
+                if not other.material:
+                    other.set_material(material)
 
 class Capsule(Part):
     """
-    TODO Should make shapes separate from parts to allow swapping out shapes.
+    A part defined by a capsule defined by two like spheres.
+
+    TODO Could easily make two spheres of different radii then allow
+    meshes that are still worked with as if capsules?
     """
 
     def __init__(self, radius, half_spread,
@@ -94,25 +130,34 @@ class Capsule(Part):
         default joint should be. The socket is at the positive Y end.
         A corresponding joint is placed on negative Y, with the same
         axis and a matching position.
-        joint_rot - The joint axis and angle (where angle 0 means positive Y for (1,0,0)? and negative angles come toward negative Z?)
-
-        TODO Support multiple materials per part?
+        joint_rot -- The joint axis and angle (where angle 0 means
+                     positive Y for (1,0,0)? and negative angles come
+                     toward negative Z?)
         material -- assigned across linkages automatically if kept None
+                    TODO Support multiple materials per part?
         """
-        Part.__init__(self)
+        Part.__init__(self, material)
         self.radius = radius
         self.half_spread = half_spread
         # TODO Support multiple pos and axis values?
         if joint_pos is not None:
             self.add_joint(Joint(half_spread + joint_pos * radius, joint_rot))
 
-    def place(self, axis, radius_ratio):
+    def end_pos(self, axis=(0,1,0), radius_ratio=1, half_spread_ratio=1):
         """
         Returns a position local to this capsule which is a certain
-        ratio of the radius away from the center of an end circle.
-        In the axis, positive or negative Y controls which end the
-        point is on.
+        ratio of the radius away from the center of an end sphere.
+        In the axis, positive/zero or negative Y controls which end the
+        point is on. To reverse the default, change half_spread_ratio.
+
+        By default, end_pos returns the top tip of the capsule.
         """
+        from mat import A, unitize
+        origin = half_spread_ratio * A(0, self.half_spread, 0)
+        if axis[1] < 0:
+            origin = -origin
+        pos = origin + unitize(axis) * radius_ratio * self.radius
+        return pos
 
 class Joint(object):
     """
@@ -136,7 +181,10 @@ class Joint(object):
         self.socket = None;
 
     def attach(self, socket):
-        # TODO Rotate and position the socket object to correspond to the joint object.
+        self.socket = socket
+        socket.joint = self
+        # TODO Rotate and position the socket's part to correspond to the
+        # joint object and the joint/socket transforms.
         pass
 
     def connected(self):
@@ -144,9 +192,9 @@ class Joint(object):
 
 class Socket(object):
     """
-    What you plug joints into. The socket is merely a
-    static connector. Because this is simulation, it's easy to plug any
-    kind of joint into a generic socket.
+    What you plug joints into. The socket is merely a static connector.
+    Because this is simulation, it's easy to plug any kind of joint
+    into a generic socket.
     """
 
     def __init__(self, pos, axis_angle, name='socket'):

@@ -2,6 +2,11 @@
 For math utilities, simplifying things from numpy and math.
 """
 
+# Import handy things from elsewhere for easier importing from here.
+from math import e, pi
+from numpy import array, sign
+from numpy.linalg import norm
+
 def A(*vals):
     """
     Short for "array". It's simpler for numpy array creation to say
@@ -13,21 +18,13 @@ def A(*vals):
     """
     return array(vals)
 
-# Full form handily available.
-from numpy import array
-
-# Make e easily available.
-from math import e
-
 # Because there is no built-in constant or literal for infinity.
+# Numpy defines various names for infinity, based on a definition in native code.
+# This will do for me here. And it seems the preferred name for Python.
 inf = float('inf')
-
-# Make pi easily available.
-from math import pi
 
 def unitize(vector):
     """
     TODO Support unitizing all vectors along dimension d.
     """
-    from numpy.linalg import norm
     return vector / norm(vector)

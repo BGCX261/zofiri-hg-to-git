@@ -1,3 +1,6 @@
+# I want mat everywhere anyway.
+from mat import *
+
 PartsError = Exception
 
 class Material(object):
@@ -15,8 +18,6 @@ class Material(object):
         """
         self.density = density
         self.color = color
-
-Material.DEFAULT = Material(1, 0xFFFFFF)
 
 class Part(object):
     """
@@ -52,6 +53,8 @@ class Part(object):
         self.joints = {}
         self.key = None
         self.material = material
+        self.pos = A(0,0,0)
+        self.rot = A(1,0,0,0)
         # Usually just one socket, but I can imagine other cases, even when
         # avoiding non-tree linkages.
         self.sockets = {}
@@ -61,6 +64,11 @@ class Part(object):
         # TODO Check for existing?
         self.joints[joint.name] = joint
 
+    def add_socket(self, socket):
+        socket.part = self
+        # TODO Check for existing?
+        self.sockets[socket.name] = socket
+
     def attach(self, part):
         """
         Equivalent to self.free_joint().attach(part.free_socket()).
@@ -69,28 +77,14 @@ class Part(object):
         self.free_joint().attach(part.free_socket())
 
     def empty_joints(self):
-        return [joint for joint in self.joints if not joint.connected()]
+        return [joint for joint in self.joints.itervalues()
+                if not joint.connected()]
 
     def empty_sockets(self):
-        return [socket for socket in self.sockets if not socket.connected()]
+        return [socket for socket in self.sockets.itervalues()
+                if not socket.connected()]
 
-    def free_joint(self):
-        """Returns the single free joint if exactly one, else error."""
-        empty_joints = self.empty_joints()
-        if len(empty_joints) == 1:
-            return empty_joints[0]
-        raise PartsError("wrong number of empty joints: %d" %
-                         len(empty_joints))
-
-    def free_socket(self):
-        """Returns the single free socket if exactly one, else error."""
-        empty_sockets = self.empty_sockets()
-        if len(empty_sockets) == 1:
-            return empty_sockets[0]
-        raise PartsError("wrong number of empty sockets: %d" %
-                         len(empty_sockets))
-
-    def set_material(self, material):
+    def fill_material(self, material):
         """
         Sets the material for this part and all connected parts without
         materials already specified. Won't cross material boundaries.
@@ -102,16 +96,48 @@ class Part(object):
         # TODO Consider unifying treatment of joints and sockets for cases
         # like this?
         self.material = material
-        for joint in self.joints:
+        for joint in self.joints.itervalues():
             if joint.connected():
                 other = joint.socket.part
                 if not other.material:
-                    other.set_material(material)
-        for socket in self.sockets:
+                    other.fill_material(material)
+        for socket in self.sockets.itervalues():
             if socket.connected():
-                other = socket.socket.part
+                other = socket.joint.part
                 if not other.material:
-                    other.set_material(material)
+                    other.fill_material(material)
+
+    def free_joint(self):
+        """
+        Returns the single free joint if exactly one, else error.
+        TODO Consider going along chain looking for all free joints.
+        """
+        empty_joints = self.empty_joints()
+        if len(empty_joints) == 1:
+            return empty_joints[0]
+        raise PartsError("wrong number of empty joints: %d" %
+                         len(empty_joints))
+
+    def free_socket(self):
+        """
+        Returns the single free socket if exactly one, else error.
+        TODO Consider going along chain looking for all free sockets.
+        """
+        empty_sockets = self.empty_sockets()
+        if len(empty_sockets) == 1:
+            return empty_sockets[0]
+        raise PartsError("wrong number of empty sockets: %d" %
+                         len(empty_sockets))
+
+    def reset_all(self, parent=None):
+        """
+        Reset this joint and everything from its socket on. Assumes
+        trees only.
+        """
+        for joint in self.joints.itervalues():
+            joint.reset_all(parent)
+        for socket in self.sockets.itervalues():
+            socket.reset_all(parent)
 
 class Capsule(Part):
     """
@@ -121,10 +147,11 @@ class Capsule(Part):
     meshes that are still worked with as if capsules?
     """
 
-    def __init__(self, radius, half_spread,
-                 material=None,
-                 joint_pos=0.5,
-                 joint_rot=(1,0,0,0)):
+    def __init__(
+            self, radius, half_spread,
+            material=None,
+            joint_pos=0.5,
+            joint_rot=A(1,0,0,0)):
         """
         Param 'joint_pos' indicates how far down the end spheres the
         default joint should be. The socket is at the positive Y end.
@@ -141,9 +168,14 @@ class Capsule(Part):
         self.half_spread = half_spread
         # TODO Support multiple pos and axis values?
         if joint_pos is not None:
-            self.add_joint(Joint(half_spread + joint_pos * radius, joint_rot))
+            self.add_joint(
+                Joint(self.end_pos(radius_ratio=joint_pos), joint_rot))
+            self.add_socket(
+                Socket(
+                    self.end_pos(axis=A(0,-1,0), radius_ratio=joint_pos),
+                    joint_rot))
 
-    def end_pos(self, axis=(0,1,0), radius_ratio=1, half_spread_ratio=1):
+    def end_pos(self, axis=A(0,1,0), radius_ratio=1, half_spread_ratio=1):
         """
         Returns a position local to this capsule which is a certain
         ratio of the radius away from the center of an end sphere.
@@ -152,7 +184,6 @@ class Capsule(Part):
 
         By default, end_pos returns the top tip of the capsule.
         """
-        from mat import A, unitize
         origin = half_spread_ratio * A(0, self.half_spread, 0)
         if axis[1] < 0:
             origin = -origin
@@ -174,34 +205,95 @@ class Joint(object):
         if not name:
             raise PartsError("name undefined")
         self.axis_angle = axis_angle
+        self.key = None
         self.limits = limits
         self.name = name
         self.part = None
         self.pos = pos
-        self.socket = None;
+        self.socket = None
 
-    def attach(self, socket):
+    def attach(self, socket_or_part):
+        socket = socket_or_part.free_socket()
         self.socket = socket
         socket.joint = self
+        self.reset()
         # TODO Rotate and position the socket's part to correspond to the
-        # joint object and the joint/socket transforms.
+        # TODO joint object and the joint/socket transforms.
+        # TODO
+        # TODO Allow reverse attachment from socket, where the main
+        # TODO receiver always coordinates the receivee's transform?
         pass
 
     def connected(self):
         return self.socket is not None
+
+    def reset(self):
+        """
+        Transform the attached part (if any) to conform to this part's
+        transform and the constraints of the joint and socket,
+        resetting all angles and translations to 0.
+        """
+        socket = self.socket
+        if not socket: return
+        other = socket.part
+        # TODO How to calculate other's rot in terms of self's?
+        # TODO Then need to translate it. Or do as one big transform?
+
+    def reset_all(self, parent=None):
+        """
+        Reset this joint and everything from its socket on. Assumes
+        trees only.
+        """
+        if self.connected():
+            self.reset()
+            part = self.socket.part
+            if part != parent:
+                part.reset_all(self.part)
 
 class Socket(object):
     """
     What you plug joints into. The socket is merely a static connector.
     Because this is simulation, it's easy to plug any kind of joint
     into a generic socket.
+
+    TODO Spore has no sockets. Joints attach anywhere. Would we have to
+    TODO create and move around sockets on the fly by our model?
     """
 
     def __init__(self, pos, axis_angle, name='socket'):
-        self.joint = None;
+        self.joint = None
+        self.name = name
         self.part = None
         self.pos = pos
         self.axis_angle = axis_angle
 
     def connected(self):
         return self.joint is not None
+
+    def free_socket(self):
+        if self.connected():
+            raise PartsError("not free")
+        return self
+
+    def reset(self):
+        """
+        Transform the attached part (if any) to conform to this part's
+        transform and the constraints of the joint and socket,
+        resetting all angles and translations to 0.
+        """
+        joint = self.joint
+        if not joint: return
+        other = joint.part
+        # TODO How to calculate other's rot in terms of self's?
+        # TODO Then need to translate it. Or do as one big transform?
+
+    def reset_all(self, parent=None):
+        """
+        Reset this joint and everything from its socket on. Assumes
+        trees only.
+        """
+        if self.connected():
+            self.reset()
+            part = self.joint.part
+            if part != parent:
+                part.reset_all(self.part)

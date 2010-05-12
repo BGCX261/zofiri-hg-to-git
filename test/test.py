@@ -10,6 +10,9 @@ def main(reload=True):
         current = reload_modules()
         current.main(False)
         return
+    from parts_world import Humanoid
+    humanoid = Humanoid()
+    if True: return
     # Now get down to business.
     from world import build_body
     from zofiri import Connection

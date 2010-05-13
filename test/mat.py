@@ -4,8 +4,11 @@ For math utilities, simplifying things from numpy and math.
 
 # Import handy things from elsewhere for easier importing from here.
 from math import e, pi
-from numpy import array, float64, sign
-from numpy.linalg import norm
+from numpy import \
+    abs, append, arccos as acos, arcsin as asin, arctan2 as atan2, argmax, \
+    argmin, array, concatenate as cat, cos, cross, dot, eye, float64, min, \
+    max, outer, real, sign, sin
+from numpy.linalg import eig, norm
 
 def A(*vals):
     """
@@ -22,6 +25,49 @@ def A(*vals):
 # Numpy defines various names for infinity, based on a definition in native code.
 # This will do for me here. And it seems the preferred name for Python.
 inf = float('inf')
+
+def mat_to_rot(mat):
+    """
+    Given an rotation matrix, return an (x, y, z, angle) rotation. See
+    also: http://en.wikipedia.org/wiki/Rotation_matrix
+
+    TODO Support a fast batch form?
+    """
+    # Find the eigenvector with eigenvalue 1.
+    # TODO Is there a faster way than eigen calculation?
+    val, vec = eig(mat)
+    i = argmin(1 - val)
+    axis = real(vec[:,i])
+    # Find the angle as Wikipedia suggests.
+    # TODO Surely a faster way exists.
+    # Find any orthogonal vector.
+    a = (1,0,0)
+    if min(abs(axis - a)) < 0.1:
+        # Just need any non-parallel
+        a = (0,0,1)
+    a = cross(axis, a)
+    # Find the signed angle between a and rotated a.
+    b = dot(mat, a)
+    angle = atan2(dot(cross(a,b),axis), dot(a,b))
+    return append(axis, angle)
+
+def rot_to_mat(rot):
+    """
+    Given an (x, y, z, angle) rotation, create a rotation matrix fit
+    for column vector coordinates. See also:
+    http://en.wikipedia.org/wiki/Rotation_matrix
+
+    TODO Support a fast batch form?
+    """
+    axis = unitize(rot[0:-1])
+    angle = rot[3]
+    out = outer(axis, axis)
+    skew = A(
+        (0, -axis[2], axis[1]),
+        (axis[2], 0, -axis[0]),
+        (-axis[1], axis[0], 0))
+    mat = out + cos(angle)*(eye(3)-out) + sin(angle)*skew
+    return mat
 
 def unitize(vector):
     """

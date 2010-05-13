@@ -33,8 +33,21 @@ def mat_to_rot(mat):
 
     TODO Support a fast batch form?
     """
-    # Find the eigenvector with eigenvalue 1.
+
     # TODO Is there a faster way than eigen calculation?
+    # TODO Wikipedia also gives the following:
+    #
+    # A partial approach is as follows.
+    # x = Qzy-Qyz
+    # y = Qxz-Qzx
+    # z = Qyx-Qxy
+    # r = norm(x,norm(y,z))
+    # t = Qxx+Qyy+Qzz
+    # theta = atan2(r,t-1)
+    # 
+    # The x, y, and z components of the axis would then be divided by r. A fully robust approach will use different code when t is negative, as with quaternion extraction. When r is zero because the angle is zero, an axis must be provided from some source other than the matrix.
+
+    # Find the eigenvector with eigenvalue 1.
     val, vec = eig(mat)
     i = argmin(1 - val)
     axis = real(vec[:,i])
@@ -67,6 +80,16 @@ def rot_to_mat(rot):
         (axis[2], 0, -axis[0]),
         (-axis[1], axis[0], 0))
     mat = out + cos(angle)*(eye(3)-out) + sin(angle)*skew
+    return mat
+
+def transform_to_mat(transform):
+    """
+    Turns an object with pos and rot members to a 4x4 transformation
+    matrix.
+    """
+    mat = rot_to_mat(transform.rot)
+    mat = cat((mat, A(*(transform.pos,)).T), axis=1)
+    mat = cat((mat, A((0,0,0,1))))
     return mat
 
 def unitize(vector):

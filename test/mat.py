@@ -7,7 +7,7 @@ from math import e, pi
 from numpy import \
     abs, append, arccos as acos, arcsin as asin, arctan2 as atan2, argmax, \
     argmin, array, concatenate as cat, cos, cross, dot, eye, float64, min, \
-    max, outer, real, sign, sin
+    max, outer, real, sign, sin, zeros
 from numpy.linalg import eig, norm
 
 def A(*vals):

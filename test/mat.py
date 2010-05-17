@@ -6,9 +6,9 @@ For math utilities, simplifying things from numpy and math.
 from math import e, pi
 from numpy import \
     abs, append, arccos as acos, arcsin as asin, arctan2 as atan2, argmax, \
-    argmin, array, concatenate as cat, cos, cross, dot, eye, float64, min, \
-    max, outer, real, sign, sin, zeros
-from numpy.linalg import eig, norm
+    argmin, array, concatenate as cat, cos, cross, dot, eye, float64, \
+    minimum, maximum, outer, real, sign, sin, zeros
+from numpy.linalg import eig, norm, solve
 
 def A(*vals):
     """
@@ -20,6 +20,13 @@ def A(*vals):
     easily imagined variable names such as 'a'.
     """
     return array(vals, dtype=float64)
+
+def AA(seq_or_array):
+    """
+    For keeping an array as an array or turning another sequence into
+    one.
+    """
+    return array(seq_or_array, copy=False, dtype=float64)
 
 # Because there is no built-in constant or literal for infinity.
 # Numpy defines various names for infinity, based on a definition in native code.
@@ -63,6 +70,17 @@ def mat_to_rot(mat):
     b = dot(mat, a)
     angle = atan2(dot(cross(a,b),axis), dot(a,b))
     return append(axis, angle)
+
+def mat_to_transform(mat, transform=None):
+    """
+    Turns an object with pos and rot members to a 4x4 transformation
+    matrix.
+    """
+    if transform is None:
+        transform = {}
+    transform.rot = mat_to_rot(mat[0:3,0:3])
+    transform.pos = mat[0:3,3]
+    return transform
 
 def rot_to_mat(rot):
     """

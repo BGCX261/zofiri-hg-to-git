@@ -73,6 +73,34 @@ class Part(object):
         """
         self[part.name].attach(part[self.name])
 
+    def bounds_abs(self, chain=True, parent=None):
+        bounds = self.bounds_rel(False)
+        bounds = dot(transform_to_mat(self), cat((bounds, A((1,1)))))
+        bounds = bounds[0:3,:]
+        if chain:
+            for joint in self.joints.itervalues():
+                if joint.connected():
+                    other = joint.socket.part
+                    if other is not parent:
+                        other_bounds = other.bounds_abs(parent=self)
+                        bounds[:,0] = minimum(bounds[:,0], other_bounds[:,0])
+                        bounds[:,1] = maximum(bounds[:,1], other_bounds[:,1])
+        return bounds
+
+    def bounds_rel(self, chain=True):
+        if chain:
+            bounds = self.bounds_abs(True)
+            bounds = cat((bounds, A((1,1))))
+            bounds = solve(transform_to_mat(self), bounds)
+            bounds = bounds[0:3,:]
+            return bounds
+        else:
+            return self._bounds_rel()
+
+    def _bounds_rel(self):
+        # Override for own bounds. This is the core bounds definition.
+        return zeros((3,2))
+
     def empty_joints(self):
         return [joint for joint in self.joints.itervalues()
                 if not joint.connected()]
@@ -142,7 +170,12 @@ class Capsule(Part):
         self.radius = radius
         self.half_spread = half_spread
 
-    def end_pos(self, radius_ratio=1, axis=A(0,1,0), half_spread_ratio=1):
+    def _bounds_rel(self):
+        radius = A(-self.radius, self.radius)
+        bounds = A(radius, radius+(-self.half_spread,self.half_spread), radius)
+        return bounds
+
+    def end_pos(self, radius_ratio=1, axis=(0,1,0), half_spread_ratio=1):
         """
         Returns a position local to this capsule which is a certain
         ratio of the radius away from the center of an end sphere.
@@ -155,6 +188,7 @@ class Capsule(Part):
 
         By default, end_pos returns the top tip of the capsule.
         """
+        axis = AA(axis)
         if radius_ratio < 0:
             axis[1] = -axis[1]
         radius_ratio = abs(radius_ratio)
@@ -174,13 +208,13 @@ class Joint(object):
     TODO Hmm. Should make Motor separate to allow coupled joints.
     """
 
-    def __init__(self, pos, rot=A(1,0,0,0), limits=zeros(6), name=None):
-        self.rot = rot
+    def __init__(self, pos, rot=(1,0,0,0), limits=zeros(6), name=None):
+        self.rot = AA(rot)
         self.key = None
         self.limits = limits
         self.name = name
         self.part = None
-        self.pos = pos
+        self.pos = AA(pos)
         self.socket = None
 
     def attach(self, joint_or_part):
@@ -211,17 +245,16 @@ class Joint(object):
         if not socket: return
         other = socket.part
         self_trans = transform_to_mat(self)
-        print 'reset: self'
-        print self.pos, self.rot
-        print self_trans
-        print 'reset: part'
         part = self.part
         part_trans = transform_to_mat(part)
-        print part.pos, part.rot
-        print part_trans
-        print 'self abs'
-        print dot(self_trans, part_trans)
-        # TODO Transform part by self, then inverse transform by socket
+        joint_abs_trans = dot(self_trans, part_trans)
+        socket_trans = transform_to_mat(socket)
+        other_trans = solve(socket_trans, joint_abs_trans)
+        mat_to_transform(other_trans, other)
+        # print 'part:', part.name, part.pos, part.rot
+        # print 'joint rel:', self.name, self.pos, self.rot
+        # print 'socket rel:', socket.name, socket.pos, socket.rot
+        # print 'other:', other.name, other.pos, other.rot
 
     def reset_all(self, parent=None):
         """

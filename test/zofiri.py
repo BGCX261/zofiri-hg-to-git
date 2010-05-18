@@ -116,6 +116,12 @@ class Transaction(object):
             self._read_results()
             self._connection = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def hinge(self, body_id1, position1, axis1, body_id2, position2, axis2):
         # TODO Automate body2 axis at the server?
         # TODO Should always be the same axes in global frame or not?

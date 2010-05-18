@@ -4,6 +4,8 @@ because numpy can be slow to reload, so I don't kick off new processes
 completely. But the rest of the code reloads fast, and I want it fresh.
 """
 
+from __future__ import with_statement 
+
 def main(reload=True):
     if reload:
         # Always reload our modules for easy testing.
@@ -12,16 +14,12 @@ def main(reload=True):
         return
     from parts_world import Humanoid
     humanoid = Humanoid()
-    if True: return
     # Now get down to business.
     from world import build_body
     from zofiri import Connection
     conn = Connection()
-    tx = conn.transaction()
-    try:
+    with conn.transaction() as tx:
         build_body(tx)
-    finally:
-        tx.close()
     # TODO Introduce clear, resume, and pause features?
     # TODO We could just leave the sim running the whole time if so.
 

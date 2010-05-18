@@ -163,3 +163,22 @@ class Transaction(object):
         self._connection.send('%s = %s' % (result, line))
         self._results.append(result)
         return result
+
+class TestConnection(Connection):
+    """
+    Just prints lines instead of sending them, and replies with random
+    integer values.
+    """
+
+    def __init__(self):
+        from random import Random
+        self._random = Random()
+
+    def close(self):
+        pass
+
+    def read(self):
+        return str(self._random.randint(0, int(1e9)))
+
+    def send(self, line):
+        print line

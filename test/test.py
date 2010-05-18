@@ -12,14 +12,23 @@ def main(reload=True):
         current = reload_modules()
         current.main(False)
         return
-    from parts_world import Humanoid
-    humanoid = Humanoid()
     # Now get down to business.
-    from world import build_body
-    from zofiri import Connection
-    with Connection() as conn:
-        with conn.transaction() as tx:
-            build_body(tx)
+    if False:
+        # Parts-based code.
+        from parts_world import Humanoid
+        humanoid = Humanoid()
+        from zofiri import TestConnection
+        with TestConnection() as conn:
+            with conn.transaction() as tx:
+                # build_body(tx)
+                pass
+    else:
+        # Manual code.
+        from world import build_body
+        from zofiri import Connection, TestConnection
+        with TestConnection() as conn:
+            with conn.transaction() as tx:
+                build_body(tx)
     # TODO Introduce clear, resume, and pause features?
     # TODO We could just leave the sim running the whole time if so.
 

@@ -25,6 +25,12 @@ class Connection(object):
             self._file.close()
         self._file = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def read(self):
         """
         Reads one result line from the server and returns it as a string,

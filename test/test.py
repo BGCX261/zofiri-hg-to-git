@@ -17,9 +17,9 @@ def main(reload=True):
     # Now get down to business.
     from world import build_body
     from zofiri import Connection
-    conn = Connection()
-    with conn.transaction() as tx:
-        build_body(tx)
+    with Connection() as conn:
+        with conn.transaction() as tx:
+            build_body(tx)
     # TODO Introduce clear, resume, and pause features?
     # TODO We could just leave the sim running the whole time if so.
 

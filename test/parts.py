@@ -18,6 +18,7 @@ class Material(object):
         """
         self.density = density
         self.color = color
+        self.key = None
 
 class Part(object):
     """
@@ -153,6 +154,14 @@ class Part(object):
         # TODO Also go along chains?
         return self.joints[key]
 
+    def part(self):
+        """
+        Return a canonical primitive part associated with this
+        potentially abstract part. By default, just returns self
+        (thereby assuming that self is primitive).
+        """
+        return self
+
     def reset_all(self, parent=None, place_at_surface=True):
         """
         Resets the whole tree of parts attached to self, except through
@@ -171,6 +180,24 @@ class Part(object):
             self.pos[1] += 0.01 - bounds[1,0]
             # And reset again to make everything relative to the change.
             self.reset_all(place_at_surface=False)
+
+    def traverse(self, handler, incoming_joint=None):
+        """
+        Traverses trees of parts starting at self and not going back
+        through incoming_joint, calling handler at each point.
+
+        Handling loopy graphs would require more work.
+        """
+        try:
+            handler(self, joint=incoming_joint)
+        except StopIteration:
+            # Prevents going deeper down this path.
+            # Doesn't stop the iteration down other branches.
+            return
+        for joint in self.joints.itervalues():
+            if joint.connected() and joint is not incoming_joint:
+                socket = joint.socket
+                socket.part.traverse(handler, incoming_joint=socket)
 
 class Capsule(Part):
     """

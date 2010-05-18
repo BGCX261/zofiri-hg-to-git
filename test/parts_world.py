@@ -9,10 +9,10 @@ class Arm(object):
         shoulder = Capsule(0.05, 0, name='shoulder')
         shoulder.add_joint(
             Joint(shoulder.end_pos(0), rot=(0,0,facing_x,0), name='chest'))
-        #shoulder.add_joint(Joint(shoulder.end_pos(0), name='upper'))
+        shoulder.add_joint(Joint(shoulder.end_pos(0), name='upper'))
         upper = Capsule(0.03, 0.125, name='upper')
         upper.add_joint(Joint(upper.end_pos(0.5), name='shoulder'))
-        #shoulder.attach(upper)
+        shoulder.attach(upper)
         self.name = 'arm_' + ('right' if facing_x < 0 else 'left')
         self.shoulder = shoulder
 
@@ -28,6 +28,7 @@ class Humanoid(object):
     """
 
     def __init__(self):
+        from mat import A, pi
         from parts import Material
         torso = Torso()
         # TODO Need a better inherit Part or resolve to Part methods.
@@ -37,10 +38,25 @@ class Humanoid(object):
         torso.chest.attach(Arm(-1))
         torso.chest.attach(Arm(1))
         torso.chest.fill_material(Material(1, 0xFF808080))
+
+        # Pick an X,Z that we know are safe.
+        # TODO Put a setter on pos that always float64-arrays the contents.
+        torso.chest.pos = A(-0.2,0,0.2)
+        # TODO Automate X,Z placement based on environment.
+        # TODO Try to pick a nearby place that isn't occupied.
+
+        # TODO Things aren't quite stable if I do this.
+        # TODO Might be bugs somewhere in the rotation handling.
+        # torso.chest.rot = A(0,1,0,0.25*pi)
+
         # Automatically position just above origin.
         torso.chest.reset_all()
         # print "torso bounds:", torso.chest.bounds_abs()
+
         self.torso = torso
+
+    def part(self):
+        return self.torso.chest
 
 class Torso(object):
 
@@ -55,9 +71,9 @@ class Torso(object):
             Joint(abdomen.end_pos(-0.5), (0,1,0,0), name='base'))
         chest.attach(abdomen)
         chest.add_joint(
-            Joint(chest.end_pos(0.8,(1,1,0)), (0,0,-1,0), name='arm_right'))
+            Joint(chest.end_pos(1.4,(2.5,1,0)), (0,0,-1,0), name='arm_right'))
         chest.add_joint(
-            Joint(chest.end_pos(0.8,(-1,1,0)), (0,0,1,0), name='arm_left'))
+            Joint(chest.end_pos(1.4,(-2.5,1,0)), (0,0,1,0), name='arm_left'))
         self.chest = chest
         self.abdomen = abdomen
 

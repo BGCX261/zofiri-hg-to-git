@@ -1,5 +1,7 @@
 # TODO Move this into main Zofiri src dir?
 
+from __future__ import with_statement 
+
 class Connection(object):
     """
     Represents a connection to a Zofiri server. From here, open transactions
@@ -77,6 +79,61 @@ class Result:
     def __str__(self):
         return str(self.value)
 
+class PartsBinder(object):
+    """
+    Binds a set of parts to a Zofiri server, attempting to keep the two
+    sides in sync. Or at least it can serialize (and deserialize soon?).
+
+    TODO Move this to a separate module from zofiri or parts?
+    """
+
+    def __init__(self, connection):
+        self._connection = connection
+
+    def build(self, part):
+        """
+        Send out the commands to build the parts and everything
+        attached to it.
+
+        TODO This needs replaced with more serious two-way binding.
+        """
+
+        def build_capsule(tx, capsule):
+            return tx.capsule(capsule.radius, 2*capsule.half_spread)
+
+        def build_material_if_needed(tx, material):
+            if not material.key:
+                key = tx.material(material.density, material.color)
+                material.key = key
+
+        def build_part_and_joints(tx, part, joint):
+            from parts import Capsule
+            # The following could be handled by the visitor pattern, but
+            # that's stupid, too.
+            # TODO Consider a 'type' field in each part.
+            # TODO That way it's at least not tied to inheritance.
+            shape_key = {
+                Capsule: build_capsule
+            }[type(part)](tx, part)
+            # TODO I still haven't resolved needing angle*pi or not.
+            build_material_if_needed(tx, part.material)
+            body_key = tx.body(
+                shape_key, part.material.key, part.pos, part.rot)
+            part.key = body_key
+            if joint:
+                socket = joint.socket
+                parent = joint.socket.part
+                # TODO For now, the server wants the axis only.
+                # TODO When the server is changes, send the whole rot.
+                joint_key = tx.hinge(
+                    parent.key, socket.pos, socket.rot[0:-1],
+                    body_key, joint.pos, joint.rot[0:-1])
+                joint.key = socket.key = joint_key
+
+        with self._connection.transaction() as tx:
+            part.part().traverse(
+                lambda part, joint: build_part_and_joints(tx, part, joint))
+
 class Transaction(object):
     """
     A transaction with a Zofiri server. All commands sent on a single transaction
@@ -95,7 +152,7 @@ class Transaction(object):
         self.close()
 
     def body(self, shape_id, material_id, position, axis_angle=None):
-        if axis_angle:
+        if axis_angle is not None:
             message = 'body %s %s %f %f %f %f %f %f %f' % (
                 (shape_id, material_id) + tuple(position) + tuple(axis_angle)
             )
@@ -139,7 +196,7 @@ class Transaction(object):
         return self._send('hinge-limit %s %f %f' % ((hinge_id,) + tuple(low_high)))
 
     def material(self, density, color):
-        return self._send('material %f %x' % (density, color))
+        return self._send('material %f %X' % (density, color))
 
     # TODO round_box (from multisphere)?
 

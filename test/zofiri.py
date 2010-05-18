@@ -97,6 +97,7 @@ class PartsBinder(object):
 
         TODO This needs replaced with more serious two-way binding.
         """
+        from mat import minimum, maximum
 
         def build_capsule(tx, capsule):
             return tx.capsule(capsule.radius, 2*capsule.half_spread)
@@ -129,6 +130,14 @@ class PartsBinder(object):
                     parent.key, socket.pos, socket.rot[0:-1],
                     body_key, joint.pos, joint.rot[0:-1])
                 joint.key = socket.key = joint_key
+
+                # Now apply joint limits as the extreme of the two.
+                limits = joint.limits.copy()
+                other_limits = socket.limits
+                limits[:,:,0] = maximum(limits[:,:,0], other_limits[:,:,0])
+                limits[:,:,1] = minimum(limits[:,:,1], other_limits[:,:,1])
+                # TODO Pull out full limits once we support them.
+                tx.hinge_limit(joint_key, limits[1,0,:])
 
         with self._connection.transaction() as tx:
             part.part().traverse(

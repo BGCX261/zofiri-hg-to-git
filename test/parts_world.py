@@ -61,10 +61,15 @@ class Humanoid(object):
 class Torso(object):
 
     def __init__(self):
-        from parts import Capsule, Joint
+        from mat import A, pi
+        from parts import Capsule, Joint, Limits
         chest = Capsule(0.1, 0.0725, name='chest')
         chest.add_joint(Joint(chest.end_pos(0.5), name='head'))
-        chest.add_joint(Joint(chest.end_pos(-0.5), name='abdomen'))
+        chest.add_joint(Joint(
+            chest.end_pos(-0.5),
+            name='abdomen',
+            limits=Limits.rot_x(A(-0.5,0.1)*pi)
+        ))
         abdomen = Capsule(0.08, 0.05, name='abdomen')
         abdomen.add_joint(Joint(abdomen.end_pos(0.5), name='chest'))
         abdomen.add_joint(

@@ -250,10 +250,18 @@ class Joint(object):
     TODO Hmm. Should make Motor separate to allow coupled joints.
     """
 
-    def __init__(self, pos, rot=(1,0,0,0), limits=zeros(6), name=None):
+    def __init__(self, pos, rot=(1,0,0,0), limits=None, name=None):
+        """
+        rot - Where the main axis becomes x,
+              the angle denotes y (rotated from old y?), and
+              z is orthogonal to both (right or left handed?)
+              -- Or rather, what does Bullet do?
+        limits - pos,rot by x,y,z by min,max
+                 Defaults to Limits.rot_x().
+        """
         self.rot = AA(rot)
         self.key = None
-        self.limits = limits
+        self.limits = limits if limits is not None else Limits.rot_x()
         self.name = name
         self.part = None
         self.pos = AA(pos)
@@ -308,3 +316,15 @@ class Joint(object):
             part = self.socket.part
             if part != parent:
                 part.reset_all(parent=self.part)
+
+class Limits(object):
+
+    @staticmethod
+    def rot_x(min_max=(-pi,pi)):
+        limits = Limits.zero()
+        limits[1,0,:] = min_max
+        return limits
+
+    @staticmethod
+    def zero():
+        return zeros((2,3,2))

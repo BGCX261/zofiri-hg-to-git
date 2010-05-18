@@ -75,16 +75,20 @@ class Part(object):
 
     def bounds_abs(self, chain=True, parent=None):
         bounds = self.bounds_rel(False)
+        # print self.name, bounds
         bounds = dot(transform_to_mat(self), cat((bounds, A((1,1)))))
         bounds = bounds[0:3,:]
+        # print self.name, bounds
         if chain:
             for joint in self.joints.itervalues():
                 if joint.connected():
                     other = joint.socket.part
                     if other is not parent:
                         other_bounds = other.bounds_abs(parent=self)
+                        # print other.name, other_bounds
                         bounds[:,0] = minimum(bounds[:,0], other_bounds[:,0])
                         bounds[:,1] = maximum(bounds[:,1], other_bounds[:,1])
+                        # print self.name, bounds
         return bounds
 
     def bounds_rel(self, chain=True):
@@ -149,13 +153,24 @@ class Part(object):
         # TODO Also go along chains?
         return self.joints[key]
 
-    def reset_all(self, parent=None):
+    def reset_all(self, parent=None, place_at_surface=True):
         """
-        Reset this joint and everything from its socket on. Assumes
-        trees only.
+        Resets the whole tree of parts attached to self, except through
+        parent. This means that the joints are all reset to their 0
+        points, and when no parent is specified, the chain is afterwards
+        moved up to just above the surface (Y of 0).
+
+        TODO That auto placement will need to be environmentally aware
+        TODO at some point to be of any use.
         """
         for joint in self.joints.itervalues():
-            joint.reset_all(parent)
+            joint.reset_all(parent=parent)
+        if place_at_surface and parent is None:
+            bounds = self.bounds_rel()
+            # Move the whole chain up to the surface.
+            self.pos[1] += 0.01 - bounds[1,0]
+            # And reset again to make everything relative to the change.
+            self.reset_all(place_at_surface=False)
 
 class Capsule(Part):
     """
@@ -265,4 +280,4 @@ class Joint(object):
             self.reset()
             part = self.socket.part
             if part != parent:
-                part.reset_all(self.part)
+                part.reset_all(parent=self.part)

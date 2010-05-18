@@ -39,7 +39,7 @@ class Humanoid(object):
         torso.chest.fill_material(Material(1, 0xFF808080))
         torso.chest.reset_all()
         # TODO Automatically position just above origin.
-        print "torso bounds:",torso.chest.bounds_rel()
+        print "torso bounds:", torso.chest.bounds_abs()
         self.torso = torso
 
 class Torso(object):

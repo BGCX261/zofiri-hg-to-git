@@ -7,9 +7,8 @@ class Arm(object):
         """
         from parts import Capsule, Joint
         shoulder = Capsule(0.05, 0, name='shoulder')
-        shoulder.add_joint(
-            Joint(shoulder.end_pos(0), rot=(0,0,facing_x,0), name='chest'))
-        shoulder.add_joint(Joint(shoulder.end_pos(0), name='upper'))
+        shoulder.add_joint(Joint((0,0,0), rot=(0,0,facing_x,0), name='chest'))
+        shoulder.add_joint(Joint((0,0,0), name='upper'))
         upper = Capsule(0.03, 0.125, name='upper')
         upper.add_joint(Joint(upper.end_pos(0.5), name='shoulder'))
         shoulder.attach(upper)

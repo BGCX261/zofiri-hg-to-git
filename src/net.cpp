@@ -10,16 +10,15 @@ using namespace std;
 	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <netinet/in.h>
-	#define closeSocket(socket) ::close(socket)
 #endif
 
 namespace zof {
 
-void closeSocket(SocketId id) {
+int closeSocket(SocketId id) {
 	#ifdef _WIN32
-		closesocket(id);
+		return closesocket(id);
 	#else
-		close(id);
+		return close(id);
 	#endif
 }
 

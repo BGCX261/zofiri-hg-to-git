@@ -4,23 +4,36 @@
 
 using namespace std;
 
-#ifdef _WIN32
-	// Include winsock stuff.
-#else
+#ifndef _WIN32
 	#include <stdio.h>
 	#include <string.h>
 	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <netinet/in.h>
+	#define closeSocket(socket) ::close(socket)
 #endif
 
 namespace zof {
+
+void closeSocket(SocketId id) {
+	#ifdef _WIN32
+		closesocket(id);
+	#else
+		close(id);
+	#endif
+}
 
 void initSockets() {
 	static bool needed = true;
 	if(needed) {
 		#ifdef _WIN32
-			// Winsock initialization.
+			// Initialize Winsock
+			int result;
+			WSADATA wsaData;
+			result = WSAStartup(MAKEWORD(2,2), &wsaData);
+			if (result) {
+				throw "WSAStartup failed";
+			}
 		#endif
 		needed = false;
 	}
@@ -35,12 +48,18 @@ Server::Server(int port) {
 	}
 	// Allow reuse to avoid restart blocking pain.
 	int reuse = 1;
-	if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-		throw "failed to set reuseaddr on server socket";
-	}
+	#ifdef _WIN32
+		if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR) {
+			throw "failed to set reuseaddr on server socket";
+		}
+	#else
+		if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+			throw "failed to set reuseaddr on server socket";
+		}
+	#endif
 	// Get ready to bind and listen.
 	sockaddr_in serverAddress;
-	bzero(&serverAddress, sizeof(serverAddress));
+	memset(&serverAddress, 0, sizeof(serverAddress));
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(port);
@@ -53,23 +72,32 @@ Server::Server(int port) {
 }
 
 Server::~Server() {
-	// TODO closesocket for _WIN32
 	// Close all open sockets.
 	for(vector<Socket*>::iterator socket = sockets.begin(); socket < sockets.end(); socket++) {
 		delete *socket;
 	}
 	// And close the server, too.
-	close(id);
+	closeSocket(id);
 	id = 0;
 }
 
 Socket* Server::accept() {
 	sockaddr_in address;
-	socklen_t addressLength = sizeof(address);
-	int socketId = ::accept(id, (sockaddr*)&address, &addressLength);
-	if(socketId < 0) {
-		throw "failed to accept";
-	}
+	#ifdef _WIN32
+		int addressLength = sizeof(address);
+	#else
+		socklen_t addressLength = sizeof(address);
+	#endif
+	SocketId socketId = ::accept(id, (sockaddr*)&address, &addressLength);
+	#ifdef _WIN32
+		if(socketId == INVALID_SOCKET) {
+			throw "failed to accept";
+		}
+	#else
+		if(socketId < 0) {
+			throw "failed to accept";
+		}
+	#endif
 	return new Socket(socketId);
 }
 
@@ -118,13 +146,13 @@ void Server::select(vector<Socket*>* sockets) {
 	}
 }
 
-Socket::Socket(int id) {
+Socket::Socket(SocketId id) {
 	this->id = id;
 }
 
 Socket::~Socket() {
 	// TODO closesocket for _WIN32
-	::close(id);
+	closeSocket(id);
 	id = -1;
 }
 
@@ -132,7 +160,7 @@ bool Socket::closed() {
 	char c;
 	if (id >= 0) {
 		if (!recv(id, &c, 1, MSG_PEEK)) {
-			::close(id);
+			closeSocket(id);
 			id = -1;
 		}
 	}
@@ -178,7 +206,7 @@ bool Socket::readLine(std::string* line, bool clear) {
 		} else {
 			// End of stream.
 			cerr << "Totally at the end!" << endl;
-			::close(id);
+			closeSocket(id);
 			id = -1;
 			break;
 		}

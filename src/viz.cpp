@@ -125,7 +125,7 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 	// TODO How much can I reuse code between this and createSphereMesh?
 	// TODO Can I trust the int math on the doubles?
 	// TODO I basically double the resolution of lat vs. long. Better to keep them the same?
-	latCount = floor(latCount / 2);
+	latCount = latCount / 2;
 	s32 latCountSigned = latCount;
 	// Extra ring in the middle for the capsule.
 	u32 vertexCount = longCount * (2 * latCount + 2);
@@ -225,8 +225,8 @@ IMesh* Viz::createPlaneMesh() {
 	// Resolution for more nodes, so local lighting works better.
 	u32 res = 4;
 	f32 extent = sim->m(10);
-	S3DVertex vertices[(res+1)*(res+1)];
-	u16 indices[6*res*res];
+	S3DVertex* vertices = new S3DVertex[(res+1)*(res+1)];
+	u16* indices = new u16[6*res*res];
 	u32 i = 0;
 	u32 v = 0;
 	for(u32 ix = 0; ix <= res; ix++) {
@@ -252,6 +252,9 @@ IMesh* Viz::createPlaneMesh() {
 	buffer->append(vertices, v, indices, i);
 	SMesh* mesh = new SMesh();
 	mesh->addMeshBuffer(buffer);
+	// TODO Delete these despite potential exceptions above.
+	delete[] indices;
+	delete[] vertices;
 	return mesh;
 }
 
@@ -260,7 +263,7 @@ IMesh* Viz::createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount) 
 	f64 radius = shape->getRadius();
 	// TODO Can I trust the int math on the doubles?
 	// TODO I basically double the resolution of lat vs. long. Better to keep them the same?
-	latCount = floor(latCount / 2);
+	latCount = latCount / 2;
 	s32 latCountSigned = latCount;
 	u32 vertexCount = longCount * (2 * latCount + 1);
 	// TODO Need a macro for _malloca on MSVC?

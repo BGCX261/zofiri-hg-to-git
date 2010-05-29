@@ -19,7 +19,7 @@ Num radToDeg(Num rad) {
 
 template<typename Num>
 Num random(Num scale = 1) {
-	return Num(rand()) / RAND_MAX;
+	return scale * Num(rand()) / RAND_MAX;
 }
 
 template<typename Num>

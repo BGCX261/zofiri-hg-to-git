@@ -108,6 +108,16 @@ void Server::select(vector<Socket*>* sockets) {
 	fd_set ids;
 	FD_ZERO(&ids);
 	FD_SET(id, &ids);
+	vector<Socket*>::iterator s = this->sockets.begin();
+	while(s < this->sockets.end()) {
+		Socket* socket = *s;
+		if (socket->id == -1) {
+			s = this->sockets.erase(s);
+			delete socket;
+		} else {
+			s++;
+		}
+	}
 	for(vector<Socket*>::iterator socket = this->sockets.begin(); socket < this->sockets.end(); socket++) {
 		FD_SET((*socket)->id, &ids);
 	}
@@ -117,6 +127,31 @@ void Server::select(vector<Socket*>* sockets) {
 	// TODO Would really setting to max socket id + 1 really be better?
 	int ready = ::select(FD_SETSIZE, &ids, 0, 0, &timeout);
 	if(ready < 0) {
+		#ifdef _WIN32
+			switch (WSAGetLastError()) {
+			case WSANOTINITIALISED:
+				cerr << "WSAGetLastError" << endl;
+				break;
+			case WSAEFAULT:
+				cerr << "WSAEFAULT" << endl;
+				break;
+			case WSAENETDOWN:
+				cerr << "WSAENETDOWN" << endl;
+				break;
+			case WSAEINVAL:
+				cerr << "WSAEINVAL" << endl;
+				break;
+			case WSAEINTR:
+				cerr << "WSAEINTR" << endl;
+				break;
+			case WSAEINPROGRESS:
+				cerr << "WSAEINPROGRESS" << endl;
+				break;
+			case WSAENOTSOCK:
+				cerr << "WSAENOTSOCK" << endl;
+				break;
+			}
+		#endif
 		throw "failed select";
 	} else if(ready) {
 		if (FD_ISSET(id, &ids)) {
@@ -126,7 +161,7 @@ void Server::select(vector<Socket*>* sockets) {
 			// Don't actually give it to the user until next time, in case no data is ready.
 			// Or should we loop on accepting sockets, then try the open sockets in a next step?
 		}
-		vector<Socket*>::iterator s = this->sockets.begin();
+		s = this->sockets.begin();
 		while(s < this->sockets.end()) {
 			Socket* socket = *s;
 			if (FD_ISSET(socket->id, &ids)) {

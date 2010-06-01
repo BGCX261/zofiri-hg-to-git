@@ -7,13 +7,12 @@ class Arm(object):
         """
         from parts import Capsule, Joint
         shoulder = Capsule(0.05, 0, name='shoulder')
-        shoulder.add_joint(
-            Joint(shoulder.end_pos(0), rot=(0,0,facing_x,0), name='chest'))
-        shoulder.add_joint(Joint(shoulder.end_pos(0), name='upper'))
+        shoulder.add_joint(Joint((0,0,0), rot=(0,0,facing_x,0), name='chest'))
+        shoulder.add_joint(Joint((0,0,0), name='upper'))
         upper = Capsule(0.03, 0.125, name='upper')
         upper.add_joint(Joint(upper.end_pos(0.5), name='shoulder'))
         shoulder.attach(upper)
-        self.name = 'arm_' + ('right' if facing_x < 0 else 'left')
+        self.name = 'arm_' + side_name(facing_x)
         self.shoulder = shoulder
 
     def __getitem__(self, key):
@@ -58,6 +57,9 @@ class Humanoid(object):
     def part(self):
         return self.torso.chest
 
+def side_name(facing_x):
+    return 'right' if facing_x < 0 else 'left'
+
 class Torso(object):
 
     def __init__(self):
@@ -95,9 +97,23 @@ class WheeledBase(object):
         self.hips = hips
         self.name = 'base'
         # TODO Wheels
+        self.wheel_right = self._add_wheel(-1)
+        self.wheel_left = self._add_wheel(1)
         # wheel_shape_id = tx.capsule(0.2,0.1)
         # tx.shape_scale(wheel_shape_id, (1,0.3,1))
         # tx.body(wheel_shape_id, tx.material(0.1, 0x303030), (0,3.5,0))
+
+    def _add_wheel(self, facing_x):
+        from parts import Capsule, Joint
+        wheel = Capsule(0.2, 0, name='wheel_'+side_name(facing_x))
+        wheel.add_joint(Joint((0,0,0), rot=(facing_x,0,0,0), name='hips'))
+        hips = self.hips
+        print hips.end_pos(2,(facing_x*2,-1,0))
+        hips.add_joint(Joint(
+            hips.end_pos(2,(facing_x*2,-1,0)),
+            (facing_x,0,0,0),
+            name=wheel.name))
+        hips.attach(wheel)
 
     def __getitem__(self, key):
         return self.hips[key]

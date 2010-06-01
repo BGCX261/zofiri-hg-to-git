@@ -240,6 +240,23 @@ class Capsule(Part):
         pos = origin + unitize(axis) * radius_ratio * self.radius
         return pos
 
+class Cylinder(Part):
+    """
+    A cylinder along the y axis.
+
+    I'd like to have cylinders with rounded corners (different from
+    capsules), too, but I'm not sure the best way to do that.
+    """
+
+    def __init__(self, radii, material=None, name=None):
+        Part.__init__(self, material=material, name=name)
+        self.radii = AA(radii)
+
+    def _bounds_rel(self):
+        # Should be the same as for a box.
+        bounds = A(-self.radii, self.radii).T
+        return bounds
+
 class Joint(object):
     """
     Represents a hinge joint, but might extend this to 6-DOF joints.
@@ -321,6 +338,12 @@ class Limits(object):
 
     @staticmethod
     def rot_x(min_max=(-pi,pi)):
+        """
+        Limits to allow rotation only around the x axis.
+
+        TODO Make (-inf,inf) the limits, and support inf to mean
+        TODO unconstrained.
+        """
         limits = Limits.zero()
         limits[1,0,:] = min_max
         return limits

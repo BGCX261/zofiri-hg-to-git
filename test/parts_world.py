@@ -104,13 +104,12 @@ class WheeledBase(object):
         # tx.body(wheel_shape_id, tx.material(0.1, 0x303030), (0,3.5,0))
 
     def _add_wheel(self, facing_x):
-        from parts import Capsule, Joint
-        wheel = Capsule(0.2, 0, name='wheel_'+side_name(facing_x))
-        wheel.add_joint(Joint((0,0,0), rot=(facing_x,0,0,0), name='hips'))
+        from parts import Cylinder, Joint
+        wheel = Cylinder((0.2,0.025,0.2), name='wheel_'+side_name(facing_x))
+        wheel.add_joint(Joint((0,0,0), rot=(0,facing_x,0,0), name='hips'))
         hips = self.hips
-        print hips.end_pos(2,(facing_x*2,-1,0))
         hips.add_joint(Joint(
-            hips.end_pos(2,(facing_x*2,-1,0)),
+            hips.end_pos(1.2,(facing_x,0,0),-1),
             (facing_x,0,0,0),
             name=wheel.name))
         hips.attach(wheel)

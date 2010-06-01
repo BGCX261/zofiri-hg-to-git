@@ -50,6 +50,7 @@ void buildPlaneVertices(
 			S3DVertex vertex;
 			vertex.Pos = (k*a + j*b + normal) * halfExtents;
 			//cerr << v << ": " << vertex.Pos.X << ", " << vertex.Pos.Y << ", " << vertex.Pos.Z << "\n";
+			//cerr << hex << material->color.color << dec << endl;
 			vertex.Color = material->color;
 			vertex.Normal = normal;
 			vertices[v] = vertex;
@@ -69,19 +70,18 @@ void Viz::addBody(btCollisionObject* body) {
 	btCollisionShape* shape = body->getCollisionShape();
 	switch(shape->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
-		//cerr << " box ";
 		mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
 		break;
 	case CAPSULE_SHAPE_PROXYTYPE:
-		//cerr << " capsule ";
 		mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
 		break;
+	case CYLINDER_SHAPE_PROXYTYPE:
+		mesh = createCylinderMesh(reinterpret_cast<btCylinderShape*>(shape), material, 10);
+		break;
 	case STATIC_PLANE_PROXYTYPE:
-		//cerr << " plan ";
 		mesh = createPlaneMesh();
 		break;
 	case SPHERE_SHAPE_PROXYTYPE:
-		//cerr << " sphere ";
 		mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
 		break;
 	default:
@@ -212,6 +212,31 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 	}
 	SMeshBuffer* buffer = new SMeshBuffer();
 	buffer->append(vertices, vertexCount, indices, indexCount);
+	SMesh* mesh = new SMesh();
+	mesh->addMeshBuffer(buffer);
+	return mesh;
+}
+
+IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount) {
+	// TODO Cylinder instead of box. Somewhere between a box and a capsule.
+	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
+	const btVector3& radii = shape->getHalfExtentsWithMargin();
+	//cerr << "btCylinderShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
+	vector3df halfExtents(radii.x(), radii.y(), radii.z());
+	//cerr << "irr cylinder shape halfExtents: " << halfExtents.X << " " << halfExtents.Y << " " << halfExtents.Z << endl;
+	S3DVertex vertices[24];
+	u16 indices[36];
+	u32 v = 0;
+	u32 i = 0;
+	//cerr << "START indices: " << indices << ", vertices: " << vertices << " at " << v << endl;
+	buildPlaneVertices(halfExtents, material, vector3df(-1,0,0), vertices, v, indices, i);
+	buildPlaneVertices(halfExtents, material, vector3df(1,0,0), vertices, v, indices, i);
+	buildPlaneVertices(halfExtents, material, vector3df(0,-1,0), vertices, v, indices, i);
+	buildPlaneVertices(halfExtents, material, vector3df(0,1,0), vertices, v, indices, i);
+	buildPlaneVertices(halfExtents, material, vector3df(0,0,-1), vertices, v, indices, i);
+	buildPlaneVertices(halfExtents, material, vector3df(0,0,1), vertices, v, indices, i);
+	SMeshBuffer* buffer = new SMeshBuffer();
+	buffer->append(vertices, v, indices, i);
 	SMesh* mesh = new SMesh();
 	mesh->addMeshBuffer(buffer);
 	return mesh;

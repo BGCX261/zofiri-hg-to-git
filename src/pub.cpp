@@ -119,6 +119,31 @@ struct CapsuleCommand: Command {
 	}
 };
 
+struct CylinderCommand: Command {
+	virtual std::string perform(Transaction* tx) {
+		if (tx->args.size() < 3) {
+			throw "too few args for capsule";
+		}
+		// Parse stuff out to build the material.
+		btVector3 halfExtents;
+		tx->args[1] >> halfExtents.m_floats[0];
+		tx->args[2] >> halfExtents.m_floats[1];
+		if (tx->args.size() < 4) {
+			halfExtents.m_floats[2] = halfExtents.m_floats[0];
+		} else {
+			tx->args[3] >> halfExtents.m_floats[2];
+		}
+		// Build and store the shape.
+		Sim* sim = tx->pub->viz->sim;
+		btCylinderShape* shape = new btCylinderShape(sim->m(halfExtents));
+		int id = sim->addShape(shape);
+		// Return the ID.
+		stringstream result;
+		result << id;
+		return result.str();
+	}
+};
+
 struct HingeCommand: Command {
 	virtual std::string perform(Transaction* tx) {
 		if (tx->args.size() != 15) {
@@ -247,6 +272,7 @@ void initCommands(Pub* pub) {
 	pub->commands["body"] = new BodyCommand();
 	pub->commands["box"] = new BoxCommand();
 	pub->commands["capsule"] = new CapsuleCommand();
+	pub->commands["cylinder"] = new CylinderCommand();
 	pub->commands["hinge"] = new HingeCommand();
 	pub->commands["hinge-limit"] = new HingeLimitCommand();
 	pub->commands["material"] = new MaterialCommand();

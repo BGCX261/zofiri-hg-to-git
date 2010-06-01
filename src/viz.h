@@ -15,6 +15,8 @@ struct Viz {
 
 	IMesh* createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 latCount, u32 longCount);
 
+	IMesh* createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount);
+
 	IMesh* createPlaneMesh();
 
 	/**

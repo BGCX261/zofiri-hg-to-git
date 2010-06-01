@@ -102,19 +102,23 @@ class PartsBinder(object):
         def build_capsule(tx, capsule):
             return tx.capsule(capsule.radius, 2*capsule.half_spread)
 
+        def build_cylinder(tx, cylinder):
+            return tx.cylinder(cylinder.radii)
+
         def build_material_if_needed(tx, material):
             if not material.key:
                 key = tx.material(material.density, material.color)
                 material.key = key
 
         def build_part_and_joints(tx, part, joint):
-            from parts import Capsule
+            from parts import Capsule, Cylinder
             # The following could be handled by the visitor pattern, but
             # that's stupid, too.
             # TODO Consider a 'type' field in each part.
             # TODO That way it's at least not tied to inheritance.
             shape_key = {
-                Capsule: build_capsule
+                Capsule: build_capsule,
+                Cylinder: build_cylinder
             }[type(part)](tx, part)
             # TODO I still haven't resolved needing angle*pi or not.
             build_material_if_needed(tx, part.material)
@@ -175,6 +179,10 @@ class Transaction(object):
 
     def capsule(self, radius, spread):
         return self._send('capsule %f %f' % (radius, spread))
+
+    def cylinder(self, radii):
+        """The y axis is the primary cylinder axis."""
+        return self._send('cylinder %f %f %f' % tuple(radii))
 
     def close(self):
         """

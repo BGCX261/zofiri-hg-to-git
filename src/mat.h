@@ -8,7 +8,7 @@
 namespace zof {
 
 template<typename Num>
-Num pi(Num scale = 1) {
+Num pi(Num scale = 1.0) {
 	return scale * 3.14159265358979323846;
 }
 

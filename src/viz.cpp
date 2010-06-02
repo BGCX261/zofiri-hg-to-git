@@ -251,7 +251,7 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	// Indices.
 	// 2 triangles per quad around.
 	// 1 triangle per longitude on each end.
-	u32 indexCount = 2 * 3 * longCount;
+	u32 indexCount = 4 * 3 * longCount;
 	u16* indices = reinterpret_cast<u16*>(alloca(sizeof(u16) * indexCount));
 	u32 i = 0;
 	// Bottom circle.
@@ -266,7 +266,17 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 		indices[i++] = g == longCount - 1 ? 3 : 2*g + 5;
 		indices[i++] = 2*g + 3;
 	}
-	// TODO Circumference.
+	// Circumference.
+	for (u32 g = 0; g < longCount; g++) {
+		// Triangle 1
+		indices[i++] = 2*g + 2;
+		indices[i++] = 2*g + 3;
+		indices[i++] = g == longCount - 1 ? 2 : 2*g + 4;
+		// Triangle 2
+		indices[i++] = 2*g + 3;
+		indices[i++] = g == longCount - 1 ? 3 : 2*g + 5;
+		indices[i++] = g == longCount - 1 ? 2 : 2*g + 4;
+	}
 	SMeshBuffer* buffer = new SMeshBuffer();
 	buffer->append(vertices, vertexCount, indices, indexCount);
 	SMesh* mesh = new SMesh();

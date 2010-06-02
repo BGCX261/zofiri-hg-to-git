@@ -229,42 +229,22 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	vertex.Color = material->color;
 	// Top vertex.
 	vertex.Pos = vector3df(0,-radii.Y,0);
-	//cerr << "vertex " << v << " at " << vertex.Pos.X << "," << vertex.Pos.Y << "," << vertex.Pos.Z << endl;
 	vertex.Normal = vector3df(0,1,0);
 	vertices[v++] = vertex;
 	// Bottom vertex.
 	vertex.Pos = vector3df(0,radii.Y,0);
-	//cerr << "vertex " << v << " at " << vertex.Pos.X << "," << vertex.Pos.Y << "," << vertex.Pos.Z << endl;
 	vertex.Normal = vector3df(0,-1,0);
 	vertices[v++] = vertex;
 	// Now go around.
 	for(u32 g = 0; g < longCount; g++) {
 		f64 longAngle = (g / f64(longCount)) * pi(2);
-		f32 pos[3] = {cos(longAngle)*radii.X, 0, sin(longAngle)*radii.Z};
-		// Find the reordering based on the up axis of the cylinder.
-		u32 vertexDims[3] = {0,0,0};
-		switch(shape->getUpAxis()) {
-		case 0:
-			vertexDims[0] = 1;
-			vertexDims[2] = 2;
-			break;
-		case 1:
-			vertexDims[1] = 1;
-			vertexDims[2] = 2;
-			break;
-		case 2:
-			vertexDims[1] = 2;
-			vertexDims[2] = 1;
-			break;
-		}
 		// Make the normal without the y. It's not diagonal.
-		vertex.Normal = vector3df(pos[vertexDims[0]],pos[vertexDims[1]],pos[vertexDims[2]]);
+		vertex.Normal = vector3df(cos(longAngle)*radii.X, 0, sin(longAngle)*radii.Z);
+		vertex.Pos = vertex.Normal;
 		vertex.Normal.normalize();
 		// Now put the y in.
 		for (s32 yScale = -1; yScale <= 1; yScale += 2) {
-			pos[vertexDims[1]] = yScale * radii.Y;
-			vertex.Pos = vector3df(pos[vertexDims[0]],pos[vertexDims[1]],pos[vertexDims[2]]);
-			//cerr << "vertex " << v << " at " << vertex.Pos.X << "," << vertex.Pos.Y << "," << vertex.Pos.Z << endl;
+			vertex.Pos.Y = yScale * radii.Y;
 			vertices[v++] = vertex;
 		}
 	}

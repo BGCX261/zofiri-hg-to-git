@@ -311,17 +311,32 @@ class Joint(object):
         socket = self.socket
         if not socket: return
         other = socket.part
-        self_trans = transform_to_mat(self)
+        rot = vecs_to_rot(socket.rot[0:3], self.rot[0:3])
+        self_trans = pos_to_mat(self.pos, rot_to_mat(rot))
         part = self.part
         part_trans = transform_to_mat(part)
-        joint_abs_trans = dot(self_trans, part_trans)
-        socket_trans = transform_to_mat(socket)
+        joint_abs_trans = dot(part_trans, self_trans)
+        socket_trans = pos_to_mat(socket.pos)
         other_trans = solve(socket_trans, joint_abs_trans)
         mat_to_transform(other_trans, other)
-        # print 'part:', part.name, part.pos, part.rot
-        # print 'joint rel:', self.name, self.pos, self.rot
-        # print 'socket rel:', socket.name, socket.pos, socket.rot
-        # print 'other:', other.name, other.pos, other.rot
+        if False and other.name.startswith('wheel'):
+            print '\n\n===========================\n'
+            print 'self_trans'
+            print self_trans
+            print 'part_trans'
+            print part_trans
+            print 'joint_abs_trans'
+            print joint_abs_trans
+            print 'socket_trans'
+            print socket_trans
+            print 'other_trans'
+            print other_trans
+            print '\n---------------------------'
+            print 'part:', part.name, part.pos, part.rot
+            print 'joint rel:', self.name, self.pos, self.rot
+            print 'socket rel:', socket.name, socket.pos, socket.rot
+            print 'other:', other.name, other.pos, other.rot
+            print '\n===========================\n'
 
     def reset_all(self, parent=None):
         """

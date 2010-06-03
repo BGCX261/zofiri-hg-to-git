@@ -92,7 +92,7 @@ class WheeledBase(object):
 
     def __init__(self):
         from parts import Capsule, Joint
-        hips = Capsule(0.12, 0.02, name='hips')
+        hips = Capsule(0.12, 0.1, name='hips')
         hips.add_joint(Joint(hips.end_pos(0.8), (0,1,0,0), name='abdomen'))
         self.hips = hips
         self.name = 'base'
@@ -109,10 +109,10 @@ class WheeledBase(object):
             (0.2,0.025,0.2),
             material=Material(1, 0xFF202020),
             name='wheel_'+side_name(facing_x))
-        wheel.add_joint(Joint((0,0,0), rot=(0,facing_x,0,0), name='hips'))
+        wheel.add_joint(Joint((0,0,0), rot=(0,1,0,0), name='hips'))
         hips = self.hips
         hips.add_joint(Joint(
-            hips.end_pos(1.2,(facing_x,0,0),-1),
+            hips.end_pos(1.2,(-facing_x,0,0),-1),
             (facing_x,0,0,0),
             name=wheel.name))
         hips.attach(wheel)

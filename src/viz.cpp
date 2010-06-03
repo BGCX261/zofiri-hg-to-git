@@ -220,8 +220,8 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount) {
 	btVector3 btRadii = shape->getHalfExtentsWithMargin();
 	vector3df radii(btRadii.x(), btRadii.y(), btRadii.z());
-	// Like a capsule except both sides go directly to respective center points.
-	u32 vertexCount = 2*longCount + 2;
+	// Like a capsule except both ends go directly to respective center points.
+	u32 vertexCount = 4*longCount + 2;
 	// TODO Need a macro for _malloca on MSVC? Not so far?
 	S3DVertex* vertices = reinterpret_cast<S3DVertex*>(alloca(sizeof(S3DVertex) * vertexCount));
 	u32 v = 0;
@@ -229,22 +229,27 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	vertex.Color = material->color;
 	// Top vertex.
 	vertex.Pos = vector3df(0,-radii.Y,0);
-	vertex.Normal = vector3df(0,1,0);
+	vertex.Normal = vector3df(0,-1,0);
 	vertices[v++] = vertex;
 	// Bottom vertex.
 	vertex.Pos = vector3df(0,radii.Y,0);
-	vertex.Normal = vector3df(0,-1,0);
+	vertex.Normal = vector3df(0,1,0);
 	vertices[v++] = vertex;
 	// Now go around.
 	for(u32 g = 0; g < longCount; g++) {
 		f64 longAngle = (g / f64(longCount)) * pi(2);
 		// Make the normal without the y. It's not diagonal.
-		vertex.Normal = vector3df(cos(longAngle)*radii.X, 0, sin(longAngle)*radii.Z);
-		vertex.Pos = vertex.Normal;
-		vertex.Normal.normalize();
+		vector3df normal(cos(longAngle)*radii.X, 0, sin(longAngle)*radii.Z);
+		vertex.Pos = normal;
+		normal.normalize();
 		// Now put the y in.
 		for (s32 yScale = -1; yScale <= 1; yScale += 2) {
 			vertex.Pos.Y = yScale * radii.Y;
+			// End vertex.
+			vertex.Normal = vector3df(0,yScale,0);
+			vertices[v++] = vertex;
+			// Side vertex. Same place, different normal.
+			vertex.Normal = normal;
 			vertices[v++] = vertex;
 		}
 	}
@@ -257,25 +262,25 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	// Bottom circle.
 	for (u32 g = 0; g < longCount; g++) {
 		indices[i++] = 0;
-		indices[i++] = 2*g + 2;
-		indices[i++] = g == longCount - 1 ? 2 : 2*g + 4;
+		indices[i++] = 4*g + 2;
+		indices[i++] = g == longCount - 1 ? 2 : 4*g + 6;
 	}
 	// Top circle.
 	for (u32 g = 0; g < longCount; g++) {
 		indices[i++] = 1;
-		indices[i++] = g == longCount - 1 ? 3 : 2*g + 5;
-		indices[i++] = 2*g + 3;
+		indices[i++] = g == longCount - 1 ? 4 : 4*g + 8;
+		indices[i++] = 4*g + 4;
 	}
 	// Circumference.
 	for (u32 g = 0; g < longCount; g++) {
 		// Triangle 1
-		indices[i++] = 2*g + 2;
-		indices[i++] = 2*g + 3;
-		indices[i++] = g == longCount - 1 ? 2 : 2*g + 4;
+		indices[i++] = 4*g + 3;
+		indices[i++] = 4*g + 5;
+		indices[i++] = g == longCount - 1 ? 3 : 4*g + 7;
 		// Triangle 2
-		indices[i++] = 2*g + 3;
-		indices[i++] = g == longCount - 1 ? 3 : 2*g + 5;
-		indices[i++] = g == longCount - 1 ? 2 : 2*g + 4;
+		indices[i++] = 4*g + 5;
+		indices[i++] = g == longCount - 1 ? 5 : 4*g + 9;
+		indices[i++] = g == longCount - 1 ? 3 : 4*g + 7;
 	}
 	SMeshBuffer* buffer = new SMeshBuffer();
 	buffer->append(vertices, vertexCount, indices, indexCount);

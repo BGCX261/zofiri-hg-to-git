@@ -13,7 +13,15 @@ struct Viz {
 
 	IMesh* buildBoxMesh(btBoxShape* shape, Material* material);
 
+	/**
+	 * TODO Change to supports only Y-axis capsules.
+	 */
 	IMesh* createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 latCount, u32 longCount);
+
+	/**
+	 * Supports only Y-axis cylinders.
+	 */
+	IMesh* createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount);
 
 	IMesh* createPlaneMesh();
 

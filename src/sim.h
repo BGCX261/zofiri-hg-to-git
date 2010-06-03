@@ -67,6 +67,8 @@ struct Sim {
 
 	btScalar calcVolumeCapsule(btCapsuleShape* shape);
 
+	btScalar calcVolumeCylinder(btCylinderShape* shape);
+
 	btScalar calcVolumeSphere(btSphereShape* shape);
 
 	btDefaultCollisionConfiguration collisionConfiguration;

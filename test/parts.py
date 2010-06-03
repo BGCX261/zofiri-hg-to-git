@@ -240,6 +240,23 @@ class Capsule(Part):
         pos = origin + unitize(axis) * radius_ratio * self.radius
         return pos
 
+class Cylinder(Part):
+    """
+    A cylinder along the y axis.
+
+    I'd like to have cylinders with rounded corners (different from
+    capsules), too, but I'm not sure the best way to do that.
+    """
+
+    def __init__(self, radii, material=None, name=None):
+        Part.__init__(self, material=material, name=name)
+        self.radii = AA(radii)
+
+    def _bounds_rel(self):
+        # Should be the same as for a box.
+        bounds = A(-self.radii, self.radii).T
+        return bounds
+
 class Joint(object):
     """
     Represents a hinge joint, but might extend this to 6-DOF joints.
@@ -294,17 +311,32 @@ class Joint(object):
         socket = self.socket
         if not socket: return
         other = socket.part
-        self_trans = transform_to_mat(self)
+        rot = vecs_to_rot(socket.rot[0:3], self.rot[0:3])
+        self_trans = pos_to_mat(self.pos, rot_to_mat(rot))
         part = self.part
         part_trans = transform_to_mat(part)
-        joint_abs_trans = dot(self_trans, part_trans)
-        socket_trans = transform_to_mat(socket)
+        joint_abs_trans = dot(part_trans, self_trans)
+        socket_trans = pos_to_mat(socket.pos)
         other_trans = solve(socket_trans, joint_abs_trans)
         mat_to_transform(other_trans, other)
-        # print 'part:', part.name, part.pos, part.rot
-        # print 'joint rel:', self.name, self.pos, self.rot
-        # print 'socket rel:', socket.name, socket.pos, socket.rot
-        # print 'other:', other.name, other.pos, other.rot
+        if False and other.name.startswith('wheel'):
+            print '\n\n===========================\n'
+            print 'self_trans'
+            print self_trans
+            print 'part_trans'
+            print part_trans
+            print 'joint_abs_trans'
+            print joint_abs_trans
+            print 'socket_trans'
+            print socket_trans
+            print 'other_trans'
+            print other_trans
+            print '\n---------------------------'
+            print 'part:', part.name, part.pos, part.rot
+            print 'joint rel:', self.name, self.pos, self.rot
+            print 'socket rel:', socket.name, socket.pos, socket.rot
+            print 'other:', other.name, other.pos, other.rot
+            print '\n===========================\n'
 
     def reset_all(self, parent=None):
         """
@@ -321,6 +353,12 @@ class Limits(object):
 
     @staticmethod
     def rot_x(min_max=(-pi,pi)):
+        """
+        Limits to allow rotation only around the x axis.
+
+        TODO Make (-inf,inf) the limits, and support inf to mean
+        TODO unconstrained.
+        """
         limits = Limits.zero()
         limits[1,0,:] = min_max
         return limits

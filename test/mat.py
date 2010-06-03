@@ -5,8 +5,8 @@ For math utilities, simplifying things from numpy and math.
 # Import handy things from elsewhere for easier importing from here.
 from math import e, pi
 from numpy import \
-    abs, append, arccos as acos, arcsin as asin, arctan2 as atan2, argmax, \
-    argmin, array, concatenate as cat, cos, cross, dot, eye, float64, \
+    abs, any, append, arccos as acos, arcsin as asin, arctan2 as atan2, argmax, \
+    argmin, array, concatenate as cat, cos, cross, dot, eye, float64, isnan, \
     minimum, maximum, ones, outer, real, sign, sin, zeros
 from numpy.linalg import eig, norm, solve
 
@@ -61,11 +61,10 @@ def mat_to_rot(mat):
     # Find the angle as Wikipedia suggests.
     # TODO Surely a faster way exists.
     # Find any orthogonal vector.
-    a = (1,0,0)
-    if min(abs(axis - a)) < 0.1:
+    a = cross(axis, (1,0,0))
+    if any(isnan(a)):
         # Just need any non-parallel
-        a = (0,0,1)
-    a = cross(axis, a)
+        a = cross(axis, (0,0,1))
     # Find the signed angle between a and rotated a.
     b = dot(mat, a)
     angle = atan2(dot(cross(a,b),axis), dot(a,b))
@@ -82,9 +81,18 @@ def mat_to_transform(mat, transform=None):
     transform.pos = mat[0:3,3]
     return transform
 
+def pos_to_mat(pos, rot_mat=None):
+    """
+    Given an (x, y, z) position, create a 4x4 homogeneous transformation matrix.
+    """
+    mat = eye(3) if rot_mat is None else rot_mat
+    mat = cat((mat, A(*(pos,)).T), axis=1)
+    mat = cat((mat, A((0,0,0,1))))
+    return mat
+
 def rot_to_mat(rot):
     """
-    Given an (x, y, z, angle) rotation, create a rotation matrix fit
+    Given an (x, y, z, angle) rotation, create a 3x3 rotation matrix fit
     for column vector coordinates. See also:
     http://en.wikipedia.org/wiki/Rotation_matrix
 
@@ -106,12 +114,22 @@ def transform_to_mat(transform):
     matrix.
     """
     mat = rot_to_mat(transform.rot)
-    mat = cat((mat, A(*(transform.pos,)).T), axis=1)
-    mat = cat((mat, A((0,0,0,1))))
-    return mat
+    return pos_to_mat(transform.pos, mat)
 
 def unitize(vector):
     """
     TODO Support unitizing all vectors along dimension d.
     """
     return vector / norm(vector)
+
+def vecs_to_rot(a, b):
+    """
+    Finds the rotation from vector a to vector b using as axis an
+    orthogonal vector.
+    """
+    axis = unitize(cross(a,b))
+    if any(isnan(axis)):
+        # Parallel vectors -> No rotation, arbitrary axis.
+        return (1,0,0,0)
+    angle = atan2(dot(cross(a,b),axis), dot(a,b))
+    return append(axis, angle)

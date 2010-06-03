@@ -25,12 +25,26 @@ add_executable(
 	../test/world.cpp
 )
 
-target_link_libraries(
-	zofiri
-	${OPENGL_gl_LIBRARY}
-	BulletDynamics
-	BulletCollision
-	LinearMath
-	Irrlicht
-	Xxf86vm
-)
+
+if(CMAKE_COMPILER_IS_GNUCC)
+	# TODO Mac-friendly?
+	target_link_libraries(
+		zofiri
+		${OPENGL_gl_LIBRARY}
+		BulletDynamics
+		BulletCollision
+		LinearMath
+		Irrlicht
+		Xxf86vm
+	)
+else(CMAKE_COMPILER_IS_GNUCC)
+	target_link_libraries(
+		zofiri
+		${OPENGL_gl_LIBRARY}
+		BulletDynamics
+		BulletCollision
+		LinearMath
+		Irrlicht
+		wsock32
+	)
+endif(CMAKE_COMPILER_IS_GNUCC)

@@ -92,7 +92,10 @@ btScalar Sim::calcVolume(btCollisionShape* shape) {
 		return calcVolumeBox(reinterpret_cast<btBoxShape*>(shape));
 	case CAPSULE_SHAPE_PROXYTYPE:
 		return calcVolumeCapsule(reinterpret_cast<btCapsuleShape*>(shape));
+	case CYLINDER_SHAPE_PROXYTYPE:
+		return calcVolumeCylinder(reinterpret_cast<btCylinderShape*>(shape));
 	case STATIC_PLANE_PROXYTYPE:
+		// TODO Maybe NaN would be better.
 		return 0;
 	case SPHERE_SHAPE_PROXYTYPE:
 		return calcVolumeSphere(reinterpret_cast<btSphereShape*>(shape));
@@ -102,7 +105,7 @@ btScalar Sim::calcVolume(btCollisionShape* shape) {
 }
 
 btScalar Sim::calcVolumeBox(btBoxShape* shape) {
-	btVector3 extents = 2 * shape->getHalfExtentsWithoutMargin();
+	btVector3 extents = 2 * shape->getHalfExtentsWithMargin();
 	return extents.x() * extents.y() * extents.z();
 }
 
@@ -112,6 +115,11 @@ btScalar Sim::calcVolumeCapsule(btCapsuleShape* shape) {
 	btScalar sphereVol = pi(4.0/3.0) * pow(radius, 3);
 	btScalar cylinderVol = pi(2.0) * radius * radius * shape->getHalfHeight();
 	return sphereVol + cylinderVol;
+}
+
+btScalar Sim::calcVolumeCylinder(btCylinderShape* shape) {
+	btVector3 halfExtents = shape->getHalfExtentsWithMargin();
+	return pi(1.0) * halfExtents.x() * halfExtents.z() * 2 * halfExtents.y();
 }
 
 btScalar Sim::calcVolumeSphere(btSphereShape* shape) {

@@ -339,14 +339,14 @@ void World::reset() {
 		// Find a place over the table to drop the block.
 		const btVector3& tableSize = tableShape->getHalfExtentsWithoutMargin();
 		btScalar maxRadius = min_(tableSize.x(), tableSize.z()) - blockShape->getHalfExtentsWithoutMargin().x();
-		btScalar radius = drand48() * maxRadius;
-		btScalar angle = pi(2 * drand48());
+		btScalar radius = random(maxRadius);
+		btScalar angle = pi(random(2.0));
 		btScalar dx = cos(angle) * radius;
-		btScalar dy = 15 * drand48() + 3 + tableSize.y() + blockShape->getHalfExtentsWithoutMargin().x();
+		btScalar dy = random(15.0) + 3 + tableSize.y() + blockShape->getHalfExtentsWithoutMargin().x();
 		btScalar dz = sin(angle) * radius;
 		// Place the block there.
 		blockTransform.setOrigin(tableTransform.getOrigin() + sim->cm(btVector3(dx,dy,dz)));
-		blockTransform.setRotation(btQuaternion(pi(2*drand48()),pi(2*drand48()),pi(2*drand48())));
+		blockTransform.setRotation(btQuaternion(pi(random(2.0)),pi(random(2.0)),pi(random(2.0))));
 		//cout << blockTransform.getOrigin().x() << ", " << blockTransform.getOrigin().y() << ", " << blockTransform.getOrigin().z() << "\n";
 		block->getMotionState()->setWorldTransform(blockTransform);
 		block->setWorldTransform(blockTransform);

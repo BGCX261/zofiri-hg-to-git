@@ -4,11 +4,22 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+	// Include winsock stuff so we can use SOCKET even here.
+	#include <winsock2.h>
+	#include <windows.h>
+#endif
+
 using namespace std;
 
 namespace zof {
 
 // TODO Net struct for setup/teardown.
+#ifdef _WIN32
+	typedef SOCKET SocketId;
+#else
+	typedef int SocketId;
+#endif
 
 struct Socket;
 
@@ -39,7 +50,7 @@ struct Server {
 private:
 
 	// TODO Might have to generalize this a bit for windows.
-	int id;
+	SocketId id;
 
 	/**
 	 * All currently open sockets from this server.
@@ -50,7 +61,7 @@ private:
 
 struct Socket {
 
-	Socket(int id);
+	Socket(SocketId id);
 
 	/**
 	 * Closes the socket.
@@ -88,7 +99,7 @@ private:
 	friend struct Server;
 
 	// TODO Might have to generalize this a bit for windows.
-	int id;
+	SocketId id;
 
 };
 

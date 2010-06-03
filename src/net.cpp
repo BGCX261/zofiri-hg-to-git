@@ -4,9 +4,7 @@
 
 using namespace std;
 
-#ifdef _WIN32
-	// Include winsock stuff.
-#else
+#ifndef _WIN32
 	#include <stdio.h>
 	#include <string.h>
 	#include <sys/types.h>
@@ -16,11 +14,25 @@ using namespace std;
 
 namespace zof {
 
+int closeSocket(SocketId id) {
+	#ifdef _WIN32
+		return closesocket(id);
+	#else
+		return close(id);
+	#endif
+}
+
 void initSockets() {
 	static bool needed = true;
 	if(needed) {
 		#ifdef _WIN32
-			// Winsock initialization.
+			// Initialize Winsock
+			int result;
+			WSADATA wsaData;
+			result = WSAStartup(MAKEWORD(2,2), &wsaData);
+			if (result) {
+				throw "WSAStartup failed";
+			}
 		#endif
 		needed = false;
 	}
@@ -35,12 +47,18 @@ Server::Server(int port) {
 	}
 	// Allow reuse to avoid restart blocking pain.
 	int reuse = 1;
-	if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-		throw "failed to set reuseaddr on server socket";
-	}
+	#ifdef _WIN32
+		if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR) {
+			throw "failed to set reuseaddr on server socket";
+		}
+	#else
+		if(setsockopt(id, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+			throw "failed to set reuseaddr on server socket";
+		}
+	#endif
 	// Get ready to bind and listen.
 	sockaddr_in serverAddress;
-	bzero(&serverAddress, sizeof(serverAddress));
+	memset(&serverAddress, 0, sizeof(serverAddress));
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(port);
@@ -53,23 +71,32 @@ Server::Server(int port) {
 }
 
 Server::~Server() {
-	// TODO closesocket for _WIN32
 	// Close all open sockets.
 	for(vector<Socket*>::iterator socket = sockets.begin(); socket < sockets.end(); socket++) {
 		delete *socket;
 	}
 	// And close the server, too.
-	close(id);
+	closeSocket(id);
 	id = 0;
 }
 
 Socket* Server::accept() {
 	sockaddr_in address;
-	socklen_t addressLength = sizeof(address);
-	int socketId = ::accept(id, (sockaddr*)&address, &addressLength);
-	if(socketId < 0) {
-		throw "failed to accept";
-	}
+	#ifdef _WIN32
+		int addressLength = sizeof(address);
+	#else
+		socklen_t addressLength = sizeof(address);
+	#endif
+	SocketId socketId = ::accept(id, (sockaddr*)&address, &addressLength);
+	#ifdef _WIN32
+		if(socketId == INVALID_SOCKET) {
+			throw "failed to accept";
+		}
+	#else
+		if(socketId < 0) {
+			throw "failed to accept";
+		}
+	#endif
 	return new Socket(socketId);
 }
 
@@ -81,6 +108,16 @@ void Server::select(vector<Socket*>* sockets) {
 	fd_set ids;
 	FD_ZERO(&ids);
 	FD_SET(id, &ids);
+	vector<Socket*>::iterator s = this->sockets.begin();
+	while(s < this->sockets.end()) {
+		Socket* socket = *s;
+		if (socket->id == -1) {
+			s = this->sockets.erase(s);
+			delete socket;
+		} else {
+			s++;
+		}
+	}
 	for(vector<Socket*>::iterator socket = this->sockets.begin(); socket < this->sockets.end(); socket++) {
 		FD_SET((*socket)->id, &ids);
 	}
@@ -90,6 +127,31 @@ void Server::select(vector<Socket*>* sockets) {
 	// TODO Would really setting to max socket id + 1 really be better?
 	int ready = ::select(FD_SETSIZE, &ids, 0, 0, &timeout);
 	if(ready < 0) {
+		#ifdef _WIN32
+			switch (WSAGetLastError()) {
+			case WSANOTINITIALISED:
+				cerr << "WSAGetLastError" << endl;
+				break;
+			case WSAEFAULT:
+				cerr << "WSAEFAULT" << endl;
+				break;
+			case WSAENETDOWN:
+				cerr << "WSAENETDOWN" << endl;
+				break;
+			case WSAEINVAL:
+				cerr << "WSAEINVAL" << endl;
+				break;
+			case WSAEINTR:
+				cerr << "WSAEINTR" << endl;
+				break;
+			case WSAEINPROGRESS:
+				cerr << "WSAEINPROGRESS" << endl;
+				break;
+			case WSAENOTSOCK:
+				cerr << "WSAENOTSOCK" << endl;
+				break;
+			}
+		#endif
 		throw "failed select";
 	} else if(ready) {
 		if (FD_ISSET(id, &ids)) {
@@ -99,7 +161,7 @@ void Server::select(vector<Socket*>* sockets) {
 			// Don't actually give it to the user until next time, in case no data is ready.
 			// Or should we loop on accepting sockets, then try the open sockets in a next step?
 		}
-		vector<Socket*>::iterator s = this->sockets.begin();
+		s = this->sockets.begin();
 		while(s < this->sockets.end()) {
 			Socket* socket = *s;
 			if (FD_ISSET(socket->id, &ids)) {
@@ -118,13 +180,13 @@ void Server::select(vector<Socket*>* sockets) {
 	}
 }
 
-Socket::Socket(int id) {
+Socket::Socket(SocketId id) {
 	this->id = id;
 }
 
 Socket::~Socket() {
 	// TODO closesocket for _WIN32
-	::close(id);
+	closeSocket(id);
 	id = -1;
 }
 
@@ -132,7 +194,7 @@ bool Socket::closed() {
 	char c;
 	if (id >= 0) {
 		if (!recv(id, &c, 1, MSG_PEEK)) {
-			::close(id);
+			closeSocket(id);
 			id = -1;
 		}
 	}
@@ -178,7 +240,7 @@ bool Socket::readLine(std::string* line, bool clear) {
 		} else {
 			// End of stream.
 			cerr << "Totally at the end!" << endl;
-			::close(id);
+			closeSocket(id);
 			id = -1;
 			break;
 		}

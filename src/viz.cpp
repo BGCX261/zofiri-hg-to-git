@@ -50,6 +50,7 @@ void buildPlaneVertices(
 			S3DVertex vertex;
 			vertex.Pos = (k*a + j*b + normal) * halfExtents;
 			//cerr << v << ": " << vertex.Pos.X << ", " << vertex.Pos.Y << ", " << vertex.Pos.Z << "\n";
+			//cerr << hex << material->color.color << dec << endl;
 			vertex.Color = material->color;
 			vertex.Normal = normal;
 			vertices[v] = vertex;
@@ -69,19 +70,18 @@ void Viz::addBody(btCollisionObject* body) {
 	btCollisionShape* shape = body->getCollisionShape();
 	switch(shape->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
-		//cerr << " box ";
 		mesh = buildBoxMesh(reinterpret_cast<btBoxShape*>(shape), material);
 		break;
 	case CAPSULE_SHAPE_PROXYTYPE:
-		//cerr << " capsule ";
 		mesh = createCapsuleMesh(reinterpret_cast<btCapsuleShape*>(shape), material, 10, 10);
 		break;
+	case CYLINDER_SHAPE_PROXYTYPE:
+		mesh = createCylinderMesh(reinterpret_cast<btCylinderShape*>(shape), material, 20);
+		break;
 	case STATIC_PLANE_PROXYTYPE:
-		//cerr << " plan ";
 		mesh = createPlaneMesh();
 		break;
 	case SPHERE_SHAPE_PROXYTYPE:
-		//cerr << " sphere ";
 		mesh = createSphereMesh(reinterpret_cast<btSphereShape*>(shape), 10, 10);
 		break;
 	default:
@@ -96,7 +96,7 @@ void Viz::addBody(btCollisionObject* body) {
 
 IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
 	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
-	const btVector3& btHalfExtents = shape->getHalfExtentsWithMargin();
+	btVector3 btHalfExtents = shape->getHalfExtentsWithMargin();
 	//cerr << "btBoxShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
 	vector3df halfExtents(btHalfExtents.x(), btHalfExtents.y(), btHalfExtents.z());
 	//cerr << "btBoxShape halfExtents: " << halfExtents.X << " " << halfExtents.Y << " " << halfExtents.Z << endl;
@@ -125,7 +125,7 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 	// TODO How much can I reuse code between this and createSphereMesh?
 	// TODO Can I trust the int math on the doubles?
 	// TODO I basically double the resolution of lat vs. long. Better to keep them the same?
-	latCount = floor(latCount / 2);
+	latCount = latCount / 2;
 	s32 latCountSigned = latCount;
 	// Extra ring in the middle for the capsule.
 	u32 vertexCount = longCount * (2 * latCount + 2);
@@ -217,6 +217,78 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 	return mesh;
 }
 
+IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount) {
+	btVector3 btRadii = shape->getHalfExtentsWithMargin();
+	vector3df radii(btRadii.x(), btRadii.y(), btRadii.z());
+	// Like a capsule except both ends go directly to respective center points.
+	u32 vertexCount = 4*longCount + 2;
+	// TODO Need a macro for _malloca on MSVC? Not so far?
+	S3DVertex* vertices = reinterpret_cast<S3DVertex*>(alloca(sizeof(S3DVertex) * vertexCount));
+	u32 v = 0;
+	S3DVertex vertex;
+	vertex.Color = material->color;
+	// Top vertex.
+	vertex.Pos = vector3df(0,-radii.Y,0);
+	vertex.Normal = vector3df(0,-1,0);
+	vertices[v++] = vertex;
+	// Bottom vertex.
+	vertex.Pos = vector3df(0,radii.Y,0);
+	vertex.Normal = vector3df(0,1,0);
+	vertices[v++] = vertex;
+	// Now go around.
+	for(u32 g = 0; g < longCount; g++) {
+		f64 longAngle = (g / f64(longCount)) * pi(2);
+		// Make the normal without the y. It's not diagonal.
+		vector3df normal(cos(longAngle)*radii.X, 0, sin(longAngle)*radii.Z);
+		vertex.Pos = normal;
+		normal.normalize();
+		// Now put the y in.
+		for (s32 yScale = -1; yScale <= 1; yScale += 2) {
+			vertex.Pos.Y = yScale * radii.Y;
+			// End vertex.
+			vertex.Normal = vector3df(0,yScale,0);
+			vertices[v++] = vertex;
+			// Side vertex. Same place, different normal.
+			vertex.Normal = normal;
+			vertices[v++] = vertex;
+		}
+	}
+	// Indices.
+	// 2 triangles per quad around.
+	// 1 triangle per longitude on each end.
+	u32 indexCount = 4 * 3 * longCount;
+	u16* indices = reinterpret_cast<u16*>(alloca(sizeof(u16) * indexCount));
+	u32 i = 0;
+	// Bottom circle.
+	for (u32 g = 0; g < longCount; g++) {
+		indices[i++] = 0;
+		indices[i++] = 4*g + 2;
+		indices[i++] = g == longCount - 1 ? 2 : 4*g + 6;
+	}
+	// Top circle.
+	for (u32 g = 0; g < longCount; g++) {
+		indices[i++] = 1;
+		indices[i++] = g == longCount - 1 ? 4 : 4*g + 8;
+		indices[i++] = 4*g + 4;
+	}
+	// Circumference.
+	for (u32 g = 0; g < longCount; g++) {
+		// Triangle 1
+		indices[i++] = 4*g + 3;
+		indices[i++] = 4*g + 5;
+		indices[i++] = g == longCount - 1 ? 3 : 4*g + 7;
+		// Triangle 2
+		indices[i++] = 4*g + 5;
+		indices[i++] = g == longCount - 1 ? 5 : 4*g + 9;
+		indices[i++] = g == longCount - 1 ? 3 : 4*g + 7;
+	}
+	SMeshBuffer* buffer = new SMeshBuffer();
+	buffer->append(vertices, vertexCount, indices, indexCount);
+	SMesh* mesh = new SMesh();
+	mesh->addMeshBuffer(buffer);
+	return mesh;
+}
+
 IMesh* Viz::createPlaneMesh() {
 	// TODO Figure out LH vs. RH.
 	// TODO This really isn't infinite.
@@ -225,8 +297,9 @@ IMesh* Viz::createPlaneMesh() {
 	// Resolution for more nodes, so local lighting works better.
 	u32 res = 4;
 	f32 extent = sim->m(10);
-	S3DVertex vertices[(res+1)*(res+1)];
-	u16 indices[6*res*res];
+	// TODO Apparently alloca works elsewhere. Look into that here.
+	S3DVertex* vertices = new S3DVertex[(res+1)*(res+1)];
+	u16* indices = new u16[6*res*res];
 	u32 i = 0;
 	u32 v = 0;
 	for(u32 ix = 0; ix <= res; ix++) {
@@ -252,6 +325,9 @@ IMesh* Viz::createPlaneMesh() {
 	buffer->append(vertices, v, indices, i);
 	SMesh* mesh = new SMesh();
 	mesh->addMeshBuffer(buffer);
+	// TODO Delete these despite potential exceptions above. Use alloca?
+	delete[] indices;
+	delete[] vertices;
 	return mesh;
 }
 
@@ -260,7 +336,7 @@ IMesh* Viz::createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount) 
 	f64 radius = shape->getRadius();
 	// TODO Can I trust the int math on the doubles?
 	// TODO I basically double the resolution of lat vs. long. Better to keep them the same?
-	latCount = floor(latCount / 2);
+	latCount = latCount / 2;
 	s32 latCountSigned = latCount;
 	u32 vertexCount = longCount * (2 * latCount + 1);
 	// TODO Need a macro for _malloca on MSVC?

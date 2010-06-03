@@ -8,8 +8,8 @@ using namespace zof;
 int main(int argc, char** argv) {
 	try {
 		// Randomize the universe.
+		// TODO Better random handling.
 		srand(time(0));
-		srand48(time(0));
 		// TODO Note that none of this shows 3rd party dependencies.
 		// TODO Hide them for more abstraction and faster builds.
 		Sim sim;

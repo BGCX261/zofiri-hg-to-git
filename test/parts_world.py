@@ -35,7 +35,7 @@ class Arm(object):
 
 class Finger(object):
 
-    def __init__(self):
+    def __init__(self, phalanx_count, parent='wrist'):
         from parts import A, Capsule, Joint, Limits, pi
         self.name = 'finger'
         # Phalanx 0 really is more of a metacarpal spread thing.
@@ -44,13 +44,13 @@ class Finger(object):
         current.add_joint(Joint(
             current.end_pos(0.5),
             limits=Limits.rot_x(A(-1,1)*0.2*pi),
-            name='wrist'))
-        for n in xrange(3):
+            name=parent))
+        for n in xrange(phalanx_count):
             next = Capsule(0.01, 0.01, name='phalanx'+str(n))
             next.add_joint(Joint(
                 next.end_pos(0.5),
                 rot=(0,0,1,0),
-                limits=Limits.rot_x(A(-0.05,0.5)*pi),
+                limits=Limits.rot_x(A(-0.01,0.5)*pi),
                 name=current.name))
             current.add_joint(Joint(
                 current.end_pos(-0.5), rot=(0,0,1,0), name=next.name))
@@ -65,19 +65,37 @@ class Finger(object):
 class Hand(object):
     
     def __init__(self, side_x):
-        from parts import Capsule, Joint
+        from parts import A, Capsule, Joint, Limits, pi
         self.name = 'hand'
         self.wrist = wrist = Capsule(0.03, 0, name='wrist')
         wrist.add_joint(Joint(
             wrist.end_pos(0.3), rot=(0,1,0,0), name='lower'))
+        # Fingers
         for f in xrange(3):
             wrist.add_joint(Joint(
                 wrist.end_pos(axis=(-side_x,-2,2*(f-1))),
                 rot=(side_x,0,0,0),
                 name='finger'+str(f)))
-            finger = Finger()
+            finger = Finger(3)
             finger.name += str(f)
             wrist.attach(finger)
+        # Thumb
+        wrist.add_joint(Joint(
+            wrist.end_pos(axis=(-side_x,0,1), half_spread_ratio=0),
+            rot=(0,-side_x,0,0),
+            limits=Limits.rot_x(A(-0.8,0)*pi),
+            name='thumbTwist'))
+        thumbTwist = Capsule(0.015, 0.005,  name='thumbTwist')
+        thumbTwist.add_joint(Joint(
+            thumbTwist.end_pos(0.2), rot=(0,0,-side_x,0), name='wrist'))
+        thumbTwist.add_joint(Joint(
+            thumbTwist.end_pos(-1, axis=(0,0,-1), half_spread_ratio=-1),
+            rot=(side_x,0,0,0),
+            name='thumb'))
+        wrist.attach(thumbTwist)
+        thumb = Finger(2, parent='thumbTwist')
+        thumb.name = 'thumb'
+        thumbTwist.attach(thumb)
 
     def __getitem__(self, key):
         # TODO Could actually look along the entire chain, but for now assume

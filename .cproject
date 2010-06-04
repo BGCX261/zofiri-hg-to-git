@@ -51,7 +51,9 @@
 </sourceEntries>
 </configuration>
 </storageModule>
-<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
+<externalSettings containerId="bullet;" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier"/>
+</storageModule>
 <storageModule moduleId="scannerConfiguration">
 <autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile"/>
 <profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">

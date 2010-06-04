@@ -5,24 +5,84 @@ class Arm(object):
         side_x - is the arm on the left (-1) or right (1)
         TODO Parameterize this some for length or width ratios, ...
         """
-        from parts import Capsule, Joint
+        from parts import Capsule, Joint, pi
         self.name = 'arm_' + side_name(side_x)
         shoulder = Capsule(0.05, 0, name='shoulder')
         shoulder.add_joint(Joint((0,0,0), rot=(0,0,-side_x,0), name='chest'))
         shoulder.add_joint(Joint((0,0,0), name='upper'))
-        upper = Capsule(0.03, 0.1, name='upper')
+        upper = Capsule(0.03, 0.05, name='upper')
         upper.add_joint(Joint(upper.end_pos(0.5), name='shoulder'))
         upper.add_joint(Joint(upper.end_pos(-1), rot=(0,1,0,0), name='elbow'))
         shoulder.attach(upper)
         self.shoulder = shoulder
-        elbow = Capsule(0.04, 0, name='elbow')
+        elbow = Capsule(0.03, 0.01, name='elbow')
         elbow.add_joint(Joint(elbow.end_pos(0.2), rot=(0,1,0,0), name='upper'))
+        elbow.add_joint(Joint(elbow.end_pos(-0.2), name='lower'))
         upper.attach(elbow)
+        lower = Capsule(0.03, 0.05, name='lower')
+        # TODO The angle on the joint rot doesn't currently do anything.
+        lower.add_joint(Joint(
+            lower.end_pos(), rot=(-side_x,0,0,0.5*pi), name='elbow'))
+        lower.add_joint(Joint(lower.end_pos(-1), rot=(0,1,0,0), name='hand'))
+        elbow.attach(lower)
+        self.lower = lower
+        lower.attach(Hand(side_x))
 
     def __getitem__(self, key):
         # TODO Could actually look along the entire chain, but for now assume
         # at the shoulder.
         return self.shoulder[key]
+
+class Finger(object):
+
+    def __init__(self):
+        from parts import A, Capsule, Joint, Limits, pi
+        self.name = 'finger'
+        # Phalanx 0 really is more of a metacarpal spread thing.
+        # Just that the naming convention makes this code simpler.
+        self.spread = current = Capsule(0.01, 0, name='spread')
+        current.add_joint(Joint(
+            current.end_pos(0.5),
+            limits=Limits.rot_x(A(-1,1)*0.2*pi),
+            name='wrist'))
+        for n in xrange(3):
+            next = Capsule(0.01, 0.01, name='phalanx'+str(n))
+            next.add_joint(Joint(
+                next.end_pos(0.5),
+                rot=(0,0,1,0),
+                limits=Limits.rot_x(A(-0.05,0.5)*pi),
+                name=current.name))
+            current.add_joint(Joint(
+                current.end_pos(-0.5), rot=(0,0,1,0), name=next.name))
+            current.attach(next)
+            current = next
+
+    def __getitem__(self, key):
+        # TODO Could actually look along the entire chain, but for now assume
+        # at spread.
+        return self.spread[key]
+
+class Hand(object):
+    
+    def __init__(self, side_x):
+        from parts import Capsule, Joint
+        self.name = 'hand'
+        self.wrist = wrist = Capsule(0.03, 0, name='wrist')
+        wrist.add_joint(Joint(
+            wrist.end_pos(0.3), rot=(0,1,0,0), name='lower'))
+        for f in xrange(3):
+            wrist.add_joint(Joint(
+                wrist.end_pos(axis=(-side_x,-2,2*(f-1))),
+                rot=(side_x,0,0,0),
+                name='finger'+str(f)))
+            finger = Finger()
+            finger.name += str(f)
+            wrist.attach(finger)
+
+    def __getitem__(self, key):
+        # TODO Could actually look along the entire chain, but for now assume
+        # at the wrist.
+        return self.wrist[key]
 
 class Head(object):
 

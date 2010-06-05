@@ -180,6 +180,9 @@ class Humanoid(object):
 def side_name(side_x):
     return 'left' if side_x < 0 else 'right'
 
+def side_z_name(side_z):
+    return 'back' if side_z < 0 else 'front'
+
 class Torso(object):
 
     def __init__(self):
@@ -217,26 +220,58 @@ class WheeledBase(object):
         hips.add_joint(Joint(hips.end_pos(0.8), (0,1,0,0), name='abdomen'))
         self.hips = hips
         self.name = 'base'
-        # TODO Wheels
+        # Wheels.
         self.wheel_right = self._add_wheel(-1)
         self.wheel_left = self._add_wheel(1)
-        # wheel_shape_id = tx.capsule(0.2,0.1)
-        # tx.shape_scale(wheel_shape_id, (1,0.3,1))
-        # tx.body(wheel_shape_id, tx.material(0.1, 0x303030), (0,3.5,0))
+        # Casters.
+        self._add_casters()
+
+    def _add_casters(self):
+        from parts import Capsule, Cylinder, Joint, Limits
+        hips = self.hips
+        wheel = self.wheel_left
+        support = Cylinder(
+            (0.9*self.hips.radius,0.02,wheel.radii[0]),
+            material=wheel.material,
+            name='support')
+        support.add_joint(Joint(
+            (0,0,0),
+            rot=(0,1,0,0),
+            limits=Limits.zero(),
+            name='hips'))
+        hips.add_joint(Joint(
+            hips.end_pos(-1),
+            rot=(0,1,0,0),
+            limits=Limits.zero(),
+            name='support'))
+        hips.attach(support)
+        # Automate caster position to same bottom level as wheels.
+        offset_y = wheel.pos[1] - support.pos[1]
+        for side_z in (-1,1):
+            caster = Capsule(
+                0.49*offset_y, 0,
+                material=wheel.material,
+                name='caster_'+side_z_name(side_z))
+            support.add_joint(Joint(
+                (0,0,side_z*support.radii[2]),
+                name=caster.name))
+            caster.add_joint(Joint((0,0,0), name=support.name))
+            support.attach(caster)
 
     def _add_wheel(self, side_x):
         from parts import Cylinder, Joint, Material
         wheel = Cylinder(
-            (0.2,0.025,0.2),
+            (0.2,0.04,0.2),
             material=Material(1, 0xFF202020),
             name='wheel_'+side_name(side_x))
         wheel.add_joint(Joint((0,0,0), rot=(0,1,0,0), name='hips'))
         hips = self.hips
         hips.add_joint(Joint(
-            hips.end_pos(1.2,(side_x,0,0),-1),
-            (-side_x,0,0,0),
+            hips.end_pos(1,(side_x,0,0),-1) + side_x*wheel.radii[1],
+            rot=(-side_x,0,0,0),
             name=wheel.name))
         hips.attach(wheel)
+        return wheel
 
     def __getitem__(self, key):
         return self.hips[key]

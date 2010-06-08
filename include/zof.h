@@ -17,6 +17,7 @@ typedef unsigned int zof_uint;
 typedef void* zof_any;
 typedef zof_ref zof_err;
 typedef char* zof_str;
+typedef zof_ref zof_type;
 
 zof_str zof_err_code(zof_err err);
 
@@ -30,6 +31,22 @@ zof_num zof_num_max(zof_num a, zof_num b);
 zof_num zof_num_min(zof_num a, zof_num b);
 
 void zof_ref_free(zof_any ref);
+
+zof_type zof_ref_type(zof_any ref);
+
+typedef void (*zof_ref_close)(zof_any ref);
+
+typedef struct {
+	zof_ref_close close;
+	zof_str name;
+} zof_type_info;
+
+zof_str zof_type_name(zof_type type);
+
+// info - shallow copy to new type
+zof_type zof_type_new(zof_type_info* info);
+
+zof_ref_close zof_type_ref_close(zof_type type);
 
 // Math expandeds.
 enum {zof_x, zof_y, zof_z, zof_w};
@@ -103,19 +120,6 @@ zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
 
 void zof_sim_part_add(zof_sim, zof_part part);
-
-
-
-// TODO Hide these in other header?
-
-
-typedef void (*zof_ref_close)(zof_any ref);
-
-typedef struct {
-	zof_ref_close close;
-} zof_type;
-
-
 
 
 

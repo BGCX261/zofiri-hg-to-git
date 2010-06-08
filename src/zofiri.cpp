@@ -49,8 +49,11 @@ zof_num zof_num_min(zof_num a, zof_num b) {
 }
 
 void zof_ref_free(zof_any ref) {
-	zof_type* type = *(zof_type**)ref;
-	type->close(ref);
+	zof_type type = *(zof_type*)ref;
+	zof_ref_close close = zof_type_ref_close(type);
+	if (close) {
+		close(ref);
+	}
 	free(ref);
 }
 

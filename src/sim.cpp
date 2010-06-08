@@ -1,5 +1,25 @@
 #include "zofiri.h"
 
+extern "C" {
+
+struct zof_shape_struct {
+	zof_type* type;
+	btCollisionShape* shape;
+};
+
+zof_shape zof_shape_new_box(zof_vec4 radii) {
+	// TODO
+	return NULL;
+}
+
+//zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);
+
+//zof_shape zof_shape_new_cylinder(zof_vec4 radii);
+
+//zof_shape zof_shape_new_mesh(zof_mesh mesh);
+
+}
+
 namespace zof {
 
 BodyInfo::BodyInfo():

@@ -6,7 +6,7 @@
 extern "C" {
 
 struct zof_mod_struct {
-	zof_type* meta;
+	zof_type type;
 	void* lib;
 	zof_str uri;
 };
@@ -16,11 +16,13 @@ void zof_mod_close(zof_any ref) {
 	dlclose(mod->lib);
 }
 
-zof_type* zof_mod_type() {
-	static zof_type* type = NULL;
+zof_type zof_mod_type(void) {
+	static zof_type type = NULL;
 	if (!type) {
-		type = (zof_type*)malloc(sizeof(zof_type*));
-		type->close = zof_mod_close;
+		zof_type_info info;
+		info.name = "zof_mod";
+		info.close = zof_mod_close;
+		type = zof_type_new(&info);
 	}
 	return type;
 }
@@ -33,7 +35,7 @@ zof_mod zof_mod_new(zof_str uri) {
 		return NULL;
 	}
 	zof_mod_struct* mod = (zof_mod_struct*)malloc(sizeof(zof_mod_struct));
-	mod->meta = zof_mod_type();
+	mod->type = zof_mod_type();
 	mod->lib = lib;
 	// TODO Copy the uri first?
 	mod->uri = uri;

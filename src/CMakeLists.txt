@@ -23,6 +23,7 @@ add_executable(
 	pub.cpp
 	sim.cpp
 	viz.cpp
+	zof.cpp
 	../test/world.cpp
 )
 

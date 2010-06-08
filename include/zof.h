@@ -16,7 +16,7 @@ typedef unsigned int zof_uint;
 #define zof_ref struct{}*
 typedef void* zof_any;
 typedef zof_ref zof_err;
-typedef zof_ref zof_str;
+typedef char* zof_str;
 
 zof_str zof_err_code(zof_err err);
 
@@ -30,8 +30,6 @@ zof_num zof_num_max(zof_num a, zof_num b);
 zof_num zof_num_min(zof_num a, zof_num b);
 
 void zof_ref_free(zof_any ref);
-
-zof_int zof_str_size(zof_str str);
 
 // Math expandeds.
 enum {zof_x, zof_y, zof_z, zof_w};
@@ -48,9 +46,13 @@ typedef zof_mat zof_mat_int;
 zof_vec4 zof_vec4_of(zof_num x, zof_num y, zof_num z);
 
 
-// Shapes, parts, meshes, joints.
+// More domainish stuff.
+typedef zof_uint zof_color;
+
+typedef zof_ref zof_app;
 typedef zof_ref zof_joint;
 typedef zof_ref zof_mesh;
+typedef zof_ref zof_mod;
 typedef zof_ref zof_part;
 typedef zof_ref zof_shape;
 typedef zof_ref zof_world;
@@ -76,6 +78,13 @@ zof_mesh zof_mesh_new(zof_shape shape);
 // TODO zof_mesh_subdivide, other coolness, ...
 
 
+// TODO Allow mods at both app and world level?
+zof_bool zof_mod_world_init(zof_mod mod, zof_world world);
+
+// Just supports relativish local files for now.
+zof_mod zof_mod_new(zof_str uri);
+zof_str zof_mod_uri(zof_mod mod);
+
 // Parts.
 zof_bool zof_part_attach(zof_part part, zof_part kid);
 zof_joint zof_part_joint(zof_part part, zof_str name);
@@ -94,6 +103,20 @@ zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
 
 void zof_world_part_add(zof_world, zof_part part);
+
+
+
+// TODO Hide these in other header?
+
+
+typedef void (*zof_ref_close)(zof_any ref);
+
+typedef struct {
+	zof_ref_close close;
+} zof_type;
+
+
+
 
 
 #ifdef __cplusplus

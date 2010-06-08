@@ -229,7 +229,7 @@ struct MaterialCommand: Command {
 		// TODO Make helper functions for converting types?
 		btScalar density;
 		tx->args[1] >> density;
-		zof_uint color;
+		zof_color color;
 		stringstream args;
 		args << tx->args[2];
 		args >> hex >> color;

@@ -1,5 +1,6 @@
 #include "zofiri.h"
 
+// TODO Nix dlfcn.h here!!
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,24 +11,11 @@ using namespace zof;
 int main(int argc, char** argv) {
 	try {
 		if (argc > 1) {
-			char* error;
-			void* lib = dlopen(argv[1], RTLD_NOW);
-			if (!lib) {
-				fprintf(stderr, "%s\n", dlerror());
-				exit(EXIT_FAILURE);
+			zof_mod mod = zof_mod_new(argv[1]);
+			if (mod) {
+				zof_mod_world_init(mod, NULL);
+				zof_ref_free(mod);
 			}
-			void (*init)();
-			// Lock something around dlerror calls?
-			dlerror();
-			// C supposedly likes the former, but g++ likes the latter.
-			//*(void**)(&init) = dlsym(lib, "init");
-			init = (void(*)())dlsym(lib, "init");
-			if ((error = dlerror()) != NULL) {
-				fprintf(stderr, "%s\n", error);
-				exit(EXIT_FAILURE);
-			}
-			init();
-			dlclose(lib);
 		}
 
 		// Randomize the universe.
@@ -49,10 +37,20 @@ int main(int argc, char** argv) {
 	exit(0);
 }
 
+extern "C" {
+
 zof_num zof_num_max(zof_num a, zof_num b) {
 	return a > b ? a : b;
 }
 
 zof_num zof_num_min(zof_num a, zof_num b) {
 	return a < b ? a : b;
+}
+
+void zof_ref_free(zof_any ref) {
+	zof_type* type = *(zof_type**)ref;
+	type->close(ref);
+	free(ref);
+}
+
 }

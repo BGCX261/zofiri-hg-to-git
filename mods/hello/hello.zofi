@@ -1,0 +1,13 @@
+# Use "zofi" for info file and "zof" for zipped-up mods.
+# Each zof file should have just one top-level zofi file.
+
+# For now, just load the 'so' as if it were the zof or zofi.
+
+title=Hello World!
+
+# The lib support naming conventions to allow bundling of
+# binaries for multiple platforms in one zof.
+# TODO Eventually support Java, Python, Ruby, and Mono directly?
+# TODO Eventually bundle V8 for sandboxed high-perf JS?
+
+lib=hello

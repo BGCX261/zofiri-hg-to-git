@@ -42,11 +42,11 @@ struct Stacker {
 
 	btRigidBody* cargo;
 
-	btRigidBody* findBlock(zof_uint color);
+	btRigidBody* findBlock(zof_color color);
 
 	Hand* hand;
 
-	bool trackToTarget(zof_uint color);
+	bool trackToTarget(zof_color color);
 
 	Mode mode;
 
@@ -61,7 +61,7 @@ struct World {
 
 	World(Sim* sim);
 
-	void buildBlock(zof_uint color, const btVector3& position);
+	void buildBlock(zof_color color, const btVector3& position);
 
 	void buildTable(const btVector3& halfExtents, const btVector3& position);
 

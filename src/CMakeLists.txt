@@ -18,6 +18,7 @@ link_directories(
 add_executable(
 	zofiri
 	zofiri.cpp
+	mod.cpp
 	net.cpp
 	pub.cpp
 	sim.cpp

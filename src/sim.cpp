@@ -13,7 +13,7 @@ BodyInfo* BodyInfo::of(btCollisionObject* body) {
 	return reinterpret_cast<BodyInfo*>(body->getUserPointer());
 }
 
-Material::Material(zof_uint c): color(c), density(1) {
+Material::Material(zof_color c): color(c), density(1) {
 	// Nothing more to do.
 }
 

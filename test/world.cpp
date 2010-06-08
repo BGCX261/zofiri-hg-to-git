@@ -206,10 +206,10 @@ void Stacker::act() {
 	hand->grip();
 }
 
-btRigidBody* Stacker::findBlock(zof_uint color) {
+btRigidBody* Stacker::findBlock(zof_color color) {
 	for (vector<btRigidBody*>::iterator b = hand->world->blocks.begin(); b < hand->world->blocks.end(); b++) {
 		btRigidBody* block = *b;
-		zof_uint blockColor = BodyInfo::of(block)->material->color;
+		zof_color blockColor = BodyInfo::of(block)->material->color;
 		if (blockColor == color) {
 			// Target the red block.
 			return block;
@@ -218,7 +218,7 @@ btRigidBody* Stacker::findBlock(zof_uint color) {
 	return 0;
 }
 
-bool Stacker::trackToTarget(zof_uint color) {
+bool Stacker::trackToTarget(zof_color color) {
 	Sim& sim = *hand->world->sim;
 	btTransform handTransform;
 	btMotionState* handMotionState = hand->carpal->getMotionState();
@@ -258,7 +258,7 @@ World::World(Sim* s): sim(s) {
 	reset();
 }
 
-void World::buildBlock(zof_uint color, const btVector3& position) {
+void World::buildBlock(zof_color color, const btVector3& position) {
 	Material* material = new Material(color);
 	material->density = 0.1; // TODO Units!!!
     btVector3 halfExtents = sim->cm(btVector3(4.0, 4.0, 4.0));

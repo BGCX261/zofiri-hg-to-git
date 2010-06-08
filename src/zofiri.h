@@ -27,10 +27,6 @@ struct World;
 
 #include "zof.h"
 
-typedef struct {
-	zof_int sig;
-} zof_meta;
-
 #include "mat.h"
 #include "net.h"
 #include "pub.h"

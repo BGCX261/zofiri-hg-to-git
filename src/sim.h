@@ -21,9 +21,9 @@ struct BodyInfo {
 
 struct Material {
 
-	Material(zof_uint color = 0xFFFFFFFF);
+	Material(zof_color color = 0xFFFFFFFF);
 
-	zof_uint color;
+	zof_color color;
 
 	btScalar density;
 

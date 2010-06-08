@@ -5,6 +5,7 @@
 
 // For math and matrix purposes.
 
+/*
 typedef struct {
 	zof_meta meta;
 	zof_int size_col;
@@ -22,6 +23,7 @@ typedef struct {
 	// 1xN for strip, 3xN for array.
 	zof_mat_i triangles;
 } zof_mesh_struct;
+*/
 
 namespace zof {
 

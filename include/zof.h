@@ -22,7 +22,7 @@ typedef zof_ref zof_type;
 zof_str zof_err_code(zof_err err);
 
 // Thread local reference to most recent error.
-zof_err zof_err_last();
+zof_err zof_err_last(void);
 
 void zof_err_last_replace(zof_err err);
 
@@ -60,7 +60,7 @@ typedef zof_ref zof_mat;
 typedef zof_mat zof_mat_int;
 
 
-zof_vec4 zof_vec4_of(zof_num x, zof_num y, zof_num z);
+zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z);
 
 
 // More domainish stuff.

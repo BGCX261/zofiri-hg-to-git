@@ -1,15 +1,44 @@
 #include "zofiri.h"
+#include "stdlib.h"
 
 extern "C" {
 
 struct zof_shape_struct {
-	zof_type* type;
+	zof_type type;
 	btCollisionShape* shape;
 };
 
-zof_shape zof_shape_new_box(zof_vec4 radii) {
-	// TODO
+zof_part zof_part_new(zof_str name, zof_shape shape) {
 	return NULL;
+}
+
+void zof_shape_close(zof_any shape) {
+	zof_shape_struct* shape_struct = (zof_shape_struct*)shape;
+	delete shape_struct->shape;
+}
+
+zof_type zof_shape_type(void) {
+	static zof_type type = NULL;
+	if (!type) {
+		zof_type_info info;
+		info.name = "zof_shape";
+		info.close = zof_shape_close;
+		type = zof_type_new(&info);
+	}
+	return type;
+}
+
+zof_shape zof_shape_new_box(zof_vec4 radii) {
+	zof_shape_struct* shape = (zof_shape_struct*)malloc(sizeof(zof_shape_struct));
+	shape->type= zof_shape_type();
+	btVector3 bt_radii;
+	for (zof_uint i = 0; i < 3; i++) {
+		bt_radii.m_floats[i] = btScalar(radii.vals[i]);
+	}
+	bt_radii.m_floats[3] = btScalar(0);
+	btBoxShape* box = new btBoxShape(bt_radii);
+	shape->shape = box;
+	return (zof_shape)shape;
 }
 
 //zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);
@@ -17,6 +46,10 @@ zof_shape zof_shape_new_box(zof_vec4 radii) {
 //zof_shape zof_shape_new_cylinder(zof_vec4 radii);
 
 //zof_shape zof_shape_new_mesh(zof_mesh mesh);
+
+void zof_sim_part_add(zof_sim, zof_part part) {
+	// TODO
+}
 
 }
 

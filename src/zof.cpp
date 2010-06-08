@@ -37,4 +37,13 @@ zof_ref_close zof_type_ref_close(zof_type type) {
 	return reinterpret_cast<zof_type_struct*>(type)->info.close;
 }
 
+zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z) {
+	zof_vec4 vec;
+	vec.vals[0] = x;
+	vec.vals[1] = y;
+	vec.vals[2] = z;
+	vec.vals[3] = 0.0;
+	return vec;
+}
+
 }

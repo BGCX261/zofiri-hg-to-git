@@ -35,11 +35,6 @@ struct Pub {
 
 	Viz* viz;
 
-	/**
-	 * TODO Delete this once "world" is gone. Everything just needs to be in sim.
-	 */
-	World* world;
-
 private:
 
 	Server* server;

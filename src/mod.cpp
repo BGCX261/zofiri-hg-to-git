@@ -44,20 +44,20 @@ zof_str zof_mod_uri(zof_mod mod) {
 	return ((zof_mod_struct*)mod)->uri;
 }
 
-zof_bool zof_mod_world_init(zof_mod mod, zof_world world) {
+zof_bool zof_mod_sim_init(zof_mod mod, zof_sim sim) {
 	zof_mod_struct* mod_struct = (zof_mod_struct*)mod;
-	zof_bool (*world_init)(zof_mod,zof_world);
+	zof_bool (*sim_init)(zof_mod,zof_sim);
 	// Lock something around dlerror calls?
 	dlerror();
 	// C supposedly likes the former, but g++ likes the latter.
-	//*(void**)(&world_init) = dlsym(lib, "world_init");
-	world_init = (zof_bool(*)(zof_mod,zof_world))dlsym(mod_struct->lib, "world_init");
+	//*(void**)(&sim_init) = dlsym(lib, "sim_init");
+	sim_init = (zof_bool(*)(zof_mod,zof_sim))dlsym(mod_struct->lib, "sim_init");
 	char* error;
 	if ((error = dlerror()) != NULL) {
 		fprintf(stderr, "%s\n", error);
 		return zof_false;
 	}
-	return world_init(mod, world);
+	return sim_init(mod, sim);
 }
 
 }

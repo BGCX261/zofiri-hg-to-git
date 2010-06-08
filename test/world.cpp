@@ -1,4 +1,5 @@
 #include "zofiri.h"
+#include "world.h"
 
 namespace zof {
 

@@ -33,6 +33,4 @@ struct World;
 #include "sim.h"
 #include "viz.h"
 
-#include "world.h"
-
 #endif

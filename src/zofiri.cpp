@@ -5,19 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include "world.h"
 
 using namespace zof;
 
 int main(int argc, char** argv) {
 	try {
-		if (argc > 1) {
-			zof_mod mod = zof_mod_new(argv[1]);
-			if (mod) {
-				zof_mod_world_init(mod, NULL);
-				zof_ref_free(mod);
-			}
-		}
-
 		// Randomize the universe.
 		// TODO Better random handling.
 		srand(time(0));
@@ -27,7 +20,15 @@ int main(int argc, char** argv) {
 		World world(&sim);
 		Viz* viz = Viz::create(&sim);
 		Pub pub(viz);
-		pub.world = &world;
+
+		if (argc > 1) {
+			zof_mod mod = zof_mod_new(argv[1]);
+			if (mod) {
+				zof_mod_sim_init(mod, NULL);
+				zof_ref_free(mod);
+			}
+		}
+
 		viz->run();
 		// TODO auto_ptr
 		delete viz;

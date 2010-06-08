@@ -55,7 +55,7 @@ typedef zof_ref zof_mesh;
 typedef zof_ref zof_mod;
 typedef zof_ref zof_part;
 typedef zof_ref zof_shape;
-typedef zof_ref zof_world;
+typedef zof_ref zof_sim;
 
 
 zof_joint zof_joint_new(zof_str name, zof_mat pos, zof_mat rot);
@@ -78,8 +78,8 @@ zof_mesh zof_mesh_new(zof_shape shape);
 // TODO zof_mesh_subdivide, other coolness, ...
 
 
-// TODO Allow mods at both app and world level?
-zof_bool zof_mod_world_init(zof_mod mod, zof_world world);
+// TODO Allow mods at both app and sim level?
+zof_bool zof_mod_sim_init(zof_mod mod, zof_sim sim);
 
 // Just supports relativish local files for now.
 zof_mod zof_mod_new(zof_str uri);
@@ -102,7 +102,7 @@ zof_shape zof_shape_new_mesh(zof_mesh mesh);
 // zof_shape_scale
 
 
-void zof_world_part_add(zof_world, zof_part part);
+void zof_sim_part_add(zof_sim, zof_part part);
 
 
 

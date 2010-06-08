@@ -3,6 +3,7 @@
 
 #include "zofiri.h"
 
+
 namespace zof {
 
 struct BodyInfo {
@@ -61,15 +62,15 @@ struct Sim {
 
 	btDbvtBroadphase broadphase;
 
-	btScalar calcVolume(btCollisionShape* shape);
+	static btScalar calcVolume(btCollisionShape* shape);
 
-	btScalar calcVolumeBox(btBoxShape* shape);
+	static btScalar calcVolumeBox(btBoxShape* shape);
 
-	btScalar calcVolumeCapsule(btCapsuleShape* shape);
+	static btScalar calcVolumeCapsule(btCapsuleShape* shape);
 
-	btScalar calcVolumeCylinder(btCylinderShape* shape);
+	static btScalar calcVolumeCylinder(btCylinderShape* shape);
 
-	btScalar calcVolumeSphere(btSphereShape* shape);
+	static btScalar calcVolumeSphere(btSphereShape* shape);
 
 	btDefaultCollisionConfiguration collisionConfiguration;
 
@@ -87,6 +88,11 @@ struct Sim {
 	 * Mapped for protocol access.
 	 */
 	std::map<int, btTypedConstraint*> constraints;
+
+	/**
+	 * TODO Delete this once we get it right (obscuring Bullet, etc.).
+	 */
+	zof_sim csim;
 
 	btRigidBody* createBody(
 		btCollisionShape* shape,

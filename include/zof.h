@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+// TODO Change comments to be /*C-friendly*/?
+
 // Core expandeds.
 // TODO Ensure fixed bit lengths.
 typedef enum {zof_false=0, zof_true=1} zof_bool;
@@ -13,6 +15,13 @@ typedef double zof_num;
 typedef unsigned int zof_uint;
 
 // Core opaques.
+#ifdef __cplusplus
+	// C++ vs. C distinction from gcc.
+	// I provide zof_null to avoid need to import stdlib.h.
+	#define zof_null 0
+#else
+	#define zof_null ((void*)0)
+#endif
 #define zof_ref struct{}*
 typedef void* zof_any;
 typedef zof_ref zof_err;
@@ -109,6 +118,7 @@ zof_part zof_part_joint_add(zof_part part, zof_joint joint);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new(zof_str name, zof_shape shape);
 zof_part zof_part_new_composite(zof_str name);
+void zof_part_pos_put(zof_part part, zof_vec4 pos);
 
 
 zof_shape zof_shape_new_box(zof_vec4 radii);
@@ -119,7 +129,7 @@ zof_shape zof_shape_new_mesh(zof_mesh mesh);
 // zof_shape_scale
 
 
-void zof_sim_part_add(zof_sim, zof_part part);
+void zof_sim_part_add(zof_sim sim, zof_part part);
 
 
 

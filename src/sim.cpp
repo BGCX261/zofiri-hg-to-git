@@ -1,15 +1,112 @@
 #include "zofiri.h"
-#include "stdlib.h"
 
 extern "C" {
+
+/**
+ * Make the core unit centimeters for finer control.
+ */
+#define zof_bt_scale 100.0
+
+/**
+ * TODO Move this to zof.h sometime?
+ */
+typedef enum {
+	zof_part_kind_composite,
+	zof_part_kind_primitive
+} zof_part_kind;
+
+/**
+ * Thoughts on future part info to replace current.
+ * TODO zof_material, ...
+ */
+struct zof_part_primitive {
+	zof_shape shape;
+	// TODO Material, ...
+};
+
+struct zof_part_struct {
+	zof_type type;
+	zof_str name;
+	zof_part_kind kind;
+	union {
+		btRigidBody* body;
+		vector<zof_part_struct*>* kids;
+		zof_part_primitive partial;
+	};
+};
 
 struct zof_shape_struct {
 	zof_type type;
 	btCollisionShape* shape;
 };
 
+struct zof_sim_struct {
+	zof_type type;
+	zof::Sim* sim;
+};
+
+zof_type zof_part_type(void);
+zof_type zof_shape_type(void);
+zof_type zof_sim_type(void);
+
+void zof_part_close(zof_any part) {
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	if (part_struct->kind == zof_part_kind_composite) {
+		for (
+			vector<zof_part_struct*>::iterator k = part_struct->kids->begin();
+			k < part_struct->kids->end();
+			k++
+		) {
+			zof_ref_free(*k);
+		}
+		delete part_struct->kids;
+	} else {
+		delete part_struct->body;
+	}
+}
+
 zof_part zof_part_new(zof_str name, zof_shape shape) {
-	return NULL;
+	zof_part_struct* part = (zof_part_struct*)malloc(sizeof(zof_part_struct));
+	part->type = zof_part_type();
+	part->name = name;
+	part->kind = zof_part_kind_primitive;
+	// TODO This is mostly copied from Sim::createBody.
+	// TODO We need to merge this sometime.
+	// Actually setting the material will require recalculating mass props.
+	zof::Material* material = zof::Material::defaultMaterial();
+	btScalar volume = zof::Sim::calcVolume(((zof_shape_struct*)shape)->shape);
+	btScalar mass(material->density * volume);
+	btVector3 inertia(0,0,0);
+	((zof_shape_struct*)shape)->shape->calculateLocalInertia(mass, inertia);
+	zof::MotionState* motionState = new zof::MotionState();
+	btTransform transform;
+	transform.setIdentity();
+	motionState->m_graphicsWorldTrans = transform;
+	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, ((zof_shape_struct*)shape)->shape, inertia);
+	part->body = new btRigidBody(bodyConstruct);
+	zof::BodyInfo* info = new zof::BodyInfo;
+	info->material = material;
+	// Sim will need set when the part is added to the sim.
+	// TODO When and how to copy parts? Obviously important need.
+	info->sim = zof_null;
+	part->body->setUserPointer(info);
+	motionState->m_userPointer = part->body;
+	return (zof_part)part;
+}
+
+zof_type zof_part_type(void) {
+	static zof_type type = NULL;
+	if (!type) {
+		zof_type_info info;
+		info.name = "zof_part";
+		info.close = zof_part_close;
+		type = zof_type_new(&info);
+	}
+	return type;
+}
+
+void zof_part_pos_put(zof_part part, zof_vec4 pos) {
+	//
 }
 
 void zof_shape_close(zof_any shape) {
@@ -17,23 +114,12 @@ void zof_shape_close(zof_any shape) {
 	delete shape_struct->shape;
 }
 
-zof_type zof_shape_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_shape";
-		info.close = zof_shape_close;
-		type = zof_type_new(&info);
-	}
-	return type;
-}
-
 zof_shape zof_shape_new_box(zof_vec4 radii) {
 	zof_shape_struct* shape = (zof_shape_struct*)malloc(sizeof(zof_shape_struct));
 	shape->type= zof_shape_type();
 	btVector3 bt_radii;
 	for (zof_uint i = 0; i < 3; i++) {
-		bt_radii.m_floats[i] = btScalar(radii.vals[i]);
+		bt_radii.m_floats[i] = zof_bt_scale * btScalar(radii.vals[i]);
 	}
 	bt_radii.m_floats[3] = btScalar(0);
 	btBoxShape* box = new btBoxShape(bt_radii);
@@ -47,8 +133,35 @@ zof_shape zof_shape_new_box(zof_vec4 radii) {
 
 //zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
-void zof_sim_part_add(zof_sim, zof_part part) {
+zof_type zof_shape_type(void) {
+	static zof_type type = NULL;
+	if (!type) {
+		zof_type_info info;
+		info.name = "zof_shape";
+		info.close = zof_shape_close;
+		type = zof_type_new(&info);
+	}
+	return type;
+}
+
+void zof_sim_close(zof_any sim) {
+	zof_sim_struct* sim_struct = (zof_sim_struct*)sim;
+	delete sim_struct->sim;
+}
+
+void zof_sim_part_add(zof_sim sim, zof_part part) {
 	// TODO
+}
+
+zof_type zof_sim_type(void) {
+	static zof_type type = NULL;
+	if (!type) {
+		zof_type_info info;
+		info.name = "zof_sim";
+		info.close = zof_sim_close;
+		type = zof_type_new(&info);
+	}
+	return type;
 }
 
 }
@@ -99,6 +212,9 @@ Sim::Sim() {
 	viz = 0;
 	// Weaken gravity a bit. Copes this way better at larger ratios.
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
+
+	// TODO Hack to make C-mod sim available.
+	csim = zof_null;
 }
 
 Sim::~Sim() {

@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
 		if (argc > 1) {
 			zof_mod mod = zof_mod_new(argv[1]);
 			if (mod) {
-				zof_mod_sim_init(mod, NULL);
+				zof_mod_sim_init(mod, sim.csim);
 				zof_ref_free(mod);
 			}
 		}

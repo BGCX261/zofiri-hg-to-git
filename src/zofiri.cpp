@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
 			init = (void(*)())dlsym(lib, "init");
 			if ((error = dlerror()) != NULL) {
 				fprintf(stderr, "%s\n", error);
+				exit(EXIT_FAILURE);
 			}
 			init();
 			dlclose(lib);

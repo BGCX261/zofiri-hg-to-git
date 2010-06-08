@@ -4,7 +4,7 @@ namespace zof {
 
 Hand::Hand(World* w): world(w) {
 	Sim* sim = world->sim;
-	Material* material = new Material(SColor(0xFFFFFF00));
+	Material* material = new Material(0xFFFFFF00);
 	//material->friction = ...
 	carpal = sim->createBody(
 		new btCapsuleShapeX(sim->cm(1.0),sim->cm(5.0)),
@@ -27,7 +27,7 @@ Hand::Hand(World* w): world(w) {
 	target = sim->m(2);
 }
 
-void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& position) {
+void Hand::buildFinger(btRigidBody* metacarpal, zof_uint count, const btVector3& position) {
 	Sim* sim = world->sim;
 	bool isThumb = count == 3;
 	// The metacarpal is expected to be stretched along the z axis.
@@ -50,7 +50,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 	transformB.getOrigin() += baseOrigin - constraintTransformB.getOrigin();
 	btVector3 hingeAxis(1,0,0);
 	btRigidBody* a = metacarpal;
-	for (u32 p = 0; p < count; p++) {
+	for (zof_uint p = 0; p < count; p++) {
 		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BodyInfo::of(a)->material);
 		b->setFriction(500);
 		//b->setDamping(0.5,0.5);
@@ -72,8 +72,8 @@ void Hand::buildFinger(btRigidBody* metacarpal, u32 count, const btVector3& posi
 		} else {
 			hinge->setLimit(pi(-0.4), pi(0.1));
 		}
-		joint->setAngularLowerLimit(btVector3(pi(-0.4), pi(-0.01), pi(-0.1) * abs_(position.getX())/8));
-		joint->setAngularUpperLimit(btVector3(pi(0.1), pi(0.01), pi(0.1) * abs_(position.getX())/8));
+		joint->setAngularLowerLimit(btVector3(pi(-0.4), pi(-0.01), pi(-0.1) * fabs(position.getX())/8));
+		joint->setAngularUpperLimit(btVector3(pi(0.1), pi(0.01), pi(0.1) * fabs(position.getX())/8));
 		if (isThumb) {
 			joint->getRotationalLimitMotor(0)->m_loLimit = pi(-0.3);
 			joint->getRotationalLimitMotor(0)->m_hiLimit = pi(0.3);
@@ -106,13 +106,13 @@ bool Hand::grip() {
 		btHingeConstraint* joint = *j;
 		joint->setMotorTarget(target < 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
-		maxVel = max_(vel, maxVel);
+		maxVel = zof_num_max(vel, maxVel);
 	}
 	for (vector<btHingeConstraint*>::iterator j = thumbHinges.begin(); j < thumbHinges.end(); j++) {
 		btHingeConstraint* joint = *j;
 		joint->setMotorTarget(target > 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
-		maxVel = max_(vel, maxVel);
+		maxVel = zof_num_max(vel, maxVel);
 	}
 	//	for (vector<btGeneric6DofConstraint*>::iterator j = fingerJoints.begin(); j < fingerJoints.end(); j++) {
 	//		btGeneric6DofConstraint* joint = *j;
@@ -135,7 +135,7 @@ bool Hand::grip() {
 }
 
 Stacker::Stacker(Hand* h): hand(h) {
-	cargo = findBlock(SColor(0xFFFF0000));
+	cargo = findBlock(0xFFFF0000);
 	mode = OPEN;
 	// TODO Use PD on the speed.
 	speed = h->world->sim->cm(0.1);
@@ -164,10 +164,10 @@ void Stacker::act() {
 			handOrigin.setY(handOrigin.getY() + speed);
 			handMotionState->setWorldTransform(handTransform);
 		} else {
-			if (trackToTarget(SColor(0xFF0000FF))) {
+			if (trackToTarget(0xFF0000FF)) {
 				hand->target = sim.m(2.0);
 				mode = OPENING;
-				btRigidBody* green = findBlock(SColor(0xFF00FF00));
+				btRigidBody* green = findBlock(0xFF00FF00);
 				cargo = cargo == green ? 0 : green;
 			}
 		}
@@ -186,7 +186,7 @@ void Stacker::act() {
 		}
 		if (dxz < sim.cm(1.0)) {
 			// Mostly over the cargo. See if we are just a little over the cargo.
-			btScalar dy = abs_(cargoDelta.y()) - shape->getHalfExtentsWithoutMargin().y();
+			btScalar dy = fabs(cargoDelta.y()) - shape->getHalfExtentsWithoutMargin().y();
 			if (dy < sim.cm(6.0)) {
 				// Just a little over it. Start closing the hand.
 				mode = CLOSING;
@@ -206,10 +206,10 @@ void Stacker::act() {
 	hand->grip();
 }
 
-btRigidBody* Stacker::findBlock(SColor color) {
+btRigidBody* Stacker::findBlock(zof_uint color) {
 	for (vector<btRigidBody*>::iterator b = hand->world->blocks.begin(); b < hand->world->blocks.end(); b++) {
 		btRigidBody* block = *b;
-		SColor blockColor = BodyInfo::of(block)->material->color;
+		zof_uint blockColor = BodyInfo::of(block)->material->color;
 		if (blockColor == color) {
 			// Target the red block.
 			return block;
@@ -218,7 +218,7 @@ btRigidBody* Stacker::findBlock(SColor color) {
 	return 0;
 }
 
-bool Stacker::trackToTarget(SColor color) {
+bool Stacker::trackToTarget(zof_uint color) {
 	Sim& sim = *hand->world->sim;
 	btTransform handTransform;
 	btMotionState* handMotionState = hand->carpal->getMotionState();
@@ -246,9 +246,9 @@ World::World(Sim* s): sim(s) {
 	buildTable(sim->cm(btVector3(25,3,25)), sim->cm(btVector3(-30,60,-30)));
 	// Blocks.
 	//cout << "Building blocks." << endl;
-	buildBlock(SColor(0xFFFF0000), sim->cm(btVector3(15,67.25,15)));
-	buildBlock(SColor(0xFF00FF00), sim->cm(btVector3(-15,67.25,-15)));
-	buildBlock(SColor(0xFF0000FF), sim->cm(btVector3(-20,97.25,-20)));
+	buildBlock(0xFFFF0000, sim->cm(btVector3(15,67.25,15)));
+	buildBlock(0xFF00FF00, sim->cm(btVector3(-15,67.25,-15)));
+	buildBlock(0xFF0000FF, sim->cm(btVector3(-20,97.25,-20)));
 	// Hand.
 	hand = new Hand(this);
 	stacker = new Stacker(hand);
@@ -258,7 +258,7 @@ World::World(Sim* s): sim(s) {
 	reset();
 }
 
-void World::buildBlock(SColor color, const btVector3& position) {
+void World::buildBlock(zof_uint color, const btVector3& position) {
 	Material* material = new Material(color);
 	material->density = 0.1; // TODO Units!!!
     btVector3 halfExtents = sim->cm(btVector3(4.0, 4.0, 4.0));
@@ -275,7 +275,7 @@ void World::buildBlock(SColor color, const btVector3& position) {
 
 void World::buildTable(const btVector3& halfExtents, const btVector3& position) {
 	// Table.
-	Material* wood = new Material(SColor(0xFF605020));
+	Material* wood = new Material(0xFF605020);
 	btRigidBody* table = sim->createBody(
 		new btBoxShape(halfExtents),
 		btTransform(btQuaternion::getIdentity(), position),
@@ -293,9 +293,9 @@ void World::buildTable(const btVector3& halfExtents, const btVector3& position) 
 	btTransform constraintTransformTable(btQuaternion::getIdentity(), btVector3(0,0,0));
 	btTransform constraintTransformLeg(btQuaternion::getIdentity(), btVector3(0,0,0));
 	btScalar y = -legSize.y() - halfExtents.y();
-	for (s32 ix = -1; ix <= 1; ix += 2) {
+	for (zof_int ix = -1; ix <= 1; ix += 2) {
 		btScalar x = ix * (halfExtents.x() - legSize.x());
-		for (s32 iz = -1; iz <= 1; iz += 2) {
+		for (zof_int iz = -1; iz <= 1; iz += 2) {
 			btScalar z = iz * (halfExtents.z() - legSize.z());
 			//cout << "leg: " << x << ", " << y << ", " << z << "\n";
 			btVector3 legPosition(x,y,z);
@@ -338,7 +338,7 @@ void World::reset() {
 		table->getMotionState()->getWorldTransform(tableTransform);
 		// Find a place over the table to drop the block.
 		const btVector3& tableSize = tableShape->getHalfExtentsWithoutMargin();
-		btScalar maxRadius = min_(tableSize.x(), tableSize.z()) - blockShape->getHalfExtentsWithoutMargin().x();
+		btScalar maxRadius = zof_num_min(tableSize.x(), tableSize.z()) - blockShape->getHalfExtentsWithoutMargin().x();
 		btScalar radius = random(maxRadius);
 		btScalar angle = pi(random(2.0));
 		btScalar dx = cos(angle) * radius;

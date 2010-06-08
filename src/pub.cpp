@@ -229,10 +229,10 @@ struct MaterialCommand: Command {
 		// TODO Make helper functions for converting types?
 		btScalar density;
 		tx->args[1] >> density;
-		SColor color;
+		zof_uint color;
 		stringstream args;
 		args << tx->args[2];
-		args >> hex >> color.color;
+		args >> hex >> color;
 		Material* material = new Material(color);
 		material->density = density;
 		// Store the material in the sim.

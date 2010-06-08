@@ -1,6 +1,64 @@
 #include "zofiri.h"
 
+#include <irrlicht.h>
+
+using namespace irr;
+
+using namespace core;
+using namespace io;
+using namespace scene;
+using namespace video;
+
 namespace zof {
+
+struct IrrViz: Viz {
+
+	IrrViz(Sim* sim);
+
+	virtual ~IrrViz() {
+		// Anything?
+	}
+
+	virtual void addBody(btCollisionObject* body);
+
+	IMesh* buildBoxMesh(btBoxShape* shape, Material* material);
+
+	/**
+	 * TODO Change to supports only Y-axis capsules.
+	 */
+	IMesh* createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 latCount, u32 longCount);
+
+	/**
+	 * Supports only Y-axis cylinders.
+	 */
+	IMesh* createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount);
+
+	IMesh* createPlaneMesh();
+
+	/**
+	 * Generate an Irrlicht scene node for a sphere.
+	 * TODO Better would be to have more longs nearer the equator.
+	 */
+	IMesh* createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount);
+
+	/**
+	 * Lives only during the life of run.
+	 */
+	IrrlichtDevice* device;
+
+	virtual void run();
+
+	ISceneManager* scene() {
+		return device->getSceneManager();
+	}
+
+	virtual void update(btRigidBody* body);
+
+	IVideoDriver* video() {
+		return device->getVideoDriver();
+	}
+
+};
 
 void buildPlaneVertices(
 	const vector3df& halfExtents,
@@ -51,19 +109,24 @@ void buildPlaneVertices(
 			vertex.Pos = (k*a + j*b + normal) * halfExtents;
 			//cerr << v << ": " << vertex.Pos.X << ", " << vertex.Pos.Y << ", " << vertex.Pos.Z << "\n";
 			//cerr << hex << material->color.color << dec << endl;
-			vertex.Color = material->color;
+			vertex.Color.color = material->color;
 			vertex.Normal = normal;
 			vertices[v] = vertex;
 		}
 	}
 }
 
-Viz::Viz(Sim* s): sim(s) {
+Viz* Viz::create(Sim* sim) {
+	return new IrrViz(sim);
+}
+
+IrrViz::IrrViz(Sim* s) {
 	// TODO Support multi-viz per sim and vice versa.
+	sim = s;
 	sim->viz = this;
 }
 
-void Viz::addBody(btCollisionObject* body) {
+void IrrViz::addBody(btCollisionObject* body) {
 	Material* material = BodyInfo::of(body)->material;
 	//cerr << "Color " << hex << material->color.color << dec;
 	IMesh* mesh;
@@ -94,7 +157,7 @@ void Viz::addBody(btCollisionObject* body) {
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
 }
 
-IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
+IMesh* IrrViz::buildBoxMesh(btBoxShape* shape, Material* material) {
 	// TODO Make this a general rectangle thing? Still need to reuse vertices from the two sides.
 	btVector3 btHalfExtents = shape->getHalfExtentsWithMargin();
 	//cerr << "btBoxShape btHalfExtents: " << btHalfExtents.x() << " " << btHalfExtents.y() << " " << btHalfExtents.z() << endl;
@@ -119,7 +182,7 @@ IMesh* Viz::buildBoxMesh(btBoxShape* shape, Material* material) {
 }
 
 	// TODO Swap y for z and figure out LH vs. RH.
-IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 latCount, u32 longCount) {
+IMesh* IrrViz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 latCount, u32 longCount) {
 	f64 distHalf = shape->getHalfHeight();
 	f64 radius = shape->getRadius();
 	// TODO How much can I reuse code between this and createSphereMesh?
@@ -167,7 +230,7 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 				vertex.Normal = vector3df(0,0,-heightOffset);
 				break;
 			}
-			vertex.Color = material->color;
+			vertex.Color.color = material->color;
 			// TODO Alternatively could calculate normal from latAngle and longAngle.
 			vertex.Normal += vertex.Pos;
 			vertex.Normal /= radius;
@@ -217,7 +280,7 @@ IMesh* Viz::createCapsuleMesh(btCapsuleShape* shape, Material* material, u32 lat
 	return mesh;
 }
 
-IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount) {
+IMesh* IrrViz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 longCount) {
 	btVector3 btRadii = shape->getHalfExtentsWithMargin();
 	vector3df radii(btRadii.x(), btRadii.y(), btRadii.z());
 	// Like a capsule except both ends go directly to respective center points.
@@ -226,7 +289,7 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	S3DVertex* vertices = reinterpret_cast<S3DVertex*>(alloca(sizeof(S3DVertex) * vertexCount));
 	u32 v = 0;
 	S3DVertex vertex;
-	vertex.Color = material->color;
+	vertex.Color.color = material->color;
 	// Top vertex.
 	vertex.Pos = vector3df(0,-radii.Y,0);
 	vertex.Normal = vector3df(0,-1,0);
@@ -289,7 +352,7 @@ IMesh* Viz::createCylinderMesh(btCylinderShape* shape, Material* material, u32 l
 	return mesh;
 }
 
-IMesh* Viz::createPlaneMesh() {
+IMesh* IrrViz::createPlaneMesh() {
 	// TODO Figure out LH vs. RH.
 	// TODO This really isn't infinite.
 	// TODO A forum discussion indicates shaders might work for infinite.
@@ -331,7 +394,7 @@ IMesh* Viz::createPlaneMesh() {
 	return mesh;
 }
 
-IMesh* Viz::createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount) {
+IMesh* IrrViz::createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount) {
 	// TODO Swap y for z and figure out LH vs. RH.
 	f64 radius = shape->getRadius();
 	// TODO Can I trust the int math on the doubles?
@@ -384,7 +447,7 @@ IMesh* Viz::createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount) 
 	return mesh;
 }
 
-void Viz::run() {
+void IrrViz::run() {
 	// TODO We are leaking about 2 KB from irrlicht/gl/x. Simple program does the same, though.
 	SIrrlichtCreationParameters irrParams;
 	irrParams.DriverType = EDT_OPENGL;
@@ -458,10 +521,10 @@ void Viz::run() {
 	device = NULL;
 }
 
-void Viz::update(btRigidBody* body) {
+void IrrViz::update(btRigidBody* body) {
 	btTransform transform;
 	body->getMotionState()->getWorldTransform(transform);
-	ISceneNode* node = BodyInfo::of(body)->sceneNode;
+	ISceneNode* node = reinterpret_cast<ISceneNode*>(BodyInfo::of(body)->sceneNode);
 	// TODO Build auto-conversions between these vector types.
 	btVector3& origin = transform.getOrigin();
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));

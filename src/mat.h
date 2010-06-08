@@ -5,6 +5,24 @@
 
 // For math and matrix purposes.
 
+typedef struct {
+	zof_meta meta;
+	zof_int size_col;
+	zof_int size_row;
+	zof_int stride_col;
+	zof_int stride_row;
+	zof_int* values;
+} zof_mat_i;
+
+typedef struct {
+	zof_meta meta;
+	zof_mat_int colors;
+	zof_mat coords;
+	zof_mat normals;
+	// 1xN for strip, 3xN for array.
+	zof_mat_i triangles;
+} zof_mesh_struct;
+
 namespace zof {
 
 template<typename Num>

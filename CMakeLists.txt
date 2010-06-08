@@ -40,4 +40,5 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(
 	src
+	extensions
 )

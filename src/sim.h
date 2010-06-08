@@ -13,7 +13,7 @@ struct BodyInfo {
 
 	Material* material;
 
-	ISceneNode* sceneNode;
+	void* sceneNode;
 
 	Sim* sim;
 
@@ -21,9 +21,9 @@ struct BodyInfo {
 
 struct Material {
 
-	Material(SColor color = SColor(0xFFFFFFFF));
+	Material(zof_uint color = 0xFFFFFFFF);
 
-	SColor color;
+	zof_uint color;
 
 	btScalar density;
 

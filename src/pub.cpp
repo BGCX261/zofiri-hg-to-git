@@ -281,6 +281,7 @@ void initCommands(Pub* pub) {
 
 Pub::Pub(Viz* viz, int port) {
 	server = new Server(port);
+	mod_uri = zof_null;
 	this->viz = viz;
 	viz->pub = this;
 	initCommands(this);
@@ -294,6 +295,16 @@ Pub::~Pub() {
 }
 
 void Pub::update() {
+
+	if (mod_uri) {
+		zof_mod mod = zof_mod_new(mod_uri);
+		if (mod) {
+			zof_mod_sim_init(mod, viz->sim->csim);
+			zof_ref_free(mod);
+		}
+		mod_uri = zof_null;
+	}
+
 	vector<std::string> results;
 	vector<Socket*> sockets;
 	server->select(&sockets);

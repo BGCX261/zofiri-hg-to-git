@@ -29,6 +29,8 @@ struct zof_part_struct {
 	zof_str name;
 	zof_part_kind kind;
 	union {
+		// TODO Do we need a root body whether with kids or not?
+		// TODO Or is the first kid the root?
 		btRigidBody* body;
 		vector<zof_part_struct*>* kids;
 		zof_part_primitive partial;
@@ -48,6 +50,8 @@ struct zof_sim_struct {
 zof_type zof_part_type(void);
 zof_type zof_shape_type(void);
 zof_type zof_sim_type(void);
+btVector3 zof_vec4_to_bt3(zof_vec4 vec);
+btVector4 zof_vec4_to_bt4(zof_vec4 vec);
 
 void zof_part_close(zof_any part) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
@@ -106,7 +110,11 @@ zof_type zof_part_type(void) {
 }
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	//
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	if (part_struct->kind == zof_part_kind_primitive) {
+		btVector3 bt = zof_vec4_to_bt3(pos);
+		part_struct->body->getWorldTransform().setOrigin(bt);
+	}
 }
 
 void zof_shape_close(zof_any shape) {
@@ -117,11 +125,7 @@ void zof_shape_close(zof_any shape) {
 zof_shape zof_shape_new_box(zof_vec4 radii) {
 	zof_shape_struct* shape = (zof_shape_struct*)malloc(sizeof(zof_shape_struct));
 	shape->type= zof_shape_type();
-	btVector3 bt_radii;
-	for (zof_uint i = 0; i < 3; i++) {
-		bt_radii.m_floats[i] = zof_bt_scale * btScalar(radii.vals[i]);
-	}
-	bt_radii.m_floats[3] = btScalar(0);
+	btVector3 bt_radii = zof_vec4_to_bt3(radii);
 	btBoxShape* box = new btBoxShape(bt_radii);
 	shape->shape = box;
 	return (zof_shape)shape;
@@ -150,7 +154,13 @@ void zof_sim_close(zof_any sim) {
 }
 
 void zof_sim_part_add(zof_sim sim, zof_part part) {
-	// TODO
+	zof_sim_struct* sim_struct = (zof_sim_struct*)sim;
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	if (part_struct->kind == zof_part_kind_primitive) {
+		// TODO Add full graph whether composite or not?
+		((zof::BodyInfo*)part_struct->body->getUserPointer())->sim = sim_struct->sim;
+		sim_struct->sim->addBody(part_struct->body);
+	}
 }
 
 zof_type zof_sim_type(void) {
@@ -162,6 +172,23 @@ zof_type zof_sim_type(void) {
 		type = zof_type_new(&info);
 	}
 	return type;
+}
+
+btVector3 zof_vec4_to_bt3(zof_vec4 vec) {
+	btVector3 bt;
+	for (zof_uint i = 0; i < 3; i++) {
+		bt.m_floats[i] = zof_bt_scale * btScalar(vec.vals[i]);
+	}
+	bt.m_floats[3] = btScalar(0);
+	return bt;
+}
+
+btVector4 zof_vec4_to_bt4(zof_vec4 vec) {
+	btVector4 bt;
+	for (zof_uint i = 0; i < 4; i++) {
+		bt.m_floats[i] = zof_bt_scale * btScalar(vec.vals[i]);
+	}
+	return bt;
 }
 
 }
@@ -214,7 +241,10 @@ Sim::Sim() {
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
 
 	// TODO Hack to make C-mod sim available.
-	csim = zof_null;
+	zof_sim_struct* sim_struct = (zof_sim_struct*)malloc(sizeof(zof_sim_struct));
+	sim_struct->type = zof_sim_type();
+	sim_struct->sim = this;
+	csim = (zof_sim)sim_struct;
 }
 
 Sim::~Sim() {

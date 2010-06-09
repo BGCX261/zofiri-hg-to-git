@@ -28,6 +28,11 @@ struct Pub {
 	std::map<std::string, Command*> commands;
 
 	/**
+	 * TODO Just a hack for now for testing. Clean all this up.
+	 */
+	zof_str mod_uri;
+
+	/**
 	 * Reads incoming messages, if any, and updates the sim or viz.
 	 * If no messages, just returns right away.
 	 */

@@ -298,10 +298,13 @@ void Pub::update() {
 
 	if (mod_uri) {
 		zof_mod mod = zof_mod_new(mod_uri);
-		if (mod) {
-			zof_mod_sim_init(mod, viz->sim->csim);
-			zof_ref_free(mod);
+		if (!mod) {
+			exit(EXIT_FAILURE);
 		}
+		if (!zof_mod_sim_init(mod, viz->sim->csim)) {
+			exit(EXIT_FAILURE);
+		}
+		zof_ref_free(mod);
 		mod_uri = zof_null;
 	}
 

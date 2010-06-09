@@ -71,6 +71,8 @@ typedef zof_mat zof_mat_int;
 
 zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z);
 
+zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w);
+
 
 // More domainish stuff.
 typedef zof_uint zof_color;
@@ -84,7 +86,7 @@ typedef zof_ref zof_shape;
 typedef zof_ref zof_sim;
 
 
-zof_joint zof_joint_new(zof_str name, zof_mat pos, zof_mat rot);
+zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
 
 zof_num zof_mat_get(zof_mat, zof_mat pos);
 zof_int zof_mat_geti(zof_mat, zof_mat pos);
@@ -114,12 +116,12 @@ zof_str zof_mod_uri(zof_mod mod);
 // Parts.
 zof_bool zof_part_attach(zof_part part, zof_part kid);
 zof_joint zof_part_joint(zof_part part, zof_str name);
-zof_part zof_part_joint_add(zof_part part, zof_joint joint);
+void zof_part_joint_add(zof_part part, zof_joint joint);
+zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new(zof_str name, zof_shape shape);
 zof_part zof_part_new_composite(zof_str name);
 void zof_part_pos_put(zof_part part, zof_vec4 pos);
-
 
 zof_shape zof_shape_new_box(zof_vec4 radii);
 zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);

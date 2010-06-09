@@ -7,10 +7,20 @@ extern "C" {
  */
 #define zof_bt_scale 100.0
 
+struct zof_joint_struct {
+	zof_type type;
+	zof_str name;
+	btTransform transform;
+	zof_mat limits;
+};
+
 /**
  * TODO Move this to zof.h sometime?
  */
 typedef enum {
+	// TODO Or just allow named groups at body root?
+	// TODO When looking for joints, assume detached by default?
+	// TODO That is, once linked, parts just become arbitrary.
 	zof_part_kind_composite,
 	zof_part_kind_primitive
 } zof_part_kind;
@@ -47,11 +57,48 @@ struct zof_sim_struct {
 	zof::Sim* sim;
 };
 
+void zof_joint_close(zof_any part);
+zof_type zof_joint_type(void);
+void zof_part_close(zof_any part);
 zof_type zof_part_type(void);
+void zof_shape_close(zof_any part);
 zof_type zof_shape_type(void);
+void zof_sim_close(zof_any part);
 zof_type zof_sim_type(void);
 btVector3 zof_vec4_to_bt3(zof_vec4 vec);
 btVector4 zof_vec4_to_bt4(zof_vec4 vec);
+
+void zof_joint_close(zof_any part) {
+	// TODO Free limits if set.
+}
+
+zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
+	// TODO Hrmm.
+	zof_joint_struct* joint = (zof_joint_struct*)malloc(sizeof(zof_joint_struct));
+	joint->type = zof_joint_type();
+	joint->name = name;
+	joint->transform.setOrigin(zof_vec4_to_bt3(pos));
+	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
+	joint->limits = zof_null;
+	return (zof_joint)joint;
+}
+
+zof_type zof_joint_type(void) {
+	static zof_type type = NULL;
+	if (!type) {
+		zof_type_info info;
+		info.name = "zof_joint";
+		info.close = zof_joint_close;
+		type = zof_type_new(&info);
+	}
+	return type;
+}
+
+zof_bool zof_part_attach(zof_part part, zof_part kid) {
+	// TODO ...
+	// TODO False if no joints available?
+	return zof_false;
+}
 
 void zof_part_close(zof_any part) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
@@ -67,6 +114,15 @@ void zof_part_close(zof_any part) {
 	} else {
 		delete part_struct->body;
 	}
+}
+
+zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
+	// TODO Calculate for real.
+	return ratios;
+}
+
+void zof_part_joint_add(zof_part part, zof_joint joint) {
+	// TODO
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {

@@ -38,11 +38,15 @@ zof_ref_close zof_type_ref_close(zof_type type) {
 }
 
 zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z) {
+	return zof_xyzw(x,y,z,0);
+}
+
+zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w) {
 	zof_vec4 vec;
 	vec.vals[0] = x;
 	vec.vals[1] = y;
 	vec.vals[2] = z;
-	vec.vals[3] = 0.0;
+	vec.vals[3] = w;
 	return vec;
 }
 

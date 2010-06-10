@@ -232,7 +232,6 @@ class WheeledBase(object):
         wheel = self.wheel_left
         support = Cylinder(
             (0.9*self.hips.radius,0.02,wheel.radii[0]),
-            material=wheel.material,
             name='support')
         support.add_joint(Joint(
             (0,0,0),

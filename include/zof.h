@@ -120,9 +120,11 @@ void zof_part_joint_add(zof_part part, zof_joint joint);
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new(zof_str name, zof_shape shape);
-zof_part zof_part_new_composite(zof_str name);
+zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
+zof_part zof_part_new_group(zof_str name);
 void zof_part_pos_put(zof_part part, zof_vec4 pos);
 
+// TODO Remove shape entirely? Add zof_box, zof_capsule, ..., for casting from parts?
 zof_shape zof_shape_new_box(zof_vec4 radii);
 zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);
 zof_shape zof_shape_new_cylinder(zof_vec4 radii);

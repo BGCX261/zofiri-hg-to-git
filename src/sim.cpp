@@ -11,7 +11,8 @@ struct zof_joint_struct {
 	zof_type type;
 	zof_str name;
 	btTransform transform;
-	zof_mat limits;
+	zof_vec4 posLimits[2];
+	zof_vec4 rotLimits[2];
 };
 
 /**
@@ -79,7 +80,8 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	joint->name = name;
 	joint->transform.setOrigin(zof_vec4_to_bt3(pos));
 	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
-	joint->limits = zof_null;
+	memset(joint->posLimits, 0, sizeof(joint->posLimits));
+	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
 	return (zof_joint)joint;
 }
 
@@ -152,6 +154,11 @@ zof_part zof_part_new(zof_str name, zof_shape shape) {
 	part->body->setUserPointer(info);
 	motionState->m_userPointer = part->body;
 	return (zof_part)part;
+}
+
+
+zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
+	return zof_part_new(name, zof_shape_new_box(radii));
 }
 
 zof_type zof_part_type(void) {

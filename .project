@@ -3,6 +3,7 @@
 	<name>zofiri</name>
 	<comment></comment>
 	<projects>
+		<project>bullet</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -58,6 +58,7 @@ struct zof_sim_struct {
 	zof::Sim* sim;
 };
 
+zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale=1);
 void zof_joint_close(zof_any part);
 zof_type zof_joint_type(void);
 void zof_part_close(zof_any part);
@@ -66,8 +67,24 @@ void zof_shape_close(zof_any part);
 zof_type zof_shape_type(void);
 void zof_sim_close(zof_any part);
 zof_type zof_sim_type(void);
-btVector3 zof_vec4_to_bt3(zof_vec4 vec);
-btVector4 zof_vec4_to_bt4(zof_vec4 vec);
+btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
+btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
+
+zof_vec4 zof_box_radii(zof_box box) {
+	zof_part_struct* part_struct = (zof_part_struct*)box;
+	btBoxShape* shape = reinterpret_cast<btBoxShape*>(part_struct->body->getCollisionShape());
+	btVector3 radii = shape->getHalfExtentsWithMargin();
+	return zof_bt3_to_vec4(radii, 1/zof_bt_scale);
+}
+
+zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale) {
+	zof_vec4 vec;
+	for (zof_uint i = 0; i < 3; i++) {
+		vec.vals[i] = scale * bt3.m_floats[i];
+	}
+	vec.vals[3] = 0;
+	return vec;
+}
 
 void zof_joint_close(zof_any part) {
 	// TODO Free limits if set.
@@ -78,8 +95,9 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	zof_joint_struct* joint = (zof_joint_struct*)malloc(sizeof(zof_joint_struct));
 	joint->type = zof_joint_type();
 	joint->name = name;
-	joint->transform.setOrigin(zof_vec4_to_bt3(pos));
+	joint->transform.setOrigin(zof_vec4_to_bt3(pos, zof_bt_scale));
 	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
+	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
 	memset(joint->posLimits, 0, sizeof(joint->posLimits));
 	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
 	return (zof_joint)joint;
@@ -102,6 +120,10 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 	return zof_false;
 }
 
+zof_box zof_part_box(zof_part part) {
+	return zof_part_shape_kind(part) == zof_shape_kind_box ? (zof_box)part : zof_null;
+}
+
 void zof_part_close(zof_any part) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
 	if (part_struct->kind == zof_part_kind_composite) {
@@ -119,12 +141,39 @@ void zof_part_close(zof_any part) {
 }
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
-	// TODO Calculate for real.
-	return ratios;
+	// TODO Separate bounds function? What about non-centered origin?
+	zof_vec4 radii;
+	switch (zof_part_shape_kind(part)) {
+	case zof_shape_kind_box:
+		radii = zof_box_radii(zof_part_box(part));
+		break;
+	default:
+		// TODO Not easy to indicate error here!
+		memset(&radii, 0, sizeof(radii));
+		break;
+	}
+	for (int i = 0; i < 4; i++) {
+		radii.vals[i] *= ratios.vals[i];
+	}
+	return radii;
 }
 
 void zof_part_joint_add(zof_part part, zof_joint joint) {
 	// TODO
+}
+
+zof_shape_kind zof_part_shape_kind(zof_part part) {
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	switch(part_struct->body->getCollisionShape()->getShapeType()) {
+	case BOX_SHAPE_PROXYTYPE:
+		return zof_shape_kind_box;
+	case CAPSULE_SHAPE_PROXYTYPE:
+		return zof_shape_kind_capsule;
+	case CYLINDER_SHAPE_PROXYTYPE:
+		return zof_shape_kind_cylinder;
+	default:
+		return zof_shape_kind_error;
+	}
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
@@ -175,7 +224,7 @@ zof_type zof_part_type(void) {
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
-		btVector3 bt = zof_vec4_to_bt3(pos);
+		btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
 		part_struct->body->getWorldTransform().setOrigin(bt);
 	}
 }
@@ -188,7 +237,7 @@ void zof_shape_close(zof_any shape) {
 zof_shape zof_shape_new_box(zof_vec4 radii) {
 	zof_shape_struct* shape = (zof_shape_struct*)malloc(sizeof(zof_shape_struct));
 	shape->type= zof_shape_type();
-	btVector3 bt_radii = zof_vec4_to_bt3(radii);
+	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
 	btBoxShape* box = new btBoxShape(bt_radii);
 	shape->shape = box;
 	return (zof_shape)shape;
@@ -237,19 +286,19 @@ zof_type zof_sim_type(void) {
 	return type;
 }
 
-btVector3 zof_vec4_to_bt3(zof_vec4 vec) {
+btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
 	btVector3 bt;
 	for (zof_uint i = 0; i < 3; i++) {
-		bt.m_floats[i] = zof_bt_scale * btScalar(vec.vals[i]);
+		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
 	}
 	bt.m_floats[3] = btScalar(0);
 	return bt;
 }
 
-btVector4 zof_vec4_to_bt4(zof_vec4 vec) {
+btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
 	btVector4 bt;
 	for (zof_uint i = 0; i < 4; i++) {
-		bt.m_floats[i] = zof_bt_scale * btScalar(vec.vals[i]);
+		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
 	}
 	return bt;
 }

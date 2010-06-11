@@ -12,10 +12,10 @@ zof_bool sim_init(zof_mod mod, zof_sim sim) {
 		zof_xyzw(0,1,0,0)
 	);
 	// TODO Joint limits.
-	zof_part_joint_add(box1, joint1);
+	zof_part_joint_put(box1, joint1);
 	// Box 2.
 	zof_part box2 = zof_part_new_box("box2", zof_xyz(0.1,0.025,0.1));
-	zof_part_joint_add(box2, zof_joint_new(
+	zof_part_joint_put(box2, zof_joint_new(
 		"box1",
 		zof_part_end_pos(box2, zof_xyz(0.9,0,0.9)),
 		zof_xyzw(0,1,0,0)

@@ -3,8 +3,6 @@
 	<name>zofiri</name>
 	<comment></comment>
 	<projects>
-		<project>bullet</project>
-		<project>irrlicht</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

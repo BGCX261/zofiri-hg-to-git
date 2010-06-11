@@ -37,8 +37,9 @@ struct zof_part_primitive {
 
 struct zof_part_struct {
 	zof_type type;
-	zof_str name;
+	map<string,zof_joint> joints;
 	zof_part_kind kind;
+	zof_str name;
 	union {
 		// TODO Do we need a root body whether with kids or not?
 		// TODO Or is the first kid the root?
@@ -88,6 +89,10 @@ zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale) {
 
 void zof_joint_close(zof_any part) {
 	// TODO Free limits if set.
+}
+
+zof_str zof_joint_name(zof_joint joint) {
+	return ((zof_joint_struct*)joint)->name;
 }
 
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
@@ -158,8 +163,19 @@ zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 	return radii;
 }
 
-void zof_part_joint_add(zof_part part, zof_joint joint) {
-	// TODO
+zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	string name(zof_joint_name(joint));
+	zof_joint old_joint = zof_null;
+	map<string,zof_joint>::iterator old = part_struct->joints.find(name);
+	if (old != part_struct->joints.end()) {
+		// Old joint already there.
+		old_joint = old->second;
+	}
+	cerr << name << " was at " << old_joint << endl;
+	map<string,zof_joint>::value_type pair(name, joint);
+	part_struct->joints.insert(old, pair);
+	return old_joint;
 }
 
 zof_shape_kind zof_part_shape_kind(zof_part part) {
@@ -177,7 +193,7 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
-	zof_part_struct* part = (zof_part_struct*)malloc(sizeof(zof_part_struct));
+	zof_part_struct* part = new zof_part_struct;
 	part->type = zof_part_type();
 	part->name = name;
 	part->kind = zof_part_kind_primitive;

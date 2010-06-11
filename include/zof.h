@@ -15,6 +15,9 @@ typedef double zof_num;
 typedef unsigned int zof_uint;
 
 // Core opaques.
+
+#define zof_ref_def(name) typedef struct name##_ {}* name;
+
 #ifdef __cplusplus
 	// C++ vs. C distinction from gcc.
 	// I provide zof_null to avoid need to import stdlib.h.
@@ -22,11 +25,16 @@ typedef unsigned int zof_uint;
 #else
 	#define zof_null ((void*)0)
 #endif
-#define zof_ref struct{}*
+
 typedef void* zof_any;
-typedef zof_ref zof_err;
+
+/**
+ * Opaquify?
+ */
 typedef char* zof_str;
-typedef zof_ref zof_type;
+
+zof_ref_def(zof_err);
+zof_ref_def(zof_type);
 
 zof_str zof_err_code(zof_err err);
 
@@ -65,7 +73,12 @@ typedef struct {
 } zof_vec4;
 
 // Math opaques.
-typedef zof_ref zof_mat;
+
+zof_ref_def(zof_mat);
+
+/**
+ * Leave it compatible. The int is just a hint.
+ */
 typedef zof_mat zof_mat_int;
 
 
@@ -86,18 +99,19 @@ typedef enum {
 	zof_shape_kind_mesh,
 } zof_shape_kind;
 
-typedef zof_ref zof_app;
-typedef zof_ref zof_box;
-typedef zof_ref zof_joint;
-typedef zof_ref zof_mesh;
-typedef zof_ref zof_mod;
-typedef zof_ref zof_part;
-typedef zof_ref zof_shape;
-typedef zof_ref zof_sim;
+zof_ref_def(zof_app);
+zof_ref_def(zof_box);
+zof_ref_def(zof_joint);
+zof_ref_def(zof_mesh);
+zof_ref_def(zof_mod);
+zof_ref_def(zof_part);
+zof_ref_def(zof_shape);
+zof_ref_def(zof_sim);
 
 
 zof_vec4 zof_box_radii(zof_box box);
 
+zof_str zof_joint_name(zof_joint joint);
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
 
 zof_num zof_mat_get(zof_mat, zof_mat pos);
@@ -129,7 +143,13 @@ zof_str zof_mod_uri(zof_mod mod);
 zof_bool zof_part_attach(zof_part part, zof_part kid);
 zof_box zof_part_box(zof_part part);
 zof_joint zof_part_joint(zof_part part, zof_str name);
-void zof_part_joint_add(zof_part part, zof_joint joint);
+
+/**
+ * Returns any previous joint with this name or null.
+ * TODO Allow leaving name null for auto-assignment?
+ */
+zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
+
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_shape_kind zof_part_shape_kind(zof_part part);
 zof_str zof_part_name(zof_part part);

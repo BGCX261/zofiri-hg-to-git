@@ -16,6 +16,12 @@ struct Joint {
 	btTransform transform;
 	zof_vec4 posLimits[2];
 	zof_vec4 rotLimits[2];
+
+	/**
+	 * Doable if part, other, and remaining items already set.
+	 */
+	btTypedConstraint* createConstraint();
+
 };
 
 /**
@@ -149,10 +155,10 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 		zof_str kid_name = zof_part_name(kid);
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
-			Joint* part_joint_struct = (Joint*)part_joint;
-			Joint* kid_joint_struct = (Joint*)kid_joint;
-			part_joint_struct->other = kid_joint;
-			kid_joint_struct->other = part_joint;
+			Joint* partJoint = (Joint*)part_joint;
+			Joint* kidJoint = (Joint*)kid_joint;
+			partJoint->other = kid_joint;
+			kidJoint->other = part_joint;
 		}
 	}
 	return zof_false;
@@ -347,7 +353,8 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 				if (other) {
 					zof_part kid = zof_joint_part(other);
 					zof_sim_part_add(sim, kid);
-					// TODO Add constraint between the two.
+					// TODO Reset relative positions somewhere!
+					simPriv->sim->addConstraint(((Joint*)joint)->createConstraint());
 				}
 			}
 		}
@@ -400,6 +407,15 @@ BodyInfo::BodyInfo():
 
 BodyInfo* BodyInfo::of(btCollisionObject* body) {
 	return reinterpret_cast<BodyInfo*>(body->getUserPointer());
+}
+
+btTypedConstraint* Joint::createConstraint() {
+	Part* part = reinterpret_cast<Part*>(this->part);
+	Joint* other = reinterpret_cast<Joint*>(this->other);
+	Part* otherPart = reinterpret_cast<Part*>(other->part);
+	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *otherPart->body, this->transform, other->transform, false);
+	// TODO Limits, etc.
+	return constraint;
 }
 
 Material::Material(zof_color c): color(c), density(1) {

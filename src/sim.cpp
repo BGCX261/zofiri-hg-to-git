@@ -10,6 +10,8 @@ extern "C" {
 struct zof_joint_struct {
 	zof_type type;
 	zof_str name;
+	zof_part part;
+	zof_joint other;
 	btTransform transform;
 	zof_vec4 posLimits[2];
 	zof_vec4 rotLimits[2];
@@ -100,6 +102,8 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	zof_joint_struct* joint = (zof_joint_struct*)malloc(sizeof(zof_joint_struct));
 	joint->type = zof_joint_type();
 	joint->name = name;
+	joint->part = zof_null;
+	joint->other = zof_null;
 	joint->transform.setOrigin(zof_vec4_to_bt3(pos, zof_bt_scale));
 	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
@@ -120,8 +124,19 @@ zof_type zof_joint_type(void) {
 }
 
 zof_bool zof_part_attach(zof_part part, zof_part kid) {
-	// TODO ...
-	// TODO False if no joints available?
+	zof_str part_name = zof_part_name(part);
+	zof_joint kid_joint = zof_part_joint(kid, part_name);
+	if (kid_joint) {
+		zof_str kid_name = zof_part_name(kid);
+		zof_joint part_joint = zof_part_joint(part, kid_name);
+		if (part_joint) {
+			zof_joint_struct* part_joint_struct = (zof_joint_struct*)part_joint;
+			zof_joint_struct* kid_joint_struct = (zof_joint_struct*)kid_joint;
+			part_joint_struct->other = kid_joint;
+			kid_joint_struct->other = part_joint;
+			cerr << "Attaching " << part_name << " and " << kid_name << endl;
+		}
+	}
 	return zof_false;
 }
 
@@ -163,6 +178,15 @@ zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 	return radii;
 }
 
+zof_joint zof_part_joint(zof_part part, zof_str name) {
+	zof_part_struct* part_struct = (zof_part_struct*)part;
+	map<string,zof_joint>::iterator j = part_struct->joints.find(name);
+	if (j != part_struct->joints.end()) {
+		return j->second;
+	}
+	return zof_null;
+}
+
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
 	string name(zof_joint_name(joint));
@@ -171,11 +195,18 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 	if (old != part_struct->joints.end()) {
 		// Old joint already there.
 		old_joint = old->second;
+		zof_joint_struct* old_joint_struct = (zof_joint_struct*)old_joint;
+		old_joint_struct->part = zof_null;
 	}
-	cerr << name << " was at " << old_joint << endl;
 	map<string,zof_joint>::value_type pair(name, joint);
 	part_struct->joints.insert(old, pair);
+	zof_joint_struct* joint_struct = (zof_joint_struct*)joint;
+	joint_struct->part = part;
 	return old_joint;
+}
+
+zof_str zof_part_name(zof_part part) {
+	return ((zof_part_struct*)part)->name;
 }
 
 zof_shape_kind zof_part_shape_kind(zof_part part) {

@@ -112,6 +112,14 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	return (zof_joint)joint;
 }
 
+zof_joint zof_joint_other(zof_joint joint) {
+	return ((zof_joint_struct*)joint)->other;
+}
+
+zof_part zof_joint_part(zof_joint joint) {
+	return ((zof_joint_struct*)joint)->part;
+}
+
 zof_type zof_joint_type(void) {
 	static zof_type type = NULL;
 	if (!type) {
@@ -134,7 +142,6 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 			zof_joint_struct* kid_joint_struct = (zof_joint_struct*)kid_joint;
 			part_joint_struct->other = kid_joint;
 			kid_joint_struct->other = part_joint;
-			cerr << "Attaching " << part_name << " and " << kid_name << endl;
 		}
 	}
 	return zof_false;
@@ -317,8 +324,22 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 	zof_part_struct* part_struct = (zof_part_struct*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
 		// TODO Add full graph whether composite or not?
-		((zof::BodyInfo*)part_struct->body->getUserPointer())->sim = sim_struct->sim;
-		sim_struct->sim->addBody(part_struct->body);
+		zof::BodyInfo* info = (zof::BodyInfo*)part_struct->body->getUserPointer();
+		// Avoid infinite recursion by checking sim.
+		// TODO If in another sim, move to this one?
+		if (!info->sim) {
+			info->sim = sim_struct->sim;
+			sim_struct->sim->addBody(part_struct->body);
+			for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
+				zof_joint joint = j->second;
+				zof_joint other = zof_joint_other(joint);
+				if (other) {
+					zof_part kid = zof_joint_part(other);
+					zof_sim_part_add(sim, kid);
+					// TODO Add constraint between the two.
+				}
+			}
+		}
 	}
 }
 

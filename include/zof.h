@@ -113,6 +113,8 @@ zof_vec4 zof_box_radii(zof_box box);
 
 zof_str zof_joint_name(zof_joint joint);
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
+zof_joint zof_joint_other(zof_joint joint);
+zof_part zof_joint_part(zof_joint joint);
 
 zof_num zof_mat_get(zof_mat, zof_mat pos);
 zof_int zof_mat_geti(zof_mat, zof_mat pos);

@@ -1,8 +1,5 @@
 #include "zofiri.h"
 
-using namespace zof;
-
-extern "C" {
 
 /**
  * Make the core unit centimeters for finer control.
@@ -70,6 +67,11 @@ struct SimPriv {
 
 }
 
+
+using namespace zof;
+
+extern "C" {
+
 zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale=1);
 void zof_joint_close(zof_any part);
 zof_type zof_joint_type(void);
@@ -108,7 +110,7 @@ zof_str zof_joint_name(zof_joint joint) {
 
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	// TODO Hrmm.
-	Joint* joint = (Joint*)malloc(sizeof(Joint));
+	Joint* joint = new Joint;
 	joint->type = zof_joint_type();
 	joint->name = name;
 	joint->part = zof_null;
@@ -298,7 +300,7 @@ void zof_shape_close(zof_any shape) {
 }
 
 zof_shape zof_shape_new_box(zof_vec4 radii) {
-	Shape* shape = (Shape*)malloc(sizeof(Shape));
+	Shape* shape = new Shape;
 	shape->type= zof_shape_type();
 	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
 	btBoxShape* box = new btBoxShape(bt_radii);
@@ -329,7 +331,7 @@ void zof_sim_close(zof_any sim) {
 }
 
 void zof_sim_part_add(zof_sim sim, zof_part part) {
-	SimPriv* sim_struct = (SimPriv*)sim;
+	SimPriv* simPriv = (SimPriv*)sim;
 	Part* part_struct = (Part*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
 		// TODO Add full graph whether composite or not?
@@ -337,8 +339,8 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 		// Avoid infinite recursion by checking sim.
 		// TODO If in another sim, move to this one?
 		if (!info->sim) {
-			info->sim = sim_struct->sim;
-			sim_struct->sim->addBody(part_struct->body);
+			info->sim = simPriv->sim;
+			simPriv->sim->addBody(part_struct->body);
 			for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
 				zof_joint joint = j->second;
 				zof_joint other = zof_joint_other(joint);
@@ -382,6 +384,11 @@ btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
 
 }
 
+
+/**
+ * Older stuff.
+ * TODO Eventually merge with newer.
+ */
 namespace zof {
 
 BodyInfo::BodyInfo():
@@ -430,7 +437,7 @@ Sim::Sim() {
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
 
 	// TODO Hack to make C-mod sim available.
-	SimPriv* sim_struct = (SimPriv*)malloc(sizeof(SimPriv));
+	SimPriv* sim_struct = new SimPriv;
 	sim_struct->type = zof_sim_type();
 	sim_struct->sim = this;
 	csim = (zof_sim)sim_struct;

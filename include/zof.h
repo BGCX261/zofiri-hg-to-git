@@ -16,7 +16,7 @@ typedef unsigned int zof_uint;
 
 // Core opaques.
 
-#define zof_ref_def(name) typedef struct name##_ {}* name;
+#define zof_ref_def(name) typedef struct name##_struct {}* name;
 
 #ifdef __cplusplus
 	// C++ vs. C distinction from gcc.

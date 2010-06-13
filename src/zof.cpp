@@ -1,12 +1,18 @@
 #include "zof.h"
 #include <stdlib.h>
 
-extern "C" {
+namespace zof {
 
-struct zof_type_struct {
+struct Type {
 	zof_type type;
 	zof_type_info info;
 };
+
+}
+
+using namespace zof;
+
+extern "C" {
 
 zof_type zof_type_type(void) {
 	// TODO Thread safety?
@@ -17,7 +23,7 @@ zof_type zof_type_type(void) {
 		info.close = NULL;
 		// Manual type creation here to avoid infinite recursion.
 		// Could make a separate helper function instead.
-		zof_type_struct* type_struct = (zof_type_struct*)malloc(sizeof(zof_type_struct));
+		Type* type_struct = new Type;
 		type = (zof_type)type_struct;
 		type_struct->info = info;
 		type_struct->type = type;
@@ -26,15 +32,14 @@ zof_type zof_type_type(void) {
 }
 
 zof_type zof_type_new(zof_type_info* info) {
-	// Make a convenience for malloc.
-	zof_type_struct* type = (zof_type_struct*)malloc(sizeof(zof_type_struct));
+	Type* type = new Type;
 	type->info = *info;
 	type->type = zof_type_type();
 	return (zof_type)type;
 }
 
 zof_ref_close zof_type_ref_close(zof_type type) {
-	return reinterpret_cast<zof_type_struct*>(type)->info.close;
+	return reinterpret_cast<Type*>(type)->info.close;
 }
 
 zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z) {

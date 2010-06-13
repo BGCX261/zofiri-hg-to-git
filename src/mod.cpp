@@ -3,16 +3,22 @@
 #include <stdlib.h>
 #include <zof.h>
 
-extern "C" {
+namespace zof {
 
-struct zof_mod_struct {
+struct Mod {
 	zof_type type;
 	void* lib;
 	zof_str uri;
 };
 
+}
+
+using namespace zof;
+
+extern "C" {
+
 void zof_mod_close(zof_any ref) {
-	zof_mod_struct* mod = (zof_mod_struct*)ref;
+	Mod* mod = (Mod*)ref;
 	dlclose(mod->lib);
 }
 
@@ -34,7 +40,7 @@ zof_mod zof_mod_new(zof_str uri) {
 		fprintf(stderr, "%s\n", dlerror());
 		return NULL;
 	}
-	zof_mod_struct* mod = (zof_mod_struct*)malloc(sizeof(zof_mod_struct));
+	Mod* mod = (Mod*)malloc(sizeof(Mod));
 	mod->type = zof_mod_type();
 	mod->lib = lib;
 	// TODO Copy the uri first?
@@ -43,11 +49,11 @@ zof_mod zof_mod_new(zof_str uri) {
 }
 
 zof_str zof_mod_uri(zof_mod mod) {
-	return ((zof_mod_struct*)mod)->uri;
+	return ((Mod*)mod)->uri;
 }
 
 zof_bool zof_mod_sim_init(zof_mod mod, zof_sim sim) {
-	zof_mod_struct* mod_struct = (zof_mod_struct*)mod;
+	Mod* mod_struct = (Mod*)mod;
 	zof_bool (*sim_init)(zof_mod,zof_sim);
 	// Lock something around dlerror calls?
 	dlerror();

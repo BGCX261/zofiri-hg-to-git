@@ -47,10 +47,7 @@ void zof_ref_free(zof_any ref) {
 	if (close) {
 		close(ref);
 	}
-	// TODO Might need to change this to delete!!!!
-	// TODO To use C++ types inside my structs, I'm needing 'new'.
-	// TODO I'm just not consistent yet.
-	free(ref);
+	// TODO delete ref; // <-- once we get a common hierarchy!!!
 }
 
 }

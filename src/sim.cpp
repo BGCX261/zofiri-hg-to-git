@@ -1,5 +1,7 @@
 #include "zofiri.h"
 
+using namespace zof;
+
 extern "C" {
 
 /**
@@ -7,7 +9,9 @@ extern "C" {
  */
 #define zof_bt_scale 100.0
 
-struct zof_joint_struct {
+namespace zof {
+
+struct Joint {
 	zof_type type;
 	zof_str name;
 	zof_part part;
@@ -20,46 +24,51 @@ struct zof_joint_struct {
 /**
  * TODO Move this to zof.h sometime?
  */
-typedef enum {
+enum PartKind {
 	// TODO Or just allow named groups at body root?
 	// TODO When looking for joints, assume detached by default?
 	// TODO That is, once linked, parts just become arbitrary.
 	zof_part_kind_composite,
 	zof_part_kind_primitive
-} zof_part_kind;
+};
 
 /**
  * Thoughts on future part info to replace current.
  * TODO zof_material, ...
  */
-struct zof_part_primitive {
+struct PartPrimitive {
 	zof_shape shape;
 	// TODO Material, ...
 };
 
-struct zof_part_struct {
+struct Part {
 	zof_type type;
 	map<string,zof_joint> joints;
-	zof_part_kind kind;
+	PartKind kind;
 	zof_str name;
 	union {
 		// TODO Do we need a root body whether with kids or not?
 		// TODO Or is the first kid the root?
 		btRigidBody* body;
-		vector<zof_part_struct*>* kids;
-		zof_part_primitive partial;
+		vector<Part*>* kids;
+		PartPrimitive partial;
 	};
 };
 
-struct zof_shape_struct {
+struct Shape {
 	zof_type type;
 	btCollisionShape* shape;
 };
 
-struct zof_sim_struct {
+/**
+ * TODO Eventually merge with Sim.
+ */
+struct SimPriv {
 	zof_type type;
-	zof::Sim* sim;
+	Sim* sim;
 };
+
+}
 
 zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale=1);
 void zof_joint_close(zof_any part);
@@ -74,7 +83,7 @@ btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
 btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
 
 zof_vec4 zof_box_radii(zof_box box) {
-	zof_part_struct* part_struct = (zof_part_struct*)box;
+	Part* part_struct = (Part*)box;
 	btBoxShape* shape = reinterpret_cast<btBoxShape*>(part_struct->body->getCollisionShape());
 	btVector3 radii = shape->getHalfExtentsWithMargin();
 	return zof_bt3_to_vec4(radii, 1/zof_bt_scale);
@@ -94,12 +103,12 @@ void zof_joint_close(zof_any part) {
 }
 
 zof_str zof_joint_name(zof_joint joint) {
-	return ((zof_joint_struct*)joint)->name;
+	return ((Joint*)joint)->name;
 }
 
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	// TODO Hrmm.
-	zof_joint_struct* joint = (zof_joint_struct*)malloc(sizeof(zof_joint_struct));
+	Joint* joint = (Joint*)malloc(sizeof(Joint));
 	joint->type = zof_joint_type();
 	joint->name = name;
 	joint->part = zof_null;
@@ -113,11 +122,11 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 }
 
 zof_joint zof_joint_other(zof_joint joint) {
-	return ((zof_joint_struct*)joint)->other;
+	return ((Joint*)joint)->other;
 }
 
 zof_part zof_joint_part(zof_joint joint) {
-	return ((zof_joint_struct*)joint)->part;
+	return ((Joint*)joint)->part;
 }
 
 zof_type zof_joint_type(void) {
@@ -138,8 +147,8 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 		zof_str kid_name = zof_part_name(kid);
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
-			zof_joint_struct* part_joint_struct = (zof_joint_struct*)part_joint;
-			zof_joint_struct* kid_joint_struct = (zof_joint_struct*)kid_joint;
+			Joint* part_joint_struct = (Joint*)part_joint;
+			Joint* kid_joint_struct = (Joint*)kid_joint;
 			part_joint_struct->other = kid_joint;
 			kid_joint_struct->other = part_joint;
 		}
@@ -152,10 +161,10 @@ zof_box zof_part_box(zof_part part) {
 }
 
 void zof_part_close(zof_any part) {
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	Part* part_struct = (Part*)part;
 	if (part_struct->kind == zof_part_kind_composite) {
 		for (
-			vector<zof_part_struct*>::iterator k = part_struct->kids->begin();
+			vector<Part*>::iterator k = part_struct->kids->begin();
 			k < part_struct->kids->end();
 			k++
 		) {
@@ -186,7 +195,7 @@ zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 }
 
 zof_joint zof_part_joint(zof_part part, zof_str name) {
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	Part* part_struct = (Part*)part;
 	map<string,zof_joint>::iterator j = part_struct->joints.find(name);
 	if (j != part_struct->joints.end()) {
 		return j->second;
@@ -195,29 +204,29 @@ zof_joint zof_part_joint(zof_part part, zof_str name) {
 }
 
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	Part* part_struct = (Part*)part;
 	string name(zof_joint_name(joint));
 	zof_joint old_joint = zof_null;
 	map<string,zof_joint>::iterator old = part_struct->joints.find(name);
 	if (old != part_struct->joints.end()) {
 		// Old joint already there.
 		old_joint = old->second;
-		zof_joint_struct* old_joint_struct = (zof_joint_struct*)old_joint;
+		Joint* old_joint_struct = (Joint*)old_joint;
 		old_joint_struct->part = zof_null;
 	}
 	map<string,zof_joint>::value_type pair(name, joint);
 	part_struct->joints.insert(old, pair);
-	zof_joint_struct* joint_struct = (zof_joint_struct*)joint;
+	Joint* joint_struct = (Joint*)joint;
 	joint_struct->part = part;
 	return old_joint;
 }
 
 zof_str zof_part_name(zof_part part) {
-	return ((zof_part_struct*)part)->name;
+	return ((Part*)part)->name;
 }
 
 zof_shape_kind zof_part_shape_kind(zof_part part) {
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	Part* part_struct = (Part*)part;
 	switch(part_struct->body->getCollisionShape()->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
 		return zof_shape_kind_box;
@@ -231,25 +240,25 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
-	zof_part_struct* part = new zof_part_struct;
+	Part* part = new Part;
 	part->type = zof_part_type();
 	part->name = name;
 	part->kind = zof_part_kind_primitive;
 	// TODO This is mostly copied from Sim::createBody.
 	// TODO We need to merge this sometime.
 	// Actually setting the material will require recalculating mass props.
-	zof::Material* material = zof::Material::defaultMaterial();
-	btScalar volume = zof::Sim::calcVolume(((zof_shape_struct*)shape)->shape);
+	Material* material = Material::defaultMaterial();
+	btScalar volume = Sim::calcVolume(((Shape*)shape)->shape);
 	btScalar mass(material->density * volume);
 	btVector3 inertia(0,0,0);
-	((zof_shape_struct*)shape)->shape->calculateLocalInertia(mass, inertia);
-	zof::MotionState* motionState = new zof::MotionState();
+	((Shape*)shape)->shape->calculateLocalInertia(mass, inertia);
+	MotionState* motionState = new MotionState();
 	btTransform transform;
 	transform.setIdentity();
 	motionState->m_graphicsWorldTrans = transform;
-	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, ((zof_shape_struct*)shape)->shape, inertia);
+	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, ((Shape*)shape)->shape, inertia);
 	part->body = new btRigidBody(bodyConstruct);
-	zof::BodyInfo* info = new zof::BodyInfo;
+	BodyInfo* info = new BodyInfo;
 	info->material = material;
 	// Sim will need set when the part is added to the sim.
 	// TODO When and how to copy parts? Obviously important need.
@@ -276,7 +285,7 @@ zof_type zof_part_type(void) {
 }
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	Part* part_struct = (Part*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
 		btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
 		part_struct->body->getWorldTransform().setOrigin(bt);
@@ -284,12 +293,12 @@ void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 }
 
 void zof_shape_close(zof_any shape) {
-	zof_shape_struct* shape_struct = (zof_shape_struct*)shape;
+	Shape* shape_struct = (Shape*)shape;
 	delete shape_struct->shape;
 }
 
 zof_shape zof_shape_new_box(zof_vec4 radii) {
-	zof_shape_struct* shape = (zof_shape_struct*)malloc(sizeof(zof_shape_struct));
+	Shape* shape = (Shape*)malloc(sizeof(Shape));
 	shape->type= zof_shape_type();
 	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
 	btBoxShape* box = new btBoxShape(bt_radii);
@@ -315,16 +324,16 @@ zof_type zof_shape_type(void) {
 }
 
 void zof_sim_close(zof_any sim) {
-	zof_sim_struct* sim_struct = (zof_sim_struct*)sim;
+	SimPriv* sim_struct = (SimPriv*)sim;
 	delete sim_struct->sim;
 }
 
 void zof_sim_part_add(zof_sim sim, zof_part part) {
-	zof_sim_struct* sim_struct = (zof_sim_struct*)sim;
-	zof_part_struct* part_struct = (zof_part_struct*)part;
+	SimPriv* sim_struct = (SimPriv*)sim;
+	Part* part_struct = (Part*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
 		// TODO Add full graph whether composite or not?
-		zof::BodyInfo* info = (zof::BodyInfo*)part_struct->body->getUserPointer();
+		BodyInfo* info = (BodyInfo*)part_struct->body->getUserPointer();
 		// Avoid infinite recursion by checking sim.
 		// TODO If in another sim, move to this one?
 		if (!info->sim) {
@@ -421,7 +430,7 @@ Sim::Sim() {
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
 
 	// TODO Hack to make C-mod sim available.
-	zof_sim_struct* sim_struct = (zof_sim_struct*)malloc(sizeof(zof_sim_struct));
+	SimPriv* sim_struct = (SimPriv*)malloc(sizeof(SimPriv));
 	sim_struct->type = zof_sim_type();
 	sim_struct->sim = this;
 	csim = (zof_sim)sim_struct;

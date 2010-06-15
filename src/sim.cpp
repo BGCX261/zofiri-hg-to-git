@@ -13,7 +13,7 @@
 
 namespace zof {
 
-struct Joint {
+struct Joint: Any {
 	zof_type type;
 	zof_str name;
 	zof_part part;
@@ -40,17 +40,23 @@ enum PartKind {
 	zof_part_kind_primitive
 };
 
-/**
- * Thoughts on future part info to replace current.
- * TODO zof_material, ...
- */
-struct PartPrimitive {
-	zof_shape shape;
-	// TODO Material, ...
-};
+struct Part: Any {
 
-struct Part {
-	zof_type type;
+	virtual ~Part() {
+		if (kind == zof_part_kind_composite) {
+			for (
+				vector<Part*>::iterator k = kids->begin();
+				k < kids->end();
+				k++
+			) {
+				zof_ref_free(*k);
+			}
+			delete kids;
+		} else {
+			delete body;
+		}
+	}
+
 	map<string,zof_joint> joints;
 	PartKind kind;
 	zof_str name;
@@ -59,13 +65,17 @@ struct Part {
 		// TODO Or is the first kid the root?
 		btRigidBody* body;
 		vector<Part*>* kids;
-		PartPrimitive partial;
 	};
 };
 
-struct Shape {
-	zof_type type;
+struct Shape: Any {
+
+	virtual ~Shape() {
+		delete shape;
+	}
+
 	btCollisionShape* shape;
+
 };
 
 /**
@@ -84,14 +94,6 @@ using namespace zof;
 extern "C" {
 
 zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale=1);
-void zof_joint_close(zof_any part);
-zof_type zof_joint_type(void);
-void zof_part_close(zof_any part);
-zof_type zof_part_type(void);
-void zof_shape_close(zof_any part);
-zof_type zof_shape_type(void);
-void zof_sim_close(zof_any part);
-zof_type zof_sim_type(void);
 btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
 btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
 
@@ -111,10 +113,6 @@ zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale) {
 	return vec;
 }
 
-void zof_joint_close(zof_any part) {
-	// TODO Free limits if set.
-}
-
 zof_str zof_joint_name(zof_joint joint) {
 	return ((Joint*)joint)->name;
 }
@@ -122,7 +120,6 @@ zof_str zof_joint_name(zof_joint joint) {
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	// TODO Hrmm.
 	Joint* joint = new Joint;
-	joint->type = zof_joint_type();
 	joint->name = name;
 	joint->part = zof_null;
 	joint->other = zof_null;
@@ -140,17 +137,6 @@ zof_joint zof_joint_other(zof_joint joint) {
 
 zof_part zof_joint_part(zof_joint joint) {
 	return ((Joint*)joint)->part;
-}
-
-zof_type zof_joint_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_joint";
-		info.close = zof_joint_close;
-		type = zof_type_new(&info);
-	}
-	return type;
 }
 
 zof_bool zof_part_attach(zof_part part, zof_part kid) {
@@ -171,22 +157,6 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 
 zof_box zof_part_box(zof_part part) {
 	return zof_part_shape_kind(part) == zof_shape_kind_box ? (zof_box)part : zof_null;
-}
-
-void zof_part_close(zof_any part) {
-	Part* part_struct = (Part*)part;
-	if (part_struct->kind == zof_part_kind_composite) {
-		for (
-			vector<Part*>::iterator k = part_struct->kids->begin();
-			k < part_struct->kids->end();
-			k++
-		) {
-			zof_ref_free(*k);
-		}
-		delete part_struct->kids;
-	} else {
-		delete part_struct->body;
-	}
 }
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
@@ -254,7 +224,6 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
 	Part* part = new Part;
-	part->type = zof_part_type();
 	part->name = name;
 	part->kind = zof_part_kind_primitive;
 	// TODO This is mostly copied from Sim::createBody.
@@ -286,17 +255,6 @@ zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
 	return zof_part_new(name, zof_shape_new_box(radii));
 }
 
-zof_type zof_part_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_part";
-		info.close = zof_part_close;
-		type = zof_type_new(&info);
-	}
-	return type;
-}
-
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 	Part* part_struct = (Part*)part;
 	if (part_struct->kind == zof_part_kind_primitive) {
@@ -305,14 +263,8 @@ void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 	}
 }
 
-void zof_shape_close(zof_any shape) {
-	Shape* shape_struct = (Shape*)shape;
-	delete shape_struct->shape;
-}
-
 zof_shape zof_shape_new_box(zof_vec4 radii) {
 	Shape* shape = new Shape;
-	shape->type= zof_shape_type();
 	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
 	btBoxShape* box = new btBoxShape(bt_radii);
 	shape->shape = box;
@@ -325,33 +277,22 @@ zof_shape zof_shape_new_box(zof_vec4 radii) {
 
 //zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
-zof_type zof_shape_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_shape";
-		info.close = zof_shape_close;
-		type = zof_type_new(&info);
-	}
-	return type;
-}
-
 void zof_sim_close(zof_any sim) {
 	SimPriv* sim_struct = (SimPriv*)sim;
 	delete sim_struct->sim;
 }
 
 void zof_sim_part_add(zof_sim sim, zof_part part) {
-	SimPriv* simPriv = (SimPriv*)sim;
-	Part* part_struct = (Part*)part;
+	Sim* simPriv = reinterpret_cast<Sim*>(sim);
+	Part* part_struct = reinterpret_cast<Part*>(part);
 	if (part_struct->kind == zof_part_kind_primitive) {
 		// TODO Add full graph whether composite or not?
 		BodyInfo* info = (BodyInfo*)part_struct->body->getUserPointer();
 		// Avoid infinite recursion by checking sim.
 		// TODO If in another sim, move to this one?
 		if (!info->sim) {
-			info->sim = simPriv->sim;
-			simPriv->sim->addBody(part_struct->body);
+			info->sim = simPriv;
+			simPriv->addBody(part_struct->body);
 			for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
 				zof_joint joint = j->second;
 				zof_joint other = zof_joint_other(joint);
@@ -359,22 +300,11 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 					zof_part kid = zof_joint_part(other);
 					zof_sim_part_add(sim, kid);
 					// TODO Reset relative positions somewhere!
-					simPriv->sim->addConstraint(((Joint*)joint)->createConstraint());
+					simPriv->addConstraint(((Joint*)joint)->createConstraint());
 				}
 			}
 		}
 	}
-}
-
-zof_type zof_sim_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_sim";
-		info.close = zof_sim_close;
-		type = zof_type_new(&info);
-	}
-	return type;
 }
 
 btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
@@ -456,12 +386,6 @@ Sim::Sim() {
 	viz = 0;
 	// Weaken gravity a bit. Copes this way better at larger ratios.
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
-
-	// TODO Hack to make C-mod sim available.
-	SimPriv* sim_struct = new SimPriv;
-	sim_struct->type = zof_sim_type();
-	sim_struct->sim = this;
-	csim = (zof_sim)sim_struct;
 }
 
 Sim::~Sim() {

@@ -5,10 +5,15 @@
 
 namespace zof {
 
-struct Mod {
-	zof_type type;
+struct Mod: Any {
+
+	virtual ~Mod() {
+		dlclose(lib);
+	}
+
 	void* lib;
 	zof_str uri;
+
 };
 
 }
@@ -17,22 +22,6 @@ using namespace zof;
 
 extern "C" {
 
-void zof_mod_close(zof_any ref) {
-	Mod* mod = (Mod*)ref;
-	dlclose(mod->lib);
-}
-
-zof_type zof_mod_type(void) {
-	static zof_type type = NULL;
-	if (!type) {
-		zof_type_info info;
-		info.name = "zof_mod";
-		info.close = zof_mod_close;
-		type = zof_type_new(&info);
-	}
-	return type;
-}
-
 zof_mod zof_mod_new(zof_str uri) {
 	void* lib = dlopen(uri, RTLD_NOW);
 	if (!lib) {
@@ -40,8 +29,7 @@ zof_mod zof_mod_new(zof_str uri) {
 		cerr << dlerror() << endl;
 		return NULL;
 	}
-	Mod* mod = (Mod*)malloc(sizeof(Mod));
-	mod->type = zof_mod_type();
+	Mod* mod = new Mod;
 	mod->lib = lib;
 	// TODO Copy the uri first?
 	mod->uri = uri;

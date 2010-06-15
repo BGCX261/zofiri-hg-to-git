@@ -3,6 +3,9 @@
 
 namespace zof {
 
+/**
+ * TODO Should I retain this for mods to interop better?
+ */
 struct Type {
 	zof_type type;
 	zof_type_info info;

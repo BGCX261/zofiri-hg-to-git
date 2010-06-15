@@ -42,7 +42,7 @@ struct MotionState: btDefaultMotionState {
 
 };
 
-struct Sim {
+struct Sim: Any {
 
 	Sim();
 
@@ -90,11 +90,6 @@ struct Sim {
 	 * Mapped for protocol access.
 	 */
 	std::map<int, btTypedConstraint*> constraints;
-
-	/**
-	 * TODO Delete this once we get it right (obscuring Bullet, etc.).
-	 */
-	zof_sim csim;
 
 	btRigidBody* createBody(
 		btCollisionShape* shape,

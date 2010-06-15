@@ -304,7 +304,7 @@ void Pub::update() {
 		if (!mod) {
 			exit(EXIT_FAILURE);
 		}
-		if (!zof_mod_sim_init(mod, viz->sim->csim)) {
+		if (!zof_mod_sim_init(mod, (zof_sim)viz->sim)) {
 			exit(EXIT_FAILURE);
 		}
 		zof_ref_free(mod);

@@ -29,45 +29,6 @@ struct Joint: Any {
 
 };
 
-/**
- * TODO Move this to zof.h sometime?
- */
-enum PartKind {
-	// TODO Or just allow named groups at body root?
-	// TODO When looking for joints, assume detached by default?
-	// TODO That is, once linked, parts just become arbitrary.
-	zof_part_kind_composite,
-	zof_part_kind_primitive
-};
-
-struct Part: Any {
-
-	virtual ~Part() {
-		if (kind == zof_part_kind_composite) {
-			for (
-				vector<Part*>::iterator k = kids->begin();
-				k < kids->end();
-				k++
-			) {
-				zof_ref_free(*k);
-			}
-			delete kids;
-		} else {
-			delete body;
-		}
-	}
-
-	map<string,zof_joint> joints;
-	PartKind kind;
-	zof_str name;
-	union {
-		// TODO Do we need a root body whether with kids or not?
-		// TODO Or is the first kid the root?
-		btRigidBody* body;
-		vector<Part*>* kids;
-	};
-};
-
 struct Shape: Any {
 
 	virtual ~Shape() {
@@ -76,14 +37,6 @@ struct Shape: Any {
 
 	btCollisionShape* shape;
 
-};
-
-/**
- * TODO Eventually merge with Sim.
- */
-struct SimPriv {
-	zof_type type;
-	Sim* sim;
 };
 
 }
@@ -98,7 +51,7 @@ btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
 btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
 
 zof_vec4 zof_box_radii(zof_box box) {
-	Part* part_struct = (Part*)box;
+	BasicPart* part_struct = (BasicPart*)box;
 	btBoxShape* shape = reinterpret_cast<btBoxShape*>(part_struct->body->getCollisionShape());
 	btVector3 radii = shape->getHalfExtentsWithMargin();
 	return zof_bt3_to_vec4(radii, 1/zof_bt_scale);
@@ -178,7 +131,7 @@ zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 }
 
 zof_joint zof_part_joint(zof_part part, zof_str name) {
-	Part* part_struct = (Part*)part;
+	BasicPart* part_struct = (BasicPart*)part;
 	map<string,zof_joint>::iterator j = part_struct->joints.find(name);
 	if (j != part_struct->joints.end()) {
 		return j->second;
@@ -187,7 +140,7 @@ zof_joint zof_part_joint(zof_part part, zof_str name) {
 }
 
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
-	Part* part_struct = (Part*)part;
+	BasicPart* part_struct = (BasicPart*)part;
 	string name(zof_joint_name(joint));
 	zof_joint old_joint = zof_null;
 	map<string,zof_joint>::iterator old = part_struct->joints.find(name);
@@ -205,11 +158,11 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 }
 
 zof_str zof_part_name(zof_part part) {
-	return ((Part*)part)->name;
+	return const_cast<zof_str>(((BasicPart*)part)->name.c_str());
 }
 
 zof_shape_kind zof_part_shape_kind(zof_part part) {
-	Part* part_struct = (Part*)part;
+	BasicPart* part_struct = (BasicPart*)part;
 	switch(part_struct->body->getCollisionShape()->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
 		return zof_shape_kind_box;
@@ -223,9 +176,8 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
-	Part* part = new Part;
+	BasicPart* part = new BasicPart;
 	part->name = name;
-	part->kind = zof_part_kind_primitive;
 	// TODO This is mostly copied from Sim::createBody.
 	// TODO We need to merge this sometime.
 	// Actually setting the material will require recalculating mass props.
@@ -240,12 +192,11 @@ zof_part zof_part_new(zof_str name, zof_shape shape) {
 	motionState->m_graphicsWorldTrans = transform;
 	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, ((Shape*)shape)->shape, inertia);
 	part->body = new btRigidBody(bodyConstruct);
-	BodyInfo* info = new BodyInfo;
-	info->material = material;
+	part->material = material;
 	// Sim will need set when the part is added to the sim.
 	// TODO When and how to copy parts? Obviously important need.
-	info->sim = zof_null;
-	part->body->setUserPointer(info);
+	part->sim = zof_null;
+	part->body->setUserPointer(part);
 	motionState->m_userPointer = part->body;
 	return (zof_part)part;
 }
@@ -255,12 +206,24 @@ zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
 	return zof_part_new(name, zof_shape_new_box(radii));
 }
 
+void zof_part_pos_add(zof_part part, zof_vec4 pos) {
+	// TODO
+}
+
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	Part* part_struct = (Part*)part;
-	if (part_struct->kind == zof_part_kind_primitive) {
-		btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
-		part_struct->body->getWorldTransform().setOrigin(bt);
-	}
+	BasicPart* part_struct = (BasicPart*)part;
+	// TODO Always go through attached parts and move them as if rigidly attached.
+	// TODO That is, apply the same relative transform to each.
+	btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
+	part_struct->body->getWorldTransform().setOrigin(bt);
+}
+
+void zof_part_rot_add(zof_part part, zof_vec4 rot) {
+	// TODO
+}
+
+void zof_part_rot_put(zof_part part, zof_vec4 rot) {
+	// TODO
 }
 
 zof_shape zof_shape_new_box(zof_vec4 radii) {
@@ -277,31 +240,23 @@ zof_shape zof_shape_new_box(zof_vec4 radii) {
 
 //zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
-void zof_sim_close(zof_any sim) {
-	SimPriv* sim_struct = (SimPriv*)sim;
-	delete sim_struct->sim;
-}
-
 void zof_sim_part_add(zof_sim sim, zof_part part) {
 	Sim* simPriv = reinterpret_cast<Sim*>(sim);
-	Part* part_struct = reinterpret_cast<Part*>(part);
-	if (part_struct->kind == zof_part_kind_primitive) {
-		// TODO Add full graph whether composite or not?
-		BodyInfo* info = (BodyInfo*)part_struct->body->getUserPointer();
-		// Avoid infinite recursion by checking sim.
-		// TODO If in another sim, move to this one?
-		if (!info->sim) {
-			info->sim = simPriv;
-			simPriv->addBody(part_struct->body);
-			for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
-				zof_joint joint = j->second;
-				zof_joint other = zof_joint_other(joint);
-				if (other) {
-					zof_part kid = zof_joint_part(other);
-					zof_sim_part_add(sim, kid);
-					// TODO Reset relative positions somewhere!
-					simPriv->addConstraint(((Joint*)joint)->createConstraint());
-				}
+	BasicPart* part_struct = reinterpret_cast<BasicPart*>(part);
+	// TODO Add full graph whether composite or not?
+	// Avoid infinite recursion by checking sim.
+	// TODO If in another sim, move to this one?
+	if (!part_struct->sim) {
+		part_struct->sim = simPriv;
+		simPriv->addBody(part_struct->body);
+		for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
+			zof_joint joint = j->second;
+			zof_joint other = zof_joint_other(joint);
+			if (other) {
+				zof_part kid = zof_joint_part(other);
+				zof_sim_part_add(sim, kid);
+				// TODO Reset relative positions somewhere!
+				simPriv->addConstraint(((Joint*)joint)->createConstraint());
 			}
 		}
 	}
@@ -333,21 +288,28 @@ btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
  */
 namespace zof {
 
-BodyInfo::BodyInfo():
+BasicPart::BasicPart():
+		body(0),
 		material(Material::defaultMaterial()),
 		sceneNode(0),
 		sim(0) {
 	// Nothing more to do.
 }
 
-BodyInfo* BodyInfo::of(btCollisionObject* body) {
-	return reinterpret_cast<BodyInfo*>(body->getUserPointer());
+BasicPart::~BasicPart() {
+	// TODO Remove it from the sim first, along with constraints?
+	// TODO Remove attached parts?
+	delete body;
+}
+
+BasicPart* BasicPart::of(btCollisionObject* body) {
+	return reinterpret_cast<BasicPart*>(body->getUserPointer());
 }
 
 btTypedConstraint* Joint::createConstraint() {
-	Part* part = reinterpret_cast<Part*>(this->part);
+	BasicPart* part = reinterpret_cast<BasicPart*>(this->part);
 	Joint* other = reinterpret_cast<Joint*>(this->other);
-	Part* otherPart = reinterpret_cast<Part*>(other->part);
+	BasicPart* otherPart = reinterpret_cast<BasicPart*>(other->part);
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *otherPart->body, this->transform, other->transform, false);
 	// TODO Limits, etc.
 	return constraint;
@@ -365,7 +327,7 @@ Material* Material::defaultMaterial() {
 void MotionState::setWorldTransform(const btTransform& worldTransform) {
 	btDefaultMotionState::setWorldTransform(worldTransform);
 	btRigidBody* body = reinterpret_cast<btRigidBody*>(m_userPointer);
-	BodyInfo* info = BodyInfo::of(body);
+	BasicPart* info = BasicPart::of(body);
 	Sim* sim = info->sim;
 	//	cout << "UPDATE: ";
 	//	cout << "body = " << body << "; ";
@@ -480,7 +442,7 @@ btRigidBody* Sim::createBody(btCollisionShape* shape, const btTransform& transfo
 	motionState->m_graphicsWorldTrans = transform;
 	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, shape, inertia);
 	btRigidBody* body = new btRigidBody(bodyConstruct);
-	BodyInfo* info = new BodyInfo;
+	BasicPart* info = new BasicPart;
 	info->material = material;
 	info->sim = this;
 	body->setUserPointer(info);
@@ -504,7 +466,7 @@ btRigidBody* Sim::createPlane() {
 	MotionState* motionState = new MotionState();
 	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, shape, inertia);
 	btRigidBody* body = new btRigidBody(bodyConstruct);
-	BodyInfo* info = new BodyInfo;
+	BasicPart* info = new BasicPart;
 	info->sim = this;
 	body->setUserPointer(info);
 	motionState->m_userPointer = body;

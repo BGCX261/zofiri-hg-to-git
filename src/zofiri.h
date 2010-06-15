@@ -12,7 +12,7 @@ using namespace std;
 namespace zof {
 
 // For circular references:
-struct BodyInfo;
+struct BasicPart;
 struct Command;
 struct Hand;
 struct Material;

@@ -4,17 +4,26 @@
 #include "zofiri.h"
 #include <btBulletDynamicsCommon.h>
 #include <map>
+#include <string>
 
 
 namespace zof {
 
-struct BodyInfo {
+struct BasicPart: Any {
 
-	BodyInfo();
+	BasicPart();
 
-	static BodyInfo* of(btCollisionObject* body);
+	virtual ~BasicPart();
+
+	btRigidBody* body;
+
+	static BasicPart* of(btCollisionObject* body);
+
+	map<string,zof_joint> joints;
 
 	Material* material;
+
+	string name;
 
 	void* sceneNode;
 

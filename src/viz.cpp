@@ -133,7 +133,7 @@ IrrViz::IrrViz(Sim* s) {
 }
 
 void IrrViz::addBody(btCollisionObject* body) {
-	Material* material = BodyInfo::of(body)->material;
+	Material* material = BasicPart::of(body)->material;
 	//cerr << "Color " << hex << material->color.color << dec;
 	IMesh* mesh;
 	btCollisionShape* shape = body->getCollisionShape();
@@ -157,7 +157,7 @@ void IrrViz::addBody(btCollisionObject* body) {
 		throw "unsupported shape kind";
 	}
 	IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
-	BodyInfo::of(body)->sceneNode = node;
+	BasicPart::of(body)->sceneNode = node;
 	btVector3& origin = body->getWorldTransform().getOrigin();
 	//cerr << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
@@ -530,7 +530,7 @@ void IrrViz::run() {
 void IrrViz::update(btRigidBody* body) {
 	btTransform transform;
 	body->getMotionState()->getWorldTransform(transform);
-	ISceneNode* node = reinterpret_cast<ISceneNode*>(BodyInfo::of(body)->sceneNode);
+	ISceneNode* node = reinterpret_cast<ISceneNode*>(BasicPart::of(body)->sceneNode);
 	// TODO Build auto-conversions between these vector types.
 	btVector3& origin = transform.getOrigin();
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));

@@ -52,7 +52,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, zof_uint count, const btVector3&
 	btVector3 hingeAxis(1,0,0);
 	btRigidBody* a = metacarpal;
 	for (zof_uint p = 0; p < count; p++) {
-		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BodyInfo::of(a)->material);
+		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BasicPart::of(a)->material);
 		b->setFriction(500);
 		//b->setDamping(0.5,0.5);
 		sim->dynamics->addRigidBody(b);
@@ -210,7 +210,7 @@ void Stacker::act() {
 btRigidBody* Stacker::findBlock(zof_color color) {
 	for (vector<btRigidBody*>::iterator b = hand->world->blocks.begin(); b < hand->world->blocks.end(); b++) {
 		btRigidBody* block = *b;
-		zof_color blockColor = BodyInfo::of(block)->material->color;
+		zof_color blockColor = BasicPart::of(block)->material->color;
 		if (blockColor == color) {
 			// Target the red block.
 			return block;

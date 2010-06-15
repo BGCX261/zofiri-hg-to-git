@@ -22,7 +22,7 @@ zof_type zof_type_type(void) {
 	static zof_type type = NULL;
 	if (!type) {
 		zof_type_info info;
-		info.name = "zof_type";
+		info.name = const_cast<zof_str>("zof_type");
 		info.close = NULL;
 		// Manual type creation here to avoid infinite recursion.
 		// Could make a separate helper function instead.

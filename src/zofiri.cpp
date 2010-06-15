@@ -1,10 +1,11 @@
 #include "zofiri.h"
 
-// TODO Nix dlfcn.h here!!
-#include <dlfcn.h>
-#include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
-#include <string>
+#include <time.h>
+#include "pub.h"
+#include "sim.h"
+#include "viz.h"
 #include "world.h"
 
 using namespace zof;
@@ -20,15 +21,17 @@ int main(int argc, char** argv) {
 		World world(&sim);
 		Viz* viz = Viz::create(&sim);
 		Pub pub(viz);
-		pub.mod_uri = argv[1];
+		if (argc > 1) {
+			pub.mod_uri = argv[1];
+		}
 
 		viz->run();
 		// TODO auto_ptr
 		delete viz;
 	} catch (const char* message) {
-		cout << message << endl;
+		cerr << message << endl;
 	}
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 extern "C" {
@@ -48,6 +51,14 @@ void zof_ref_free(zof_any ref) {
 		close(ref);
 	}
 	// TODO delete ref; // <-- once we get a common hierarchy!!!
+}
+
+}
+
+namespace zof {
+
+Any::~Any() {
+	// Nothing to do by default.
 }
 
 }

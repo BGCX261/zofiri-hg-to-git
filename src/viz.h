@@ -2,6 +2,7 @@
 #define zofiri_viz_h
 
 #include "zofiri.h"
+#include <btBulletDynamicsCommon.h>
 
 namespace zof {
 

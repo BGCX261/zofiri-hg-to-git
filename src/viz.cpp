@@ -1,5 +1,11 @@
 #include "zofiri.h"
+#include "mat.h"
+#include "pub.h"
+#include "sim.h"
+#include "viz.h"
 
+#include <btBulletDynamicsCommon.h>
+#include <iostream>
 #include <irrlicht.h>
 
 using namespace irr;

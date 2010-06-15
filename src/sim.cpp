@@ -1,4 +1,9 @@
 #include "zofiri.h"
+#include "mat.h"
+#include "sim.h"
+#include "viz.h"
+#include <string>
+#include <vector>
 
 
 /**

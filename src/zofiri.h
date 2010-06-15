@@ -1,11 +1,11 @@
 #ifndef zofiri_h
 #define zofiri_h
 
-#include <btBulletDynamicsCommon.h>
-#include <iostream>
-#include <map>
-#include <math.h>
-#include <vector>
+//#include <btBulletDynamicsCommon.h>
+//#include <iostream>
+//#include <map>
+//#include <math.h>
+//#include <vector>
 
 using namespace std;
 
@@ -23,14 +23,12 @@ struct Transaction;
 struct Viz;
 struct World;
 
+struct Any {
+	virtual ~Any();
+};
+
 }
 
 #include "zof.h"
-
-#include "mat.h"
-#include "net.h"
-#include "pub.h"
-#include "sim.h"
-#include "viz.h"
 
 #endif

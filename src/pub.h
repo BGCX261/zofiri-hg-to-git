@@ -2,6 +2,11 @@
 #define zof_pub_h
 
 #include "zofiri.h"
+#include "net.h"
+#include "viz.h"
+#include <map>
+#include <string>
+#include <vector>
 
 namespace zof {
 
@@ -25,7 +30,7 @@ struct Pub {
 	 * All command objects are deleted on destruct.
 	 * Remove first if you don't want that.
 	 */
-	std::map<std::string, Command*> commands;
+	map<string, Command*> commands;
 
 	/**
 	 * TODO Just a hack for now for testing. Clean all this up.
@@ -53,7 +58,7 @@ struct Command {
 	 * TODO That might likely require separate threads.
 	 * TODO For now, just assume short IO, therefore strings.
 	 */
-	virtual std::string perform(Transaction* tx) = 0;
+	virtual string perform(Transaction* tx) = 0;
 };
 
 /**
@@ -69,18 +74,18 @@ struct Transaction {
 	 * Doesn't contain var assignment.
 	 * _Does_ contain the command name.
 	 */
-	vector<std::string> args;
+	vector<string> args;
 
 	/**
 	 * Already broken into words, but var substitution is still performed.
 	 * This also checks for and performs var assignment.
 	 */
-	std::string processCommand(const vector<std::string>& args);
+	string processCommand(const vector<string>& args);
 
 	/**
 	 * Breaks apart the line then calls processCommand.
 	 */
-	std::string processLine(const std::string& line);
+	string processLine(const string& line);
 
 	Pub* pub;
 
@@ -88,7 +93,7 @@ struct Transaction {
 	 * Each transaction can carry its own local vars to avoid round trips
 	 * when composing data across multiple commands.
 	 */
-	std::map<std::string,std::string> vars;
+	map<string,string> vars;
 
 };
 

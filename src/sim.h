@@ -2,6 +2,8 @@
 #define zofiri_sim_h
 
 #include "zofiri.h"
+#include <btBulletDynamicsCommon.h>
+#include <map>
 
 
 namespace zof {
@@ -58,7 +60,7 @@ struct Sim {
 	 * Mapped for protocol access.
 	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.
 	 */
-	std::map<int, btRigidBody*> bodies;
+	map<int, btRigidBody*> bodies;
 
 	btDbvtBroadphase broadphase;
 
@@ -135,12 +137,12 @@ struct Sim {
 	/**
 	 * Mapped for protocol access.
 	 */
-	std::map<int, Material*> materials;
+	map<int, Material*> materials;
 
 	/**
 	 * Mapped for protocol access.
 	 */
-	std::map<int, btCollisionShape*> shapes;
+	map<int, btCollisionShape*> shapes;
 
 	btSequentialImpulseConstraintSolver solver;
 

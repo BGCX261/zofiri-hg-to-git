@@ -1,5 +1,8 @@
 #include "etc.h"
+#include "mat.h"
 #include "pub.h"
+#include "sim.h"
+#include <iostream>
 #include <string>
 #include <sstream>
 

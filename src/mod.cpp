@@ -1,7 +1,7 @@
 #include <dlfcn.h>
-#include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
-#include <zof.h>
+#include <zofiri.h>
 
 namespace zof {
 
@@ -37,7 +37,7 @@ zof_mod zof_mod_new(zof_str uri) {
 	void* lib = dlopen(uri, RTLD_NOW);
 	if (!lib) {
 		// TODO Store error instead of printing.
-		fprintf(stderr, "%s\n", dlerror());
+		cerr << dlerror() << endl;
 		return NULL;
 	}
 	Mod* mod = (Mod*)malloc(sizeof(Mod));
@@ -62,7 +62,7 @@ zof_bool zof_mod_sim_init(zof_mod mod, zof_sim sim) {
 	sim_init = (zof_bool(*)(zof_mod,zof_sim))dlsym(mod_struct->lib, "sim_init");
 	char* error;
 	if ((error = dlerror()) != NULL) {
-		fprintf(stderr, "%s\n", error);
+		cerr << error << endl;
 		return zof_false;
 	}
 	return sim_init(mod, sim);

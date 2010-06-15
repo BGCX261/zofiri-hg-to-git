@@ -1,6 +1,7 @@
 #ifndef zofiri_net_h
 #define zofiri_net_h
 
+#include "zofiri.h"
 #include <string>
 #include <vector>
 
@@ -75,7 +76,7 @@ struct Socket {
 	 *
 	 * Return false only on end-of-stream.
 	 */
-	bool readAvailable(std::string* line, bool clear=true);
+	bool readAvailable(string* line, bool clear=true);
 
 	/**
 	 * Reads one line from the socket. The trailing LF or CRLF is not
@@ -85,7 +86,7 @@ struct Socket {
 	 *
 	 * TODO Move this feature set away from Socket.
 	 */
-	bool readLine(std::string* line, bool clear=true);
+	bool readLine(string* line, bool clear=true);
 
 	/**
 	 * Writes the null-terminated text followed by a newline.

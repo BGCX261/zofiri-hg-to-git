@@ -7,6 +7,9 @@
 #define zof_etc_h
 
 #include <sstream>
+#include <string>
+
+using namespace std;
 
 namespace zof {
 
@@ -17,8 +20,8 @@ namespace zof {
  * is under the zof namespace here, so I'm not polluting generally.
  */
 template<typename Result>
-void operator>>(std::string& in, Result& result) {
-	std::stringstream stream(in);
+void operator>>(string& in, Result& result) {
+	stringstream stream(in);
 	stream >> result;
 }
 

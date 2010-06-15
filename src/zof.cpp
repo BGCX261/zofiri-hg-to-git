@@ -1,4 +1,4 @@
-#include "zof.h"
+#include "zofiri.h"
 #include <stdlib.h>
 
 namespace zof {

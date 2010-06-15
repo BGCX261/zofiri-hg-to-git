@@ -1,4 +1,8 @@
 #include "zofiri.h"
+#include "mat.h"
+#include "sim.h"
+#include <btBulletDynamicsCommon.h>
+#include <vector>
 
 #ifndef zofiri_world_h
 #define zofiri_world_h

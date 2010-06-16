@@ -2,6 +2,7 @@
 #include "mat.h"
 #include "sim.h"
 #include "viz.h"
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -25,7 +26,7 @@ struct Joint: Any {
 	/**
 	 * Doable if part, other, and remaining items already set.
 	 */
-	btTypedConstraint* createConstraint();
+	btGeneric6DofConstraint* createConstraint();
 
 };
 
@@ -38,6 +39,13 @@ struct Shape: Any {
 	btCollisionShape* shape;
 
 };
+
+void printTransform(const btTransform& transform) {
+	btVector3 axis = transform.getRotation().getAxis();
+	cerr << "[(rot: " << axis.m_floats[0] << "," << axis.m_floats[1] << "," << axis.m_floats[2] << "," << transform.getRotation().getAngle() << ") ";
+	btVector3 pos = transform.getOrigin();
+	cerr << "(pos: " << pos.m_floats[0] << "," << pos.m_floats[1] << "," << pos.m_floats[2] << ")]" << endl;
+}
 
 }
 
@@ -76,8 +84,11 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	joint->name = name;
 	joint->part = zof_null;
 	joint->other = zof_null;
-	joint->transform.setOrigin(zof_vec4_to_bt3(pos, zof_bt_scale));
+	joint->transform.setIdentity();
+	// We want the rotation to take effect _after_ the translation, so we can't just set the origin.
+	// Bullet assumes that the origin is in the basis defined by the rotation.
 	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
+	joint->transform *= btTransform(btQuaternion::getIdentity(), zof_vec4_to_bt3(pos,zof_bt_scale));
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
 	memset(joint->posLimits, 0, sizeof(joint->posLimits));
 	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
@@ -92,6 +103,12 @@ zof_part zof_joint_part(zof_joint joint) {
 	return ((Joint*)joint)->part;
 }
 
+zof_material zof_material_new(zof_color color, zof_num density) {
+	Material* material = new Material(color);
+	material->density = btScalar(density);
+	return reinterpret_cast<zof_material>(material);
+}
+
 zof_bool zof_part_attach(zof_part part, zof_part kid) {
 	zof_str part_name = zof_part_name(part);
 	zof_joint kid_joint = zof_part_joint(kid, part_name);
@@ -99,8 +116,17 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 		zof_str kid_name = zof_part_name(kid);
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
+			// TODO Update pos/rot of kid.
 			Joint* partJoint = (Joint*)part_joint;
 			Joint* kidJoint = (Joint*)kid_joint;
+			btTransform transform = BasicPart::of(part)->body->getWorldTransform();
+			//printTransform(transform);
+			btTransform relTransform = kidJoint->transform.inverseTimes(partJoint->transform);
+			//printTransform(relTransform);
+			transform *= relTransform;
+			//printTransform(transform);
+			BasicPart::of(kid)->setTransform(transform);
+			// Now actually attach joints.
 			partJoint->other = kid_joint;
 			kidJoint->other = part_joint;
 		}
@@ -155,6 +181,11 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 	Joint* joint_struct = (Joint*)joint;
 	joint_struct->part = part;
 	return old_joint;
+}
+
+void zof_part_material_put(zof_part part, zof_material material) {
+	// TODO How and when to free existing?
+	BasicPart::of(part)->material = reinterpret_cast<Material*>(material);
 }
 
 zof_str zof_part_name(zof_part part) {
@@ -255,8 +286,8 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 			if (other) {
 				zof_part kid = zof_joint_part(other);
 				zof_sim_part_add(sim, kid);
-				// TODO Reset relative positions somewhere!
-				simPriv->addConstraint(((Joint*)joint)->createConstraint());
+				btGeneric6DofConstraint* constraint = ((Joint*)(joint))->createConstraint();
+				simPriv->addConstraint(constraint);
 			}
 		}
 	}
@@ -306,7 +337,16 @@ BasicPart* BasicPart::of(btCollisionObject* body) {
 	return reinterpret_cast<BasicPart*>(body->getUserPointer());
 }
 
-btTypedConstraint* Joint::createConstraint() {
+BasicPart* BasicPart::of(zof_part part) {
+	return reinterpret_cast<BasicPart*>(part);
+}
+
+void BasicPart::setTransform(const btTransform& transform) {
+	// TODO Transform attached parts, too.
+	body->setWorldTransform(transform);
+}
+
+btGeneric6DofConstraint* Joint::createConstraint() {
 	BasicPart* part = reinterpret_cast<BasicPart*>(this->part);
 	Joint* other = reinterpret_cast<Joint*>(this->other);
 	BasicPart* otherPart = reinterpret_cast<BasicPart*>(other->part);

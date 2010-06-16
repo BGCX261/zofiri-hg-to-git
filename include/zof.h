@@ -14,6 +14,8 @@ typedef int zof_int;
 typedef double zof_num;
 typedef unsigned int zof_uint;
 
+#define zof_pi 3.14159265358979323846
+
 // Core opaques.
 
 #define zof_ref_def(name) typedef struct name##_struct {}* name;
@@ -89,6 +91,12 @@ zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w);
 
 // More domainish stuff.
 
+/**
+ * ARGB
+ *
+ * TODO Perhaps something more sophisticated later, but this
+ * TODO will do for now and at least tag our references to color.
+ */
 typedef zof_uint zof_color;
 
 typedef enum {
@@ -102,6 +110,7 @@ typedef enum {
 zof_ref_def(zof_app);
 zof_ref_def(zof_box);
 zof_ref_def(zof_joint);
+zof_ref_def(zof_material);
 zof_ref_def(zof_mesh);
 zof_ref_def(zof_mod);
 zof_ref_def(zof_part);
@@ -126,6 +135,8 @@ zof_int zof_mat_ncols(zof_mat mat);
 zof_int zof_mat_nrows(zof_mat mat);
 zof_mat zof_mat_shape(zof_mat mat);
 zof_int zof_mat_size(zof_mat mat);
+
+zof_material zof_material_new(zof_color color, zof_num density);
 
 // Meshes.
 zof_mesh zof_mesh_new(zof_shape shape);
@@ -154,6 +165,7 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_shape_kind zof_part_shape_kind(zof_part part);
+void zof_part_material_put(zof_part part, zof_material material);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new(zof_str name, zof_shape shape);
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii);

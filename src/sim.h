@@ -15,9 +15,19 @@ struct BasicPart: Any {
 
 	virtual ~BasicPart();
 
-	btRigidBody* body;
-
 	static BasicPart* of(btCollisionObject* body);
+
+	static BasicPart* of(zof_part part);
+
+	/**
+	 * Sets the world transform of this part.
+	 *
+	 * Also applies the same effective relative transform to all
+	 * attached parts as if a full rigid body.
+	 */
+	void setTransform(const btTransform& transform);
+
+	btRigidBody* body;
 
 	map<string,zof_joint> joints;
 
@@ -31,7 +41,7 @@ struct BasicPart: Any {
 
 };
 
-struct Material {
+struct Material: Any {
 
 	Material(zof_color color = 0xFFFFFFFF);
 

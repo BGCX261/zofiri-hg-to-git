@@ -13,6 +13,8 @@ struct BasicPart: Any {
 
 	BasicPart();
 
+	BasicPart(const string& name, btCollisionShape* shape);
+
 	virtual ~BasicPart();
 
 	static BasicPart* of(btCollisionObject* body);
@@ -38,6 +40,10 @@ struct BasicPart: Any {
 	void* sceneNode;
 
 	Sim* sim;
+
+private:
+
+	void init();
 
 };
 

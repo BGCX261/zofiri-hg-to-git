@@ -169,6 +169,7 @@ void zof_part_material_put(zof_part part, zof_material material);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new(zof_str name, zof_shape shape);
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
+zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
 zof_part zof_part_new_group(zof_str name);
 void zof_part_pos_add(zof_part part, zof_vec4 pos);
 void zof_part_pos_put(zof_part part, zof_vec4 pos);

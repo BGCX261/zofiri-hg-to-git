@@ -210,34 +210,17 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 }
 
 zof_part zof_part_new(zof_str name, zof_shape shape) {
-	BasicPart* part = new BasicPart;
-	part->name = name;
-	// TODO This is mostly copied from Sim::createBody.
-	// TODO We need to merge this sometime.
-	// Actually setting the material will require recalculating mass props.
-	Material* material = Material::defaultMaterial();
-	btScalar volume = Sim::calcVolume(((Shape*)shape)->shape);
-	btScalar mass(material->density * volume);
-	btVector3 inertia(0,0,0);
-	((Shape*)shape)->shape->calculateLocalInertia(mass, inertia);
-	MotionState* motionState = new MotionState();
-	btTransform transform;
-	transform.setIdentity();
-	motionState->m_graphicsWorldTrans = transform;
-	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, ((Shape*)shape)->shape, inertia);
-	part->body = new btRigidBody(bodyConstruct);
-	part->material = material;
-	// Sim will need set when the part is added to the sim.
-	// TODO When and how to copy parts? Obviously important need.
-	part->sim = zof_null;
-	part->body->setUserPointer(part);
-	motionState->m_userPointer = part->body;
-	return (zof_part)part;
+	BasicPart* part = new BasicPart(name, reinterpret_cast<Shape*>(shape)->shape);
+	return reinterpret_cast<zof_part>(part);
 }
-
 
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
 	return zof_part_new(name, zof_shape_new_box(radii));
+}
+
+zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread) {
+	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zof_bt_scale,2*half_spread*zof_bt_scale));
+	return reinterpret_cast<zof_part>(part);
 }
 
 void zof_part_pos_add(zof_part part, zof_vec4 pos) {
@@ -325,18 +308,45 @@ btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
  */
 namespace zof {
 
-BasicPart::BasicPart():
-		body(0),
-		material(Material::defaultMaterial()),
-		sceneNode(0),
-		sim(0) {
-	// Nothing more to do.
+BasicPart::BasicPart() {
+	init();
+}
+
+BasicPart::BasicPart(const string& name, btCollisionShape* shape) {
+	init();
+	this->name = name;
+	// TODO This is mostly copied from Sim::createBody.
+	// TODO We need to merge this sometime.
+	// Actually setting the material will require recalculating mass props.
+	//Material* material = Material::defaultMaterial();
+	btScalar volume = Sim::calcVolume(shape);
+	btScalar mass(material->density * volume);
+	btVector3 inertia(0,0,0);
+	shape->calculateLocalInertia(mass, inertia);
+	MotionState* motionState = new MotionState();
+	btTransform transform;
+	transform.setIdentity();
+	motionState->m_graphicsWorldTrans = transform;
+	btRigidBody::btRigidBodyConstructionInfo bodyConstruct(mass, motionState, shape, inertia);
+	body = new btRigidBody(bodyConstruct);
+	// Sim will need set when the part is added to the sim.
+	// TODO When and how to copy parts? Obviously important need.
+	sim = zof_null;
+	body->setUserPointer(this);
+	motionState->m_userPointer = body;
 }
 
 BasicPart::~BasicPart() {
 	// TODO Remove it from the sim first, along with constraints?
 	// TODO Remove attached parts?
 	delete body;
+}
+
+void BasicPart::init() {
+	body = 0;
+	material = Material::defaultMaterial();
+	sceneNode = 0;
+	sim = 0;
 }
 
 BasicPart* BasicPart::of(btCollisionObject* body) {

@@ -5,12 +5,13 @@ zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	printf("Hello from %s!\n", zof_mod_uri(mod));
 	// Box 1.
 	zof_part box1 = zof_part_new_box("box1", zof_xyz(0.1,0.025,0.1));
-	zof_part_pos_put(box1, zof_xyz(0,1.2,0));
+	zof_part_pos_put(box1, zof_xyz(0,1,0));
 	zof_joint joint1 = zof_joint_new(
 		"box2",
 		zof_part_end_pos(box1, zof_xyz(1,0,1)),
-		zof_xyzw(0,1,0,0)
+		zof_xyzw(1,0,1,zof_pi/4)
 	);
+	zof_part_material_put(box1, zof_material_new(0xFFFF8000,1));
 	// TODO Joint limits.
 	zof_part_joint_put(box1, joint1);
 	// Box 2.
@@ -18,10 +19,9 @@ zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	zof_part_joint_put(box2, zof_joint_new(
 		"box1",
 		zof_part_end_pos(box2, zof_xyz(-1,0,-1)),
-		zof_xyzw(0,0,1,0)
+		zof_xyzw(0,1,1,zof_pi)
 	));
-	zof_material material2 = zof_material_new(0xFF800080, 1);
-	zof_part_material_put(box2, material2);
+	zof_part_material_put(box2, zof_material_new(0xFF800080,1));
 	// Attach the boxes.
 	zof_part_attach(box1, box2);
 	// Add them.

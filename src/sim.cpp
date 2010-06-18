@@ -15,18 +15,22 @@
 namespace zof {
 
 struct Joint: Any {
-	zof_type type;
+
+	/**
+	 * Doable if part, other, and remaining items already set.
+	 */
+	btGeneric6DofConstraint* createConstraint();
+
+	static Joint* of(zof_joint joint) {
+		return reinterpret_cast<Joint*>(joint);
+	}
+
 	zof_str name;
 	zof_part part;
 	zof_joint other;
 	btTransform transform;
 	zof_vec4 posLimits[2];
 	zof_vec4 rotLimits[2];
-
-	/**
-	 * Doable if part, other, and remaining items already set.
-	 */
-	btGeneric6DofConstraint* createConstraint();
 
 };
 
@@ -40,11 +44,12 @@ struct Shape: Any {
 
 };
 
-void printTransform(const btTransform& transform) {
+ostream& operator<<(ostream& out, const btTransform& transform) {
 	btVector3 axis = transform.getRotation().getAxis();
-	cerr << "[(rot: " << axis.m_floats[0] << "," << axis.m_floats[1] << "," << axis.m_floats[2] << "," << transform.getRotation().getAngle() << ") ";
+	out << "[(rot: " << axis.m_floats[0] << "," << axis.m_floats[1] << "," << axis.m_floats[2] << "," << transform.getRotation().getAngle() << ") ";
 	btVector3 pos = transform.getOrigin();
-	cerr << "(pos: " << pos.m_floats[0] << "," << pos.m_floats[1] << "," << pos.m_floats[2] << ")]" << endl;
+	out << "(pos: " << pos.m_floats[0] << "," << pos.m_floats[1] << "," << pos.m_floats[2] << ")]";
+	return out;
 }
 
 }
@@ -85,10 +90,8 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	joint->part = zof_null;
 	joint->other = zof_null;
 	joint->transform.setIdentity();
-	// We want the rotation to take effect _after_ the translation, so we can't just set the origin.
-	// Bullet assumes that the origin is in the basis defined by the rotation.
 	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
-	joint->transform *= btTransform(btQuaternion::getIdentity(), zof_vec4_to_bt3(pos,zof_bt_scale));
+	joint->transform.setOrigin(zof_vec4_to_bt3(pos,zof_bt_scale));
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
 	memset(joint->posLimits, 0, sizeof(joint->posLimits));
 	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
@@ -120,11 +123,11 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 			Joint* partJoint = (Joint*)part_joint;
 			Joint* kidJoint = (Joint*)kid_joint;
 			btTransform transform = BasicPart::of(part)->body->getWorldTransform();
-			//printTransform(transform);
-			btTransform relTransform = kidJoint->transform.inverseTimes(partJoint->transform);
-			//printTransform(relTransform);
+			//cerr << "part: " << transform << endl;
+			btTransform relTransform = partJoint->transform * kidJoint->transform.inverse();
+			//cerr << "relTransform: " << relTransform << endl;
 			transform *= relTransform;
-			//printTransform(transform);
+			//cerr << "kid: " << transform << endl;
 			BasicPart::of(kid)->setTransform(transform);
 			// Now actually attach joints.
 			partJoint->other = kid_joint;
@@ -243,9 +246,8 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 	BasicPart* part_struct = (BasicPart*)part;
-	// TODO Always go through attached parts and move them as if rigidly attached.
-	// TODO That is, apply the same relative transform to each.
 	btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
+	// TODO Call Part::setTransform to get full chain translation, not just this part!
 	part_struct->body->getWorldTransform().setOrigin(bt);
 }
 
@@ -286,7 +288,11 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 			if (other) {
 				zof_part kid = zof_joint_part(other);
 				zof_sim_part_add(sim, kid);
-				btGeneric6DofConstraint* constraint = ((Joint*)(joint))->createConstraint();
+				btGeneric6DofConstraint* constraint = Joint::of(joint)->createConstraint();
+				// TODO Max the mins of joint and other, and min the maxes.
+				constraint->setAngularLowerLimit(zof_vec4_to_bt3(Joint::of(joint)->rotLimits[0]));
+				constraint->setAngularUpperLimit(zof_vec4_to_bt3(Joint::of(joint)->rotLimits[1]));
+				// TODO Pos limits.
 				simPriv->addConstraint(constraint);
 			}
 		}

@@ -17,6 +17,27 @@ using namespace video;
 
 namespace zof {
 
+struct EventReceiver: IEventReceiver {
+
+	EventReceiver(Viz* viz) {
+		this->viz = viz;
+	}
+
+	virtual bool OnEvent(const SEvent& event) {
+		if (event.EventType == EET_KEY_INPUT_EVENT) {
+			// Space to step is for convenience in debugging.
+			// Probably refine this later as well as add other handlers.
+			if (event.KeyInput.Char == ' ') {
+				viz->sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
+			}
+		}
+		return false;
+	}
+
+	Viz* viz;
+
+};
+
 struct IrrViz: Viz {
 
 	IrrViz(Sim* sim);
@@ -158,9 +179,15 @@ void IrrViz::addBody(btCollisionObject* body) {
 	}
 	IMeshSceneNode* node = scene()->addMeshSceneNode(mesh);
 	BasicPart::of(body)->sceneNode = node;
+	// TODO Single helper method for converting these transforms.
+	// TODO We also do this in update function below.
 	btVector3& origin = body->getWorldTransform().getOrigin();
 	//cerr << " at: " << origin.x() << " " << origin.y() << " " << origin.z() << endl;
 	node->setPosition(vector3df(origin.x(), origin.y(), origin.z()));
+	btScalar yaw, pitch, roll;
+	body->getWorldTransform().getBasis().getEulerYPR(yaw, pitch, roll);
+	// TODO Vectorize the radToDeg transform?
+	node->setRotation(vector3df(radToDeg(roll), radToDeg(pitch), radToDeg(yaw)));
 }
 
 IMesh* IrrViz::buildBoxMesh(btBoxShape* shape, Material* material) {
@@ -492,6 +519,7 @@ void IrrViz::run() {
 	light->setRadius(4000);
 	// And a point light for nice effect.
 	scene()->addLightSceneNode(0, sim->m(vector3df(0.5,3.0,1.0)), SColor(0xFFFFFFFF), sim->m(2.0));
+	device->setEventReceiver(new EventReceiver(this));
 	while(device->run()) {
 		if(true || device->isWindowActive()) {
 			video()->beginScene();

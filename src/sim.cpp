@@ -141,10 +141,10 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
 			// TODO Update pos/rot of kid.
-			Joint* partJoint = (Joint*)part_joint;
-			Joint* kidJoint = (Joint*)kid_joint;
+			Joint* partJoint = Joint::of(part_joint);
+			Joint* kidJoint = Joint::of(kid_joint);
 			btTransform transform = BasicPart::of(part)->body->getWorldTransform();
-			//cerr << "part: " << transform << endl;
+			//cerr << "part (" << zof_part_name(part) << "): " << transform << endl;
 			btTransform relTransform = partJoint->transform * kidJoint->transform.inverse();
 			//cerr << "relTransform: " << relTransform << endl;
 			transform *= relTransform;
@@ -273,11 +273,13 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 	if (!part_struct->sim) {
 		part_struct->sim = simPriv;
 		simPriv->addBody(part_struct->body);
+		//cerr << zof_part_name(part) << " #joints: " << part_struct->joints.size() << endl;
 		for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
 			zof_joint joint = j->second;
 			zof_joint other = zof_joint_other(joint);
 			if (other) {
 				zof_part kid = zof_joint_part(other);
+				//cerr << "Found attached " << zof_part_name(kid) << endl;
 				zof_sim_part_add(sim, kid);
 				btGeneric6DofConstraint* constraint = Joint::of(joint)->createConstraint();
 				// TODO Max the mins of joint and other, and min the maxes.

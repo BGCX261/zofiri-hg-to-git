@@ -40,9 +40,9 @@ ostream& operator<<(ostream& out, const btVector3& vec) {
 
 ostream& operator<<(ostream& out, const btTransform& transform) {
 	btVector3 axis = transform.getRotation().getAxis();
-	out << "(rot: (" << axis << "," << transform.getRotation().getAngle() << "), ";
+	out << "(rot:(" << axis << "," << transform.getRotation().getAngle() << "),";
 	btVector3 pos = transform.getOrigin();
-	out << "pos: " << pos << ")";
+	out << "pos:" << pos << ")";
 	return out;
 }
 
@@ -250,10 +250,10 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 }
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	BasicPart* part_struct = (BasicPart*)part;
+	BasicPart* part_struct = BasicPart::of(part);
 	btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
 	// TODO Call Part::setTransform to get full chain translation, not just this part!
-	part_struct->body->getWorldTransform().setOrigin(bt);
+	part_struct->setPos(bt);
 }
 
 void zof_part_rot_add(zof_part part, zof_vec4 rot) {
@@ -375,9 +375,33 @@ BasicPart* BasicPart::of(zof_part part) {
 	return reinterpret_cast<BasicPart*>(part);
 }
 
+void BasicPart::setPos(const btVector3& pos) {
+	btTransform transform(body->getWorldTransform().getRotation(), pos);
+	setTransform(transform);
+}
+
 void BasicPart::setTransform(const btTransform& transform) {
+	// Creating a relative transform then applying that provides room for error.
+	// But it keeps the whole flow simpler, and I'm prefer that for now.
+	btTransform relative(body->getWorldTransform().inverseTimes(transform));
+	transformBy(relative);
+}
+
+void BasicPart::transformBy(const btTransform& relative, BasicPart* parent) {
+	//cerr << "Moving " << name << " from " << body->getWorldTransform();
+	body->getWorldTransform() *= relative;
+	//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
 	// TODO Transform attached parts, too.
-	body->setWorldTransform(transform);
+	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
+		zof_joint joint = j->second;
+		zof_joint other = zof_joint_other(joint);
+		if (other) {
+			BasicPart* kid = BasicPart::of(zof_joint_part(other));
+			if (kid != parent) {
+				kid->transformBy(relative, this);
+			}
+		}
+	}
 }
 
 btGeneric6DofConstraint* Joint::createConstraint() {

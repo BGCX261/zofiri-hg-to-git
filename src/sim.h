@@ -25,6 +25,8 @@ struct BasicPart: Any {
 
 	static BasicPart* of(zof_part part);
 
+	void setPos(const btVector3& pos);
+
 	/**
 	 * Sets the world transform of this part.
 	 *
@@ -32,6 +34,11 @@ struct BasicPart: Any {
 	 * attached parts as if a full rigid body.
 	 */
 	void setTransform(const btTransform& transform);
+
+	/**
+	 * Assumes only trees, not cycles, for recursion.
+	 */
+	void transformBy(const btTransform& relative, BasicPart* parent=0);
 
 	btRigidBody* body;
 

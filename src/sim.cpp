@@ -34,21 +34,15 @@ struct Joint: Any {
 
 };
 
-struct Shape: Any {
-
-	virtual ~Shape() {
-		delete shape;
-	}
-
-	btCollisionShape* shape;
-
-};
+ostream& operator<<(ostream& out, const btVector3& vec) {
+	return out << "(" << vec.m_floats[0] << "," << vec.m_floats[1] << "," << vec.m_floats[2] << ")";
+}
 
 ostream& operator<<(ostream& out, const btTransform& transform) {
 	btVector3 axis = transform.getRotation().getAxis();
-	out << "[(rot: " << axis.m_floats[0] << "," << axis.m_floats[1] << "," << axis.m_floats[2] << "," << transform.getRotation().getAngle() << ") ";
+	out << "(rot: (" << axis << "," << transform.getRotation().getAngle() << "), ";
 	btVector3 pos = transform.getOrigin();
-	out << "(pos: " << pos.m_floats[0] << "," << pos.m_floats[1] << "," << pos.m_floats[2] << ")]";
+	out << "pos: " << pos << ")";
 	return out;
 }
 
@@ -102,6 +96,7 @@ zof_vec4 zof_capsule_end_pos_ex(
         origin = -origin;
     }
     origin += bt_axis.normalize() * radius_ratio * shape->getRadius();
+    //cerr << BasicPart::of(capsule)->name << " end: " << origin << endl;
     return zof_bt3_to_vec4(origin, 1/zof_bt_scale);
 }
 
@@ -239,13 +234,10 @@ zof_shape_kind zof_part_shape_kind(zof_part part) {
 	}
 }
 
-zof_part zof_part_new(zof_str name, zof_shape shape) {
-	BasicPart* part = new BasicPart(name, reinterpret_cast<Shape*>(shape)->shape);
-	return reinterpret_cast<zof_part>(part);
-}
-
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
-	return zof_part_new(name, zof_shape_new_box(radii));
+	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
+	BasicPart* part = new BasicPart(name, new btBoxShape(bt_radii));
+	return reinterpret_cast<zof_part>(part);
 }
 
 zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread) {
@@ -271,20 +263,6 @@ void zof_part_rot_add(zof_part part, zof_vec4 rot) {
 void zof_part_rot_put(zof_part part, zof_vec4 rot) {
 	// TODO
 }
-
-zof_shape zof_shape_new_box(zof_vec4 radii) {
-	Shape* shape = new Shape;
-	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
-	btBoxShape* box = new btBoxShape(bt_radii);
-	shape->shape = box;
-	return (zof_shape)shape;
-}
-
-//zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);
-
-//zof_shape zof_shape_new_cylinder(zof_vec4 radii);
-
-//zof_shape zof_shape_new_mesh(zof_mesh mesh);
 
 void zof_sim_part_add(zof_sim sim, zof_part part) {
 	Sim* simPriv = reinterpret_cast<Sim*>(sim);

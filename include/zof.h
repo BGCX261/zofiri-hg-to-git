@@ -115,7 +115,6 @@ zof_ref_def(zof_material);
 zof_ref_def(zof_mesh);
 zof_ref_def(zof_mod);
 zof_ref_def(zof_part);
-zof_ref_def(zof_shape);
 zof_ref_def(zof_sim);
 
 
@@ -149,7 +148,7 @@ zof_int zof_mat_size(zof_mat mat);
 zof_material zof_material_new(zof_color color, zof_num density);
 
 // Meshes.
-zof_mesh zof_mesh_new(zof_shape shape);
+zof_mesh zof_mesh_new(zof_part shape);
 // TODO zof_mesh_new_empty?
 // TODO zof_mesh_new_copy
 // TODO zof_mesh_subdivide, other coolness, ...
@@ -178,7 +177,6 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
 zof_shape_kind zof_part_shape_kind(zof_part part);
 void zof_part_material_put(zof_part part, zof_material material);
 zof_str zof_part_name(zof_part part);
-zof_part zof_part_new(zof_str name, zof_shape shape);
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
 zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
 zof_part zof_part_new_group(zof_str name);
@@ -186,14 +184,6 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos);
 void zof_part_pos_put(zof_part part, zof_vec4 pos);
 void zof_part_rot_add(zof_part part, zof_vec4 rot);
 void zof_part_rot_put(zof_part part, zof_vec4 rot);
-
-// TODO Remove shape entirely? Add zof_box, zof_capsule, ..., for casting from parts?
-zof_shape zof_shape_new_box(zof_vec4 radii);
-zof_shape zof_shape_new_capsule(zof_num rad_xy, zof_num half_spread);
-zof_shape zof_shape_new_cylinder(zof_vec4 radii);
-zof_shape zof_shape_new_mesh(zof_mesh mesh);
-// zof_shape_new_copy
-// zof_shape_scale
 
 
 void zof_sim_part_add(zof_sim sim, zof_part part);

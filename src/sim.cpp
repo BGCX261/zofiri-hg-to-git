@@ -245,6 +245,11 @@ zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread)
 	return reinterpret_cast<zof_part>(part);
 }
 
+zof_part zof_part_new_group(zof_str name, zof_part root) {
+	// TODO Support groups for real.
+	return root;
+}
+
 void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 	// TODO
 }
@@ -391,7 +396,6 @@ void BasicPart::transformBy(const btTransform& relative, BasicPart* parent) {
 	//cerr << "Moving " << name << " from " << body->getWorldTransform();
 	body->getWorldTransform() *= relative;
 	//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
-	// TODO Transform attached parts, too.
 	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
 		zof_joint joint = j->second;
 		zof_joint other = zof_joint_other(joint);

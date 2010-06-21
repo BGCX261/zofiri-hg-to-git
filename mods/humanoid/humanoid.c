@@ -1,15 +1,32 @@
 #include <stdio.h>
 #include "zof.h"
 
+zof_part arm_new(int side_x);
+zof_part base_new(void);
+zof_part hand_new(int side_x);
+zof_part head_new(void);
+zof_part humanoid_new(void);
 zof_part torso_new(void);
 
 zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	// TODO Obviously need more to the humanoid than this.
 	// TODO Especially want group parts.
-	zof_part humanoid = torso_new();
+	zof_part humanoid = humanoid_new();
 	zof_part_pos_put(humanoid, zof_xyz(-0.2,1,0.2));
 	zof_sim_part_add(sim, humanoid);
 	return zof_true;
+}
+
+zof_part head_new(void) {
+	// TODO Build head.
+	zof_part skull = zof_part_new_capsule("skull", 0.06, 0.01);
+	return zof_part_new_group("head", skull);
+}
+
+zof_part humanoid_new(void) {
+	zof_part torso = torso_new();
+	zof_part_attach(torso, head_new());
+	return zof_part_new_group("humanoid", torso);
 }
 
 zof_part torso_new(void) {
@@ -37,5 +54,5 @@ zof_part torso_new(void) {
 	zof_part_joint_put(abdomen, joint_to_chest);
 	// Attach them.
 	zof_part_attach(chest, abdomen);
-	return chest;
+	return zof_part_new_group("torso", chest);
 }

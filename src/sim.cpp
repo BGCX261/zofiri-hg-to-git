@@ -79,6 +79,32 @@ zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale) {
 	return vec;
 }
 
+zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio) {
+	return zof_capsule_end_pos_ex(capsule, radius_ratio, zof_xyz(0,1,0), 1);
+}
+
+zof_vec4 zof_capsule_end_pos_ex(
+	zof_capsule capsule,
+	zof_num radius_ratio,
+	zof_vec4 axis,
+	zof_num half_spread_ratio
+) {
+	btVector3 bt_axis = zof_vec4_to_bt3(axis);
+	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
+		BasicPart::of(capsule)->body->getCollisionShape()
+	);
+    if (radius_ratio < 0) {
+        bt_axis.m_floats[1] = -bt_axis.m_floats[1];
+    }
+    radius_ratio = fabs(radius_ratio);
+    btVector3 origin = half_spread_ratio * btVector3(0, shape->getHalfHeight(), 0);
+    if (bt_axis.getY() < 0) {
+        origin = -origin;
+    }
+    origin += bt_axis.normalize() * radius_ratio * shape->getRadius();
+    return zof_bt3_to_vec4(origin, 1/zof_bt_scale);
+}
+
 zof_str zof_joint_name(zof_joint joint) {
 	return ((Joint*)joint)->name;
 }
@@ -139,6 +165,10 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 
 zof_box zof_part_box(zof_part part) {
 	return zof_part_shape_kind(part) == zof_shape_kind_box ? (zof_box)part : zof_null;
+}
+
+zof_capsule zof_part_capsule(zof_part part) {
+	return zof_part_shape_kind(part) == zof_shape_kind_capsule ? (zof_capsule)part : zof_null;
 }
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
@@ -351,6 +381,14 @@ void BasicPart::init() {
 
 BasicPart* BasicPart::of(btCollisionObject* body) {
 	return reinterpret_cast<BasicPart*>(body->getUserPointer());
+}
+
+BasicPart* BasicPart::of(zof_box box) {
+	return reinterpret_cast<BasicPart*>(box);
+}
+
+BasicPart* BasicPart::of(zof_capsule capsule) {
+	return reinterpret_cast<BasicPart*>(capsule);
 }
 
 BasicPart* BasicPart::of(zof_part part) {

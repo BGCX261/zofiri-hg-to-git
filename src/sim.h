@@ -19,6 +19,10 @@ struct BasicPart: Any {
 
 	static BasicPart* of(btCollisionObject* body);
 
+	static BasicPart* of(zof_box box);
+
+	static BasicPart* of(zof_capsule capsule);
+
 	static BasicPart* of(zof_part part);
 
 	/**

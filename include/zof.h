@@ -109,6 +109,7 @@ typedef enum {
 
 zof_ref_def(zof_app);
 zof_ref_def(zof_box);
+zof_ref_def(zof_capsule);
 zof_ref_def(zof_joint);
 zof_ref_def(zof_material);
 zof_ref_def(zof_mesh);
@@ -119,6 +120,15 @@ zof_ref_def(zof_sim);
 
 
 zof_vec4 zof_box_radii(zof_box box);
+
+zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio);
+
+zof_vec4 zof_capsule_end_pos_ex(
+	zof_capsule capsule,
+	zof_num radius_ratio,
+	zof_vec4 axis,
+	zof_num half_spread_ratio
+);
 
 zof_str zof_joint_name(zof_joint joint);
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
@@ -155,6 +165,8 @@ zof_str zof_mod_uri(zof_mod mod);
 // Parts.
 zof_bool zof_part_attach(zof_part part, zof_part kid);
 zof_box zof_part_box(zof_part part);
+zof_capsule zof_part_capsule(zof_part part);
+zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_joint zof_part_joint(zof_part part, zof_str name);
 
 /**
@@ -163,7 +175,6 @@ zof_joint zof_part_joint(zof_part part, zof_str name);
  */
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
 
-zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
 zof_shape_kind zof_part_shape_kind(zof_part part);
 void zof_part_material_put(zof_part part, zof_material material);
 zof_str zof_part_name(zof_part part);

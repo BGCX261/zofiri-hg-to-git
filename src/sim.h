@@ -9,7 +9,41 @@
 
 namespace zof {
 
-struct BasicPart: Any {
+struct BasicPart;
+struct GroupPart;
+struct Part;
+
+struct Part: Any {
+
+	static Part* of(zof_part part);
+
+	virtual const btTransform& getTransform() = 0;
+
+	void setPos(const btVector3& pos);
+
+	/**
+	 * Sets the world transform of this part.
+	 *
+	 * Also applies the same effective relative transform to all
+	 * attached parts as if a full rigid body.
+	 */
+	void setTransform(const btTransform& transform);
+
+	virtual void transformBy(const btTransform& relative, Part* parent=0) = 0;
+
+	/**
+	 * This allows only strictly nested groups.
+	 * TODO Look into efficient arbitrary cross-groupings sometime.
+	 */
+	GroupPart* group;
+
+	map<string,zof_joint> joints;
+
+	string name;
+
+};
+
+struct BasicPart: Part {
 
 	BasicPart();
 
@@ -25,28 +59,16 @@ struct BasicPart: Any {
 
 	static BasicPart* of(zof_part part);
 
-	void setPos(const btVector3& pos);
-
-	/**
-	 * Sets the world transform of this part.
-	 *
-	 * Also applies the same effective relative transform to all
-	 * attached parts as if a full rigid body.
-	 */
-	void setTransform(const btTransform& transform);
+	virtual const btTransform& getTransform();
 
 	/**
 	 * Assumes only trees, not cycles, for recursion.
 	 */
-	void transformBy(const btTransform& relative, BasicPart* parent=0);
+	virtual void transformBy(const btTransform& relative, Part* parent=0);
 
 	btRigidBody* body;
 
-	map<string,zof_joint> joints;
-
 	Material* material;
-
-	string name;
 
 	void* sceneNode;
 
@@ -55,6 +77,16 @@ struct BasicPart: Any {
 private:
 
 	void init();
+
+};
+
+struct GroupPart: Part {
+
+	virtual const btTransform& getTransform();
+
+	virtual void transformBy(const btTransform& relative, Part* parent=0);
+
+	Part* root;
 
 };
 

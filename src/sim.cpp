@@ -255,10 +255,7 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 }
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	BasicPart* part_struct = BasicPart::of(part);
-	btVector3 bt = zof_vec4_to_bt3(pos, zof_bt_scale);
-	// TODO Call Part::setTransform to get full chain translation, not just this part!
-	part_struct->setPos(bt);
+	Part::of(part)->setPos(zof_vec4_to_bt3(pos, zof_bt_scale));
 }
 
 void zof_part_rot_add(zof_part part, zof_vec4 rot) {
@@ -364,6 +361,10 @@ void BasicPart::init() {
 	sim = 0;
 }
 
+const btTransform& BasicPart::getTransform() {
+	return body->getWorldTransform();
+}
+
 BasicPart* BasicPart::of(btCollisionObject* body) {
 	return reinterpret_cast<BasicPart*>(body->getUserPointer());
 }
@@ -377,22 +378,10 @@ BasicPart* BasicPart::of(zof_capsule capsule) {
 }
 
 BasicPart* BasicPart::of(zof_part part) {
-	return reinterpret_cast<BasicPart*>(part);
+	return dynamic_cast<BasicPart*>(Part::of(part));
 }
 
-void BasicPart::setPos(const btVector3& pos) {
-	btTransform transform(body->getWorldTransform().getRotation(), pos);
-	setTransform(transform);
-}
-
-void BasicPart::setTransform(const btTransform& transform) {
-	// Creating a relative transform then applying that provides room for error.
-	// But it keeps the whole flow simpler, and I'm prefer that for now.
-	btTransform relative(body->getWorldTransform().inverseTimes(transform));
-	transformBy(relative);
-}
-
-void BasicPart::transformBy(const btTransform& relative, BasicPart* parent) {
+void BasicPart::transformBy(const btTransform& relative, Part* parent) {
 	//cerr << "Moving " << name << " from " << body->getWorldTransform();
 	body->getWorldTransform() *= relative;
 	//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
@@ -406,6 +395,14 @@ void BasicPart::transformBy(const btTransform& relative, BasicPart* parent) {
 			}
 		}
 	}
+}
+
+const btTransform& GroupPart::getTransform() {
+	return root->getTransform();
+}
+
+void GroupPart::transformBy(const btTransform& relative, Part* parent) {
+	root->transformBy(relative, parent);
 }
 
 btGeneric6DofConstraint* Joint::createConstraint() {
@@ -441,6 +438,22 @@ void MotionState::setWorldTransform(const btTransform& worldTransform) {
 	if(sim->viz) {
 		sim->viz->update(body);
 	}
+}
+
+Part* Part::of(zof_part part) {
+	return reinterpret_cast<Part*>(part);
+}
+
+void Part::setPos(const btVector3& pos) {
+	btTransform transform(getTransform().getRotation(), pos);
+	setTransform(transform);
+}
+
+void Part::setTransform(const btTransform& transform) {
+	// Creating a relative transform then applying that provides room for error.
+	// But it keeps the whole flow simpler, and I'm prefer that for now.
+	btTransform relative(getTransform().inverseTimes(transform));
+	transformBy(relative);
 }
 
 Sim::Sim() {

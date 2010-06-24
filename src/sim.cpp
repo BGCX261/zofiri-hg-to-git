@@ -139,16 +139,16 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 		zof_str kid_name = zof_part_name(kid);
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
-			// TODO Update pos/rot of kid.
+			//cerr << "attach to " << part_name << " kid " << kid_name << endl;
 			Joint* partJoint = Joint::of(part_joint);
 			Joint* kidJoint = Joint::of(kid_joint);
-			btTransform transform = BasicPart::of(part)->getTransform();
-			//cerr << "part (" << zof_part_name(part) << "): " << transform << endl;
+			btTransform transform = BasicPart::of(partJoint->part)->getTransform();
+			//cerr << "part " << zof_part_name(partJoint->part) << " at " << transform << endl;
 			btTransform relTransform = partJoint->transform * kidJoint->transform.inverse();
-			//cerr << "relTransform: " << relTransform << endl;
+			//cerr << "relTransform of " << relTransform << endl;
 			transform *= relTransform;
-			//cerr << "kid: " << transform << endl;
-			BasicPart::of(kid)->setTransform(transform);
+			//cerr << "kid " << zof_part_name(kidJoint->part) << " at " << transform << endl;
+			BasicPart::of(kidJoint->part)->setTransform(transform);
 			// Now actually attach joints.
 			partJoint->other = kid_joint;
 			kidJoint->other = part_joint;
@@ -221,6 +221,7 @@ zof_str zof_part_name(zof_part part) {
 }
 
 zof_shape_kind zof_part_shape_kind(zof_part part) {
+	// TODO Deal with GroupParts!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111
 	BasicPart* part_struct = (BasicPart*)part;
 	switch(part_struct->body->getCollisionShape()->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
@@ -328,8 +329,8 @@ BasicPart::BasicPart(const string& name, btCollisionShape* shape): Part(name) {
 	// TODO This is mostly copied from Sim::createBody.
 	// TODO We need to merge this sometime.
 	// Actually setting the material will require recalculating mass props.
-	//Material* material = Material::defaultMaterial();
 	btScalar volume = Sim::calcVolume(shape);
+	// TODO If material changes for body, do setMassProps.
 	btScalar mass(material->density * volume);
 	btVector3 inertia(0,0,0);
 	shape->calculateLocalInertia(mass, inertia);
@@ -390,7 +391,7 @@ GroupPart::GroupPart(const string& name, Part* root): Part(name) {
 
 void GroupPart::init(BasicPart* part, BasicPart* parent) {
 	// Recurse around, finding detached joints.
-	cerr << "init " << name << " at " << part->name << endl;
+	//cerr << "init " << name << " at " << part->name << endl;
 	map<string, zof_joint>& joints = part->joints;
 	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
 		zof_joint joint = j->second;
@@ -403,11 +404,25 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 		} else {
 			// Add detached joints to the group for nice access.
 			// This assumes (somewhat fairly) that they'll have unique names.
-			cerr << "adding joint to " << zof_joint_name(joint) << endl;
+			//cerr << "joint " << name << " to " << zof_joint_name(joint) << endl;
 			this->joints[zof_joint_name(joint)] = joint;
 		}
 	}
-	// TODO Go up the group chain until none set, then set to this.
+	// Go up the group chain until none set, then set to this.
+	// Note that this is a case where bottom-up is less efficient.
+	// However, part hierarchies don't seem likely to be deep, so probably okay.
+	// TODO Do I really need to dynamic_cast to guarantee equal pointer values???
+	// TODO The cerr log of pointer below indicates not, but I haven't tested all platforms.
+	Part* partInGroup = part;
+	Part* thisAsPart = dynamic_cast<Part*>(this);
+	// cerr << this << " vs. " << thisAsPart << endl;
+	while (partInGroup != thisAsPart) {
+		if (!partInGroup->group) {
+			partInGroup->group = this;
+			//cerr << "group " << name << " for " << partInGroup->name << endl;
+		}
+		partInGroup = partInGroup->group;
+	}
 }
 
 Material::Material(zof_color c): color(c), density(1) {
@@ -477,6 +492,7 @@ void Part::setTransform(const btTransform& transform) {
 void Part::transformBy(const btTransform& relative, BasicPart* parent) {
 	//cerr << "Moving " << name << " from " << body->getWorldTransform();
 	body->getWorldTransform() *= relative;
+	map<string,zof_joint>& joints = basic()->joints;
 	//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
 	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
 		zof_joint joint = j->second;
@@ -484,7 +500,7 @@ void Part::transformBy(const btTransform& relative, BasicPart* parent) {
 		if (other) {
 			BasicPart* kid = BasicPart::of(zof_joint_part(other));
 			if (kid != parent) {
-				kid->transformBy(relative, BasicPart::of(body));
+				kid->transformBy(relative, basic());
 			}
 		}
 	}

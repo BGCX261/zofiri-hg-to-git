@@ -44,11 +44,13 @@ zof_part head_new(void) {
 	zof_part_joint_put(skull, joint_to_neck);
 	// Attach and return group.
 	zof_part_attach(skull, neck);
+	//printf("skull kind: %d\n", zof_part_part_kind(skull));
 	return zof_part_new_group("head", skull);
 }
 
 zof_part humanoid_new(void) {
 	zof_part torso = torso_new();
+	//printf("torso kind: %d\n", zof_part_part_kind(torso));
 	zof_part_attach(torso, head_new());
 	return zof_part_new_group("humanoid", torso);
 }

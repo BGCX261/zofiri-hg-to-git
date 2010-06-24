@@ -100,12 +100,13 @@ zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w);
 typedef zof_uint zof_color;
 
 typedef enum {
-	zof_shape_kind_error,
-	zof_shape_kind_box,
-	zof_shape_kind_capsule,
-	zof_shape_kind_cylinder,
-	zof_shape_kind_mesh,
-} zof_shape_kind;
+	zof_part_kind_error,
+	zof_part_kind_box,
+	zof_part_kind_capsule,
+	zof_part_kind_cylinder,
+	zof_part_kind_group,
+	zof_part_kind_mesh,
+} zof_part_kind;
 
 zof_ref_def(zof_app);
 zof_ref_def(zof_box);
@@ -174,7 +175,7 @@ zof_joint zof_part_joint(zof_part part, zof_str name);
  */
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
 
-zof_shape_kind zof_part_shape_kind(zof_part part);
+zof_part_kind zof_part_part_kind(zof_part part);
 void zof_part_material_put(zof_part part, zof_material material);
 zof_str zof_part_name(zof_part part);
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii);

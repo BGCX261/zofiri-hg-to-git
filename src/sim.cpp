@@ -158,18 +158,18 @@ zof_bool zof_part_attach(zof_part part, zof_part kid) {
 }
 
 zof_box zof_part_box(zof_part part) {
-	return zof_part_shape_kind(part) == zof_shape_kind_box ? (zof_box)part : zof_null;
+	return zof_part_part_kind(part) == zof_part_kind_box ? (zof_box)part : zof_null;
 }
 
 zof_capsule zof_part_capsule(zof_part part) {
-	return zof_part_shape_kind(part) == zof_shape_kind_capsule ? (zof_capsule)part : zof_null;
+	return zof_part_part_kind(part) == zof_part_kind_capsule ? (zof_capsule)part : zof_null;
 }
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 	// TODO Separate bounds function? What about non-centered origin?
 	zof_vec4 radii;
-	switch (zof_part_shape_kind(part)) {
-	case zof_shape_kind_box:
+	switch (zof_part_part_kind(part)) {
+	case zof_part_kind_box:
 		radii = zof_box_radii(zof_part_box(part));
 		break;
 	default:
@@ -214,24 +214,34 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 void zof_part_material_put(zof_part part, zof_material material) {
 	// TODO How and when to free existing?
 	BasicPart::of(part)->material = reinterpret_cast<Material*>(material);
+	// TODO Recalculate and setMassProps.
 }
 
 zof_str zof_part_name(zof_part part) {
 	return const_cast<zof_str>(Part::of(part)->name.c_str());
 }
 
-zof_shape_kind zof_part_shape_kind(zof_part part) {
-	// TODO Deal with GroupParts!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111
-	BasicPart* part_struct = (BasicPart*)part;
-	switch(part_struct->body->getCollisionShape()->getShapeType()) {
+zof_part_kind zof_part_part_kind(zof_part part) {
+	Part* abstractPart = Part::of(part);
+	GroupPart* group = dynamic_cast<GroupPart*>(abstractPart);
+	if (group) {
+		return zof_part_kind_group;
+	}
+	BasicPart* basic = dynamic_cast<BasicPart*>(abstractPart);
+	if (!basic) {
+		// What is this thing anyway?
+		return zof_part_kind_error;
+	}
+	switch(basic->body->getCollisionShape()->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
-		return zof_shape_kind_box;
+		return zof_part_kind_box;
 	case CAPSULE_SHAPE_PROXYTYPE:
-		return zof_shape_kind_capsule;
+		return zof_part_kind_capsule;
 	case CYLINDER_SHAPE_PROXYTYPE:
-		return zof_shape_kind_cylinder;
+		return zof_part_kind_cylinder;
 	default:
-		return zof_shape_kind_error;
+		// Unsupported shape type.
+		return zof_part_kind_error;
 	}
 }
 

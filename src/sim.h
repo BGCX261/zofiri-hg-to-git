@@ -15,9 +15,15 @@ struct Part;
 
 struct Part: Any {
 
+	Part();
+
+	Part(const string& name);
+
 	static Part* of(zof_part part);
 
-	virtual const btTransform& getTransform() = 0;
+	BasicPart* basic();
+
+	const btTransform& getTransform();
 
 	void setPos(const btVector3& pos);
 
@@ -29,7 +35,13 @@ struct Part: Any {
 	 */
 	void setTransform(const btTransform& transform);
 
-	virtual void transformBy(const btTransform& relative, Part* parent=0) = 0;
+	/**
+	 * Assumes only trees, not cycles, for recursion.
+	 * BasicPart as parent because joints always work at the BasicPart level.
+	 */
+	void transformBy(const btTransform& relative, BasicPart* parent=0);
+
+	btRigidBody* body;
 
 	/**
 	 * This allows only strictly nested groups.
@@ -40,6 +52,10 @@ struct Part: Any {
 	map<string,zof_joint> joints;
 
 	string name;
+
+private:
+
+	void init();
 
 };
 
@@ -59,15 +75,6 @@ struct BasicPart: Part {
 
 	static BasicPart* of(zof_part part);
 
-	virtual const btTransform& getTransform();
-
-	/**
-	 * Assumes only trees, not cycles, for recursion.
-	 */
-	virtual void transformBy(const btTransform& relative, Part* parent=0);
-
-	btRigidBody* body;
-
 	Material* material;
 
 	void* sceneNode;
@@ -82,11 +89,18 @@ private:
 
 struct GroupPart: Part {
 
-	virtual const btTransform& getTransform();
+	GroupPart(const string& name, Part* root);
 
-	virtual void transformBy(const btTransform& relative, Part* parent=0);
+	// TODO Destructor to delete whole tree.
 
-	Part* root;
+	// TODO Access to root part (which could be a group)?
+
+private:
+
+	/**
+	 * Recursive function to set groups and find detached joints.
+	 */
+	void init(BasicPart* part, BasicPart* parent=0);
 
 };
 

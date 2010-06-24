@@ -67,6 +67,12 @@ zof_part torso_new(void) {
 		zof_xyzw(0,1,0,0)
 	);
 	zof_part_joint_put(chest, joint_to_abdomen);
+	zof_joint joint_to_head = zof_joint_new(
+		"head",
+		zof_capsule_end_pos(zof_part_capsule(chest), 1),
+		zof_xyzw(0,1,0,0)
+	);
+	zof_part_joint_put(chest, joint_to_head);
 	// Abdomen.
 	zof_part abdomen = zof_part_new_capsule("abdomen", 0.08, 0.05);
 	zof_part_material_put(abdomen, metal);

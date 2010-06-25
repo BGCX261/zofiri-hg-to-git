@@ -52,17 +52,14 @@ zof_part humanoid_new(void) {
 	zof_part torso = torso_new();
 	//printf("torso kind: %d\n", zof_part_part_kind(torso));
 	zof_part_attach(torso, head_new());
-	return zof_part_new_group("humanoid", torso);
+	zof_part humanoid = zof_part_new_group("humanoid", torso);
+	zof_part_material_put(humanoid, zof_material_new(0xFF808080,1));
+	return humanoid;
 }
 
 zof_part torso_new(void) {
-	// TODO Once we have material fill, save material assignment for the end.
-	// TODO Or support find & replace for materials? Or "styles" like CSS?
-	// TODO Or should attaching a default material to custom assign the custom?
-	zof_material metal = zof_material_new(0xFF808080,1);
 	// Chest.
 	zof_part chest = zof_part_new_capsule("chest", 0.1, 0.0725);
-	zof_part_material_put(chest, metal);
 	zof_joint joint_to_abdomen = zof_joint_new(
 		"abdomen",
 		zof_capsule_end_pos(zof_part_capsule(chest), -0.5),
@@ -77,7 +74,6 @@ zof_part torso_new(void) {
 	zof_part_joint_put(chest, joint_to_head);
 	// Abdomen.
 	zof_part abdomen = zof_part_new_capsule("abdomen", 0.08, 0.05);
-	zof_part_material_put(abdomen, metal);
 	zof_joint joint_to_chest = zof_joint_new(
 		"chest",
 		zof_capsule_end_pos(zof_part_capsule(abdomen), 0.5),

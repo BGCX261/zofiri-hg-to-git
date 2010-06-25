@@ -212,9 +212,7 @@ zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
 }
 
 void zof_part_material_put(zof_part part, zof_material material) {
-	// TODO How and when to free existing?
-	BasicPart::of(part)->material = reinterpret_cast<Material*>(material);
-	// TODO Recalculate and setMassProps.
+	Part::of(part)->setMaterial(reinterpret_cast<Material*>(material));
 }
 
 zof_str zof_part_name(zof_part part) {
@@ -485,6 +483,44 @@ void Part::init() {
 
 Part* Part::of(zof_part part) {
 	return reinterpret_cast<Part*>(part);
+}
+
+void Part::setMaterial(Material* material, bool flood) {
+	Material* original = basic()->material;
+	// TODO It won't use original from outside because it is 'auto'.
+	// TODO How to make something _not_ auto?
+	// TODO Also doesn't like use of parameter material, so copy to local?
+	// TODO If I can't figure out how to use closures, put in constructor and local vars.
+	// TODO Then abstract out the walking to a separate function that passes in just the part.
+	struct {
+		void handle(Material* material, Material* original, BasicPart* part, BasicPart* parent=0) {
+			if (part->material == original) {
+				update(part, material);
+			}
+			map<string,zof_joint>& joints = part->joints;
+			//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
+			for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
+				zof_joint joint = j->second;
+				zof_joint other = zof_joint_other(joint);
+				if (other) {
+					BasicPart* kid = BasicPart::of(zof_joint_part(other));
+					if (kid != parent) {
+						handle(material, original, kid, part);
+					}
+				}
+			}
+		}
+		void update(BasicPart* part, Material* material) {
+			// TODO How and when to free existing? <-- Assume held in DB elsewhere.
+			part->material = material;
+			// TODO Recalculate and setMassProps.
+		}
+	} walker;
+	if (flood) {
+		walker.handle(material, original, basic(), 0);
+	} else {
+		walker.update(basic(), material);
+	}
 }
 
 void Part::setPos(const btVector3& pos) {

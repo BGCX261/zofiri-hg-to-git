@@ -25,6 +25,12 @@ struct Part: Any {
 
 	const btTransform& getTransform();
 
+	/**
+	 * If flood, then search and replace all of the current
+	 * material with the given, across attached parts.
+	 */
+	void setMaterial(Material* material, bool flood=true);
+
 	void setPos(const btVector3& pos);
 
 	/**

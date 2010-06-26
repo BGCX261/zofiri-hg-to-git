@@ -14,6 +14,10 @@
 
 namespace zof {
 
+zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale=1);
+btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
+btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
+
 struct Joint: Any {
 
 	/**
@@ -75,6 +79,32 @@ ostream& operator<<(ostream& out, const btTransform& transform) {
 	return out;
 }
 
+zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale) {
+	zof_vec4 vec;
+	for (zof_uint i = 0; i < 3; i++) {
+		vec.vals[i] = scale * bt3.m_floats[i];
+	}
+	vec.vals[3] = 0;
+	return vec;
+}
+
+btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
+	btVector3 bt;
+	for (zof_uint i = 0; i < 3; i++) {
+		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
+	}
+	bt.m_floats[3] = btScalar(0);
+	return bt;
+}
+
+btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
+	btVector4 bt;
+	for (zof_uint i = 0; i < 4; i++) {
+		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
+	}
+	return bt;
+}
+
 }
 
 
@@ -82,23 +112,10 @@ using namespace zof;
 
 extern "C" {
 
-zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale=1);
-btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
-btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
-
 zof_vec4 zof_box_radii(zof_box box) {
 	btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(box)->body->getCollisionShape());
 	btVector3 radii = shape->getHalfExtentsWithMargin();
 	return zof_bt3_to_vec4(radii, 1/zof_bt_scale);
-}
-
-zof_vec4 zof_bt3_to_vec4(btVector3 bt3, zof_num scale) {
-	zof_vec4 vec;
-	for (zof_uint i = 0; i < 3; i++) {
-		vec.vals[i] = scale * bt3.m_floats[i];
-	}
-	vec.vals[3] = 0;
-	return vec;
 }
 
 zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio) {
@@ -329,23 +346,6 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 			}
 		}
 	}
-}
-
-btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
-	btVector3 bt;
-	for (zof_uint i = 0; i < 3; i++) {
-		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
-	}
-	bt.m_floats[3] = btScalar(0);
-	return bt;
-}
-
-btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
-	btVector4 bt;
-	for (zof_uint i = 0; i < 4; i++) {
-		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
-	}
-	return bt;
 }
 
 }

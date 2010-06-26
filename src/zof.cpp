@@ -3,6 +3,10 @@
 
 namespace zof {
 
+Any::~Any() {
+	// Nothing to do by default.
+}
+
 /**
  * TODO Should I retain this for mods to interop better?
  */
@@ -16,6 +20,18 @@ struct Type {
 using namespace zof;
 
 extern "C" {
+
+zof_num zof_num_max(zof_num a, zof_num b) {
+	return a > b ? a : b;
+}
+
+zof_num zof_num_min(zof_num a, zof_num b) {
+	return a < b ? a : b;
+}
+
+void zof_ref_free(zof_any ref) {
+	delete reinterpret_cast<Any*>(ref);
+}
 
 zof_type zof_type_type(void) {
 	// TODO Thread safety?

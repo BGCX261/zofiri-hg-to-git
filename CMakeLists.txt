@@ -39,6 +39,6 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(
-  mods
   src
+  mods
 )

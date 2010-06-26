@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 
+using namespace std;
+
 
 namespace zof {
 
@@ -73,7 +75,7 @@ struct BasicPart: Part {
 
 	virtual ~BasicPart();
 
-	static BasicPart* of(btCollisionObject* body);
+	static zof_export BasicPart* of(btCollisionObject* body);
 
 	static BasicPart* of(zof_box box);
 
@@ -112,7 +114,7 @@ private:
 
 struct Material: Any {
 
-	Material(zof_color color = 0xFFFFFFFF);
+	zof_export Material(zof_color color = 0xFFFFFFFF);
 
 	zof_color color;
 
@@ -132,9 +134,9 @@ struct MotionState: btDefaultMotionState {
 
 struct Sim: Any {
 
-	Sim();
+	zof_export Sim();
 
-	~Sim();
+	zof_export ~Sim();
 
 	int addBody(btRigidBody* body);
 
@@ -179,13 +181,13 @@ struct Sim: Any {
 	 */
 	std::map<int, btTypedConstraint*> constraints;
 
-	btRigidBody* createBody(
+	zof_export btRigidBody* createBody(
 		btCollisionShape* shape,
 		const btTransform& transform,
 		Material* material = Material::defaultMaterial()
 	);
 
-	btRigidBody* createPlane();
+	zof_export btRigidBody* createPlane();
 
 	btCollisionDispatcher* dispatcher;
 

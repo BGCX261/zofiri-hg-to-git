@@ -15,23 +15,32 @@ link_directories(
 	${IRRLICHT_LIB_DIR}
 )
 
-add_executable(
-	zofiri
-	zofiri.cpp
+add_library(zof SHARED
 	mod.cpp
 	net.cpp
 	pub.cpp
 	sim.cpp
 	viz.cpp
 	zof.cpp
+)
+
+add_executable(zofiri
+	zofiri.cpp
 	../test/world.cpp
 )
 
-
 if(CMAKE_COMPILER_IS_GNUCC)
 	# TODO Mac-friendly?
-	target_link_libraries(
-		zofiri
+	target_link_libraries(zof
+		${OPENGL_gl_LIBRARY}
+		BulletDynamics
+		BulletCollision
+		LinearMath
+		Irrlicht
+		Xxf86vm
+	)
+	target_link_libraries(zofiri
+		zof
 		${OPENGL_gl_LIBRARY}
 		BulletDynamics
 		BulletCollision
@@ -40,8 +49,16 @@ if(CMAKE_COMPILER_IS_GNUCC)
 		Xxf86vm
 	)
 else(CMAKE_COMPILER_IS_GNUCC)
-	target_link_libraries(
-		zofiri
+	target_link_libraries(zof
+		${OPENGL_gl_LIBRARY}
+		BulletDynamics
+		BulletCollision
+		LinearMath
+		Irrlicht
+		wsock32
+	)
+	target_link_libraries(zofiri
+		zof
 		${OPENGL_gl_LIBRARY}
 		BulletDynamics
 		BulletCollision

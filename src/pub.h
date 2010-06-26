@@ -13,7 +13,7 @@ namespace zof {
 /**
  * The main zof server that publishes the simulation, hence "pub".
  */
-struct Pub {
+struct zof_export Pub {
 
 	/**
 	 * Expose the viz here for now, so can manipulate both the

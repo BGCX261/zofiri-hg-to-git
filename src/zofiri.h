@@ -1,14 +1,6 @@
 #ifndef zofiri_h
 #define zofiri_h
 
-//#include <btBulletDynamicsCommon.h>
-//#include <iostream>
-//#include <map>
-//#include <math.h>
-//#include <vector>
-
-using namespace std;
-
 namespace zof {
 
 // For circular references:

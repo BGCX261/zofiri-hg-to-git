@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
 		if (argc > 1) {
 			pub.mod_uri = argv[1];
 		}
-
 		viz->run();
 		// TODO auto_ptr
 		delete viz;
@@ -32,28 +31,4 @@ int main(int argc, char** argv) {
 		cerr << message << endl;
 	}
 	exit(EXIT_SUCCESS);
-}
-
-extern "C" {
-
-zof_num zof_num_max(zof_num a, zof_num b) {
-	return a > b ? a : b;
-}
-
-zof_num zof_num_min(zof_num a, zof_num b) {
-	return a < b ? a : b;
-}
-
-void zof_ref_free(zof_any ref) {
-	delete reinterpret_cast<Any*>(ref);
-}
-
-}
-
-namespace zof {
-
-Any::~Any() {
-	// Nothing to do by default.
-}
-
 }

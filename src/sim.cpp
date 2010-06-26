@@ -34,6 +34,35 @@ struct Joint: Any {
 
 };
 
+/**
+ * For walking over chains with a callback.
+ */
+struct Walker: Any {
+	virtual void handle(BasicPart* part) = 0;
+	void walk(BasicPart* part) {
+		// This grunt worker allows entirely hiding the recursive params.
+		struct Grunt{
+			Walker* walker;
+			Grunt(Walker* w): walker(w) {}
+			void walk(BasicPart* part, BasicPart* parent = 0) {
+				walker->handle(part);
+				map<string,zof_joint>& joints = part->joints;
+				for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
+					zof_joint joint = j->second;
+					zof_joint other = zof_joint_other(joint);
+					if (other) {
+						BasicPart* kid = BasicPart::of(zof_joint_part(other));
+						if (kid != parent) {
+							walk(kid, part);
+						}
+					}
+				}
+			}
+		} grunt(this);
+		grunt.walk(part);
+	}
+};
+
 ostream& operator<<(ostream& out, const btVector3& vec) {
 	return out << "(" << vec.m_floats[0] << "," << vec.m_floats[1] << "," << vec.m_floats[2] << ")";
 }
@@ -486,40 +515,24 @@ Part* Part::of(zof_part part) {
 }
 
 void Part::setMaterial(Material* material, bool flood) {
-	Material* original = basic()->material;
-	// TODO It won't use original from outside because it is 'auto'.
-	// TODO How to make something _not_ auto?
-	// TODO Also doesn't like use of parameter material, so copy to local?
-	// TODO If I can't figure out how to use closures, put in constructor and local vars.
-	// TODO Then abstract out the walking to a separate function that passes in just the part.
-	struct {
-		void handle(Material* material, Material* original, BasicPart* part, BasicPart* parent=0) {
+	struct MaterialWalker: Walker {
+		Material *material, *original;
+		MaterialWalker(Material* m, Material* o): material(m), original(o) {}
+		void handle(BasicPart* part) {
 			if (part->material == original) {
-				update(part, material);
-			}
-			map<string,zof_joint>& joints = part->joints;
-			//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
-			for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
-				zof_joint joint = j->second;
-				zof_joint other = zof_joint_other(joint);
-				if (other) {
-					BasicPart* kid = BasicPart::of(zof_joint_part(other));
-					if (kid != parent) {
-						handle(material, original, kid, part);
-					}
-				}
+				update(part);
 			}
 		}
-		void update(BasicPart* part, Material* material) {
+		void update(BasicPart* part) {
 			// TODO How and when to free existing? <-- Assume held in DB elsewhere.
 			part->material = material;
 			// TODO Recalculate and setMassProps.
 		}
-	} walker;
+	} walker(material, basic()->material);
 	if (flood) {
-		walker.handle(material, original, basic(), 0);
+		walker.walk(basic());
 	} else {
-		walker.update(basic(), material);
+		walker.update(basic());
 	}
 }
 

@@ -8,7 +8,7 @@ zof_part head_new(void);
 zof_part humanoid_new(void);
 zof_part torso_new(void);
 
-zof_bool sim_init(zof_mod mod, zof_sim sim) {
+zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	// TODO Obviously need more to the humanoid than this.
 	// TODO Especially want group parts.
 	zof_part humanoid = humanoid_new();

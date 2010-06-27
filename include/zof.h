@@ -2,13 +2,15 @@
 #define zof_h
 
 #ifdef _WIN32
-  #ifdef zof_EXPORTS
-    #define zof_export __declspec(dllexport)
-  #else
-    #define zof_export __declspec(dllimport)
-  #endif
+	#ifdef zof_EXPORTS
+		#define zof_export __declspec(dllexport)
+	#else
+		#define zof_export __declspec(dllimport)
+	#endif
+	#define zof_mod_export __declspec(dllexport)
 #else
 	#define zof_export
+	#define zof_mod_export
 #endif
 
 #ifdef __cplusplus

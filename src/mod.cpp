@@ -38,12 +38,19 @@ zof_mod zof_mod_new(zof_str uri) {
 	// TODO Real uri handling.
 	// TODO Store error instead of printing. <-- ??
 	#ifdef _WIN32
-		lib = LoadLibrary(TEXT(uri));
+		// Need absolute path to avoid searching system in Windows.
+		TCHAR absPath[4096] = TEXT("");
+		if (!GetFullPathName(TEXT(uri), 4096, absPath, 0)) {
+			cerr << "GetFullPathName error for " << uri << ": " << GetLastError() << endl;
+		}
+		//cerr << "Loading " << absPath << endl;
+		lib = LoadLibrary(absPath);
 		if (!lib) {
 			cerr << "LoadLibrary error: " << GetLastError() << endl;
 			return NULL;
 		}
 	#else
+		// Might want to guarantee absolute here, too, in case no '/' or whatnot.
 		lib = dlopen(uri, RTLD_NOW);
 		if (!lib) {
 			// TODO Store error instead of printing.

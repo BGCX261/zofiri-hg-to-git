@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "zof.h"
 
-zof_bool sim_init(zof_mod mod, zof_sim sim) {
+zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	zof_part box1, box2;
 	zof_joint joint1;
 	printf("Hello from %s!\n", zof_mod_uri(mod));

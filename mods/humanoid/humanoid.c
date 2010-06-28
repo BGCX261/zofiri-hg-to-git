@@ -18,35 +18,47 @@ zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
 }
 
 zof_part head_new(void) {
-	zof_part neck, skull;
-	zof_joint joint_to_neck, joint_to_skull, joint_to_torso;
-	// Neck.
-    neck = zof_part_new_capsule("neck", 0.04, 0);
-	joint_to_torso = zof_joint_new(
-		"torso",
-		zof_capsule_end_pos(zof_part_capsule(neck), -0.3),
-		zof_xyzw(0,1,0,0)
-	);
-	zof_part_joint_put(neck, joint_to_torso);
-	joint_to_skull = zof_joint_new(
-		"skull",
-		zof_capsule_end_pos(zof_part_capsule(neck), 0.3),
-		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
-		zof_xyzw(0,1,0,0)
-	);
-	zof_part_joint_put(neck, joint_to_skull);
+	zof_part eye_left, neck, skull;
+	zof_joint eye_left_to_skull, neck_to_skull, neck_to_torso, skull_to_eye_left, skull_to_neck;
 	// Skull.
 	skull = zof_part_new_capsule("skull", 0.06, 0.01);
-	joint_to_neck = zof_joint_new(
+	skull_to_neck = zof_joint_new(
 		"neck",
 		zof_capsule_end_pos(zof_part_capsule(skull), -1),
 		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
 		zof_xyzw(0,1,0,0)
 	);
-	zof_part_joint_put(skull, joint_to_neck);
-	// Attach and return group.
+	zof_part_joint_put(skull, skull_to_neck);
+	// Neck.
+	neck = zof_part_new_capsule("neck", 0.04, 0);
+	neck_to_torso = zof_joint_new(
+		"torso",
+		zof_capsule_end_pos(zof_part_capsule(neck), -0.3),
+		zof_xyzw(0,1,0,0)
+	);
+	zof_part_joint_put(neck, neck_to_torso);
+	neck_to_skull = zof_joint_new(
+		"skull",
+		zof_capsule_end_pos(zof_part_capsule(neck), 0.3),
+		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
+		zof_xyzw(0,1,0,0)
+	);
+	zof_part_joint_put(neck, neck_to_skull);
 	zof_part_attach(skull, neck);
-	//printf("skull kind: %d\n", zof_part_part_kind(skull));
+	// Eyes.
+	eye_left = zof_part_new_capsule("eye_left", 0.015, 0);
+	zof_part_material_put(eye_left, zof_material_new(0xFF0060A0,0.001));
+	eye_left_to_skull = zof_joint_new("skull", zof_xyz(0,0,0), zof_xyzw(0,1,0,0));
+	zof_part_joint_put(eye_left, eye_left_to_skull);
+	skull_to_eye_left = zof_joint_new(
+		"eye_left",
+		zof_capsule_end_pos_ex(zof_part_capsule(skull), 0.8, zof_xyz(-0.2,0,1), 1),
+		zof_xyzw(0,1,0,0)
+	);
+	zof_part_joint_put(skull, skull_to_eye_left);
+	zof_part_attach(skull, eye_left);
+	// TODO zof_part_mirror(eye_left);
+	// Return group.
 	return zof_part_new_group("head", skull);
 }
 

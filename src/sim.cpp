@@ -181,11 +181,11 @@ zof_material zof_material_new(zof_color color, zof_num density) {
 zof_bool zof_part_attach(zof_part part, zof_part kid) {
 	zof_str part_name = zof_part_name(part);
 	zof_joint kid_joint = zof_part_joint(kid, part_name);
+	//cerr << "attach to " << part_name << " kid " << zof_part_name(kid) << endl;
 	if (kid_joint) {
 		zof_str kid_name = zof_part_name(kid);
 		zof_joint part_joint = zof_part_joint(part, kid_name);
 		if (part_joint) {
-			//cerr << "attach to " << part_name << " kid " << kid_name << endl;
 			Joint* partJoint = Joint::of(part_joint);
 			Joint* kidJoint = Joint::of(kid_joint);
 			btTransform transform = BasicPart::of(partJoint->part)->getTransform();
@@ -367,7 +367,7 @@ BasicPart::BasicPart(const string& name, btCollisionShape* shape): Part(name) {
 	// TODO We need to merge this sometime.
 	// Actually setting the material will require recalculating mass props.
 	btScalar volume = Sim::calcVolume(shape);
-	// TODO If material changes for body, do setMassProps.
+	// TODO Unify mass props calculation with setMaterial?
 	btScalar mass(material->density * volume);
 	btVector3 inertia(0,0,0);
 	shape->calculateLocalInertia(mass, inertia);
@@ -524,9 +524,14 @@ void Part::setMaterial(Material* material, bool flood) {
 			}
 		}
 		void update(BasicPart* part) {
-			// TODO How and when to free existing? <-- Assume held in DB elsewhere.
+			// TODO How and when to free existing? <-- Assume held in DB elsewhere???
 			part->material = material;
-			// TODO Recalculate and setMassProps.
+			// Recalculate and setMassProps.
+			btScalar volume = Sim::calcVolume(part->body->getCollisionShape());
+			btScalar mass(material->density * volume);
+			btVector3 inertia(0,0,0);
+			part->body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+			part->body->setMassProps(mass, inertia);
 		}
 	} walker(material, basic()->material);
 	if (flood) {

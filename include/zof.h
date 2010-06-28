@@ -7,6 +7,13 @@
 	#else
 		#define zof_export __declspec(dllimport)
 	#endif
+	// zof_export becomes export or import.
+	// zof_mod_export is always export and should be used for functions
+	//   exported by mods.
+	// TODO A system of exports from mods with structs of function pointers.
+	// TODO That guarantees keeping the namespace clean.
+	// TODO Then each mod could just have a single dllexport function that
+	// TODO provides all setup and other exports in the struct.
 	#define zof_mod_export __declspec(dllexport)
 #else
 	#define zof_export

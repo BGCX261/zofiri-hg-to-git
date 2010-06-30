@@ -18,20 +18,39 @@ zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale=1);
 btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
 btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
 
+
 struct Joint: Any {
+
+	/**
+	 * Because this doesn't seem to be called automatically:
+	 *   operator zof_joint() {
+	 */
+	zof_joint asC() {
+		return reinterpret_cast<zof_joint>(this);
+	}
+
+	/**
+	 * The kid's part will be transformed relative to this's part.
+	 */
+	void attach(Joint* kid);
 
 	/**
 	 * Doable if part, other, and remaining items already set.
 	 */
 	btGeneric6DofConstraint* createConstraint();
 
+	/**
+	 * Returns a mirror of this joint about the X axis, including any necessary changes to joint limits.
+	 */
+	Joint* mirror();
+
 	static Joint* of(zof_joint joint) {
 		return reinterpret_cast<Joint*>(joint);
 	}
 
-	zof_str name;
-	zof_part part;
-	zof_joint other;
+	string name;
+	Part* part;
+	Joint* other;
 	btTransform transform;
 	zof_vec4 posLimits[2];
 	zof_vec4 rotLimits[2];
@@ -50,12 +69,12 @@ struct Walker: Any {
 			Grunt(Walker* w): walker(w) {}
 			void walk(BasicPart* part, BasicPart* parent = 0) {
 				walker->handle(part);
-				map<string,zof_joint>& joints = part->joints;
-				for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
-					zof_joint joint = j->second;
-					zof_joint other = zof_joint_other(joint);
+				map<string,Joint*>& joints = part->joints;
+				for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+					Joint* joint = j->second;
+					Joint* other = joint->other;
 					if (other) {
-						BasicPart* kid = BasicPart::of(zof_joint_part(other));
+						BasicPart* kid = other->part->basic();
 						if (kid != parent) {
 							walk(kid, part);
 						}
@@ -146,11 +165,10 @@ zof_vec4 zof_capsule_end_pos_ex(
 }
 
 zof_str zof_joint_name(zof_joint joint) {
-	return ((Joint*)joint)->name;
+	return zof_str(((Joint*)joint)->name.c_str());
 }
 
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
-	// TODO Hrmm.
 	Joint* joint = new Joint;
 	joint->name = name;
 	joint->part = zof_null;
@@ -161,15 +179,15 @@ zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
 	memset(joint->posLimits, 0, sizeof(joint->posLimits));
 	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
-	return (zof_joint)joint;
+	return joint->asC();
 }
 
 zof_joint zof_joint_other(zof_joint joint) {
-	return ((Joint*)joint)->other;
+	return Joint::of(joint)->other->asC();
 }
 
 zof_part zof_joint_part(zof_joint joint) {
-	return ((Joint*)joint)->part;
+	return ((Joint*)joint)->part->asC();
 }
 
 zof_material zof_material_new(zof_color color, zof_num density) {
@@ -179,28 +197,8 @@ zof_material zof_material_new(zof_color color, zof_num density) {
 }
 
 zof_bool zof_part_attach(zof_part part, zof_part kid) {
-	zof_str part_name = zof_part_name(part);
-	zof_joint kid_joint = zof_part_joint(kid, part_name);
-	//cerr << "attach to " << part_name << " kid " << zof_part_name(kid) << endl;
-	if (kid_joint) {
-		zof_str kid_name = zof_part_name(kid);
-		zof_joint part_joint = zof_part_joint(part, kid_name);
-		if (part_joint) {
-			Joint* partJoint = Joint::of(part_joint);
-			Joint* kidJoint = Joint::of(kid_joint);
-			btTransform transform = BasicPart::of(partJoint->part)->getTransform();
-			//cerr << "part " << zof_part_name(partJoint->part) << " at " << transform << endl;
-			btTransform relTransform = partJoint->transform * kidJoint->transform.inverse();
-			//cerr << "relTransform of " << relTransform << endl;
-			transform *= relTransform;
-			//cerr << "kid " << zof_part_name(kidJoint->part) << " at " << transform << endl;
-			BasicPart::of(kidJoint->part)->setTransform(transform);
-			// Now actually attach joints.
-			partJoint->other = kid_joint;
-			kidJoint->other = part_joint;
-		}
-	}
-	return zof_false;
+	// TODO Some casting operator for general use?
+	return Part::of(part)->attach(Part::of(kid)) ? zof_true : zof_false;
 }
 
 zof_box zof_part_box(zof_part part) {
@@ -230,35 +228,19 @@ zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
 }
 
 zof_joint zof_part_joint(zof_part part, zof_str name) {
-	Part* part_struct = Part::of(part);
-	map<string,zof_joint>::iterator j = part_struct->joints.find(name);
-	if (j != part_struct->joints.end()) {
-		return j->second;
-	}
-	return zof_null;
+	return Part::of(part)->joint(name)->asC();
 }
 
 zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
-	// Or just disallow all non-BasicParts? Here we add to the root.
-	BasicPart* part_struct = BasicPart::of(part);
-	string name(zof_joint_name(joint));
-	zof_joint old_joint = zof_null;
-	map<string,zof_joint>::iterator old = part_struct->joints.find(name);
-	if (old != part_struct->joints.end()) {
-		// Old joint already there.
-		old_joint = old->second;
-		Joint* old_joint_struct = (Joint*)old_joint;
-		old_joint_struct->part = zof_null;
-	}
-	map<string,zof_joint>::value_type pair(name, joint);
-	part_struct->joints.insert(old, pair);
-	Joint* joint_struct = (Joint*)joint;
-	joint_struct->part = part;
-	return old_joint;
+	return Part::of(part)->jointPut(Joint::of(joint))->asC();
 }
 
 void zof_part_material_put(zof_part part, zof_material material) {
 	Part::of(part)->setMaterial(reinterpret_cast<Material*>(material));
+}
+
+zof_part zof_part_mirror(zof_part part) {
+	return Part::of(part)->mirror()->asC();
 }
 
 zof_str zof_part_name(zof_part part) {
@@ -292,16 +274,16 @@ zof_part_kind zof_part_part_kind(zof_part part) {
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
 	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
 	BasicPart* part = new BasicPart(name, new btBoxShape(bt_radii));
-	return reinterpret_cast<zof_part>(part);
+	return part->asC();
 }
 
 zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread) {
 	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zof_bt_scale,2*half_spread*zof_bt_scale));
-	return reinterpret_cast<zof_part>(part);
+	return part->asC();
 }
 
 zof_part zof_part_new_group(zof_str name, zof_part root) {
-	return reinterpret_cast<zof_part>(new GroupPart(name, Part::of(root)));
+	return (new GroupPart(name, Part::of(root)))->asC();
 }
 
 void zof_part_pos_add(zof_part part, zof_vec4 pos) {
@@ -330,17 +312,17 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 		part_struct->sim = simPriv;
 		simPriv->addBody(part_struct->body);
 		//cerr << zof_part_name(part) << " #joints: " << part_struct->joints.size() << endl;
-		for (map<string,zof_joint>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
-			zof_joint joint = j->second;
-			zof_joint other = zof_joint_other(joint);
+		for (map<string,Joint*>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
+			Joint* joint = j->second;
+			Joint* other = joint->other;
 			if (other) {
-				zof_part kid = zof_joint_part(other);
+				Part* kid = other->part;
 				//cerr << "Found attached " << zof_part_name(kid) << endl;
-				zof_sim_part_add(sim, kid);
-				btGeneric6DofConstraint* constraint = Joint::of(joint)->createConstraint();
+				zof_sim_part_add(sim, kid->asC());
+				btGeneric6DofConstraint* constraint = joint->createConstraint();
 				// TODO Max the mins of joint and other, and min the maxes.
-				constraint->setAngularLowerLimit(zof_vec4_to_bt3(Joint::of(joint)->rotLimits[0]));
-				constraint->setAngularUpperLimit(zof_vec4_to_bt3(Joint::of(joint)->rotLimits[1]));
+				constraint->setAngularLowerLimit(zof_vec4_to_bt3(joint->rotLimits[0]));
+				constraint->setAngularUpperLimit(zof_vec4_to_bt3(joint->rotLimits[1]));
 				// TODO Pos limits.
 				simPriv->addConstraint(constraint);
 			}
@@ -412,13 +394,67 @@ BasicPart* BasicPart::of(zof_part part) {
 	return Part::of(part)->basic();
 }
 
+Part* BasicPart::mirror() {
+	// TODO Copy the shape? Well, especially for meshes (for mirroring). Maybe others if mutable someday.
+	string otherName(name);
+	string left("_left");
+	string::size_type pos = otherName.rfind(left);
+	if (pos != string::npos) {
+		otherName.replace(pos, left.size(), "_right");
+	}
+	Part* mirrorPart = new BasicPart(otherName, body->getCollisionShape());
+	Joint* otherJoint = 0;
+	bool multi = false;
+	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+		Joint* joint = j->second;
+		mirrorPart->jointPut(joint->mirror());
+		if (joint->other) {
+			if (otherJoint) {
+				multi = true;
+			} else {
+				otherJoint = joint;
+			}
+		}
+	}
+	if (otherJoint && !multi) {
+		Joint* mirrorJoint = otherJoint->mirror();
+		// TODO Change the name to "_right" here or in mirror?
+		otherJoint->part->jointPut(mirrorJoint);
+		//otherJoint->part->at
+		// TODO Move all this to Joint::mirror.
+		// TODO Does the name tell us to what we need to attach it? Or just attach joints directly rather than parts?
+		mirrorJoint->name = otherJoint->name;
+		mirrorJoint->part = mirrorPart;
+		// TODO Mirror the limits!
+		//mirrorJoint->posLimits = otherJoint->posLimits;
+		//mirrorJoint->rotLimits = otherJoint->rotLimits;
+	}
+	return mirrorPart;
+}
+
+void Joint::attach(Joint* kid) {
+	// TODO What if already attached??
+	btTransform transform = part->getTransform();
+	//cerr << "part " << part->name << " at " << transform << endl;
+	btTransform relTransform = this->transform * kid->transform.inverse();
+	//cerr << "relTransform of " << relTransform << endl;
+	transform *= relTransform;
+	//cerr << "kid " << kid->part->name << " at " << transform << endl;
+	kid->part->setTransform(transform);
+	// Now actually attach joints.
+	other = kid;
+	kid->other = this;
+}
+
 btGeneric6DofConstraint* Joint::createConstraint() {
-	BasicPart* part = BasicPart::of(this->part);
-	Joint* other = Joint::of(this->other);
-	BasicPart* otherPart = BasicPart::of(other->part);
-	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *otherPart->body, this->transform, other->transform, false);
+	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Limits, etc.
 	return constraint;
+}
+
+Joint* Joint::mirror() {
+	// TODO !!
+	return 0;
 }
 
 GroupPart::GroupPart(const string& name, Part* root): Part(name) {
@@ -429,12 +465,12 @@ GroupPart::GroupPart(const string& name, Part* root): Part(name) {
 void GroupPart::init(BasicPart* part, BasicPart* parent) {
 	// Recurse around, finding detached joints.
 	//cerr << "init " << name << " at " << part->name << endl;
-	map<string, zof_joint>& joints = part->joints;
-	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
-		zof_joint joint = j->second;
-		zof_joint other = zof_joint_other(joint);
+	map<string,Joint*>& joints = part->joints;
+	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+		Joint* joint = j->second;
+		Joint* other = joint->other;
 		if (other) {
-			BasicPart* kid = BasicPart::of(zof_joint_part(other));
+			BasicPart* kid = other->part->basic();
 			if (kid != parent) {
 				init(kid, part);
 			}
@@ -442,7 +478,7 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 			// Add detached joints to the group for nice access.
 			// This assumes (somewhat fairly) that they'll have unique names.
 			//cerr << "joint " << name << " to " << zof_joint_name(joint) << endl;
-			this->joints[zof_joint_name(joint)] = joint;
+			this->joints[joint->name] = joint;
 		}
 	}
 	// Go up the group chain until none set, then set to this.
@@ -460,6 +496,11 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 		}
 		partInGroup = partInGroup->group;
 	}
+}
+
+Part* GroupPart::mirror() {
+	// TODO !!
+	return 0;
 }
 
 Material::Material(zof_color c): color(c), density(1) {
@@ -497,8 +538,58 @@ Part::Part(const string& name) {
 	init();
 }
 
+zof_part Part::asC() {
+	return reinterpret_cast<zof_part>(this);
+}
+
+bool Part::attach(Part* kid) {
+	//cerr << "attach to " << name << " kid " << kid->name << endl;
+	Joint* kidJoint = kid->joint(name);
+	if (kidJoint) {
+		Joint* partJoint = joint(kid->name);
+		if (partJoint) {
+			// TODO What if previously attached to other parts?
+			partJoint->attach(kidJoint);
+			return true;
+		}
+	}
+	return false;
+}
+
 BasicPart* Part::basic() {
 	return BasicPart::of(body);
+}
+
+bool Part::inGroup(GroupPart* group) {
+	GroupPart* ownGroup = this->group;
+	while (ownGroup) {
+		if (ownGroup == group) {
+			return true;
+		}
+		ownGroup = ownGroup->group;
+	}
+	return false;
+}
+
+Joint* Part::joint(const string& name) {
+	map<string,Joint*>::iterator j = joints.find(name);
+	return j == joints.end() ? 0 : j->second;
+}
+
+Joint* Part::jointPut(Joint* joint) {
+	// TODO Or just disallow all non-BasicParts? Here we add to the basic.
+	BasicPart* part = basic();
+	Joint* oldJoint = 0;
+	map<string,Joint*>::iterator old = part->joints.find(joint->name);
+	if (old != part->joints.end()) {
+		// Old joint already there.
+		oldJoint = old->second;
+		oldJoint->part = 0;
+	}
+	map<string,Joint*>::value_type pair(joint->name, joint);
+	part->joints.insert(old, pair);
+	joint->part = part;
+	return oldJoint;
 }
 
 const btTransform& Part::getTransform() {
@@ -554,15 +645,15 @@ void Part::setTransform(const btTransform& transform) {
 }
 
 void Part::transformBy(const btTransform& relative, BasicPart* parent) {
-	//cerr << "Moving " << name << " from " << body->getWorldTransform();
+	//cerr << "Moving " << name << " from " << getTransform();
 	body->getWorldTransform() *= relative;
-	map<string,zof_joint>& joints = basic()->joints;
-	//cerr << " to " << body->getWorldTransform() << " by " << relative << endl;
-	for (map<string,zof_joint>::iterator j = joints.begin(); j != joints.end(); j++) {
-		zof_joint joint = j->second;
-		zof_joint other = zof_joint_other(joint);
+	map<string,Joint*>& joints = basic()->joints;
+	//cerr << " to " << getTransform() << " by " << relative << endl;
+	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+		Joint* joint = j->second;
+		Joint* other = joint->other;
 		if (other) {
-			BasicPart* kid = BasicPart::of(zof_joint_part(other));
+			BasicPart* kid = other->part->basic();
 			if (kid != parent) {
 				kid->transformBy(relative, basic());
 			}

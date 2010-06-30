@@ -13,6 +13,7 @@ namespace zof {
 
 struct BasicPart;
 struct GroupPart;
+struct Joint;
 struct Part;
 
 struct Part: Any {
@@ -23,9 +24,27 @@ struct Part: Any {
 
 	static Part* of(zof_part part);
 
+	zof_part asC();
+
+	/**
+	 * Returns true of successfully attached.
+	 */
+	bool attach(Part* other);
+
 	BasicPart* basic();
 
 	const btTransform& getTransform();
+
+	bool inGroup(GroupPart* group);
+
+	Joint* joint(const string& name);
+
+	/**
+	 * Returns the old joint if any.
+	 */
+	Joint* jointPut(Joint* joint);
+
+	virtual Part* mirror() = 0;
 
 	/**
 	 * If flood, then search and replace all of the current
@@ -57,7 +76,7 @@ struct Part: Any {
 	 */
 	GroupPart* group;
 
-	map<string,zof_joint> joints;
+	map<string,Joint*> joints;
 
 	string name;
 
@@ -83,6 +102,8 @@ struct BasicPart: Part {
 
 	static BasicPart* of(zof_part part);
 
+	virtual Part* mirror();
+
 	Material* material;
 
 	void* sceneNode;
@@ -100,6 +121,8 @@ struct GroupPart: Part {
 	GroupPart(const string& name, Part* root);
 
 	// TODO Destructor to delete whole tree.
+
+	virtual Part* mirror();
 
 	// TODO Access to root part (which could be a group)?
 

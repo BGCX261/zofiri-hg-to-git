@@ -195,14 +195,33 @@ zof_export zof_joint zof_part_joint(zof_part part, zof_str name);
 zof_export zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
 
 zof_export zof_part_kind zof_part_part_kind(zof_part part);
+
 zof_export void zof_part_material_put(zof_part part, zof_material material);
+
+/**
+ * Convenience for building symmetries.
+ *
+ * Creates a mirror image across X of the group or single basic part.
+ * The part in question must be attached to at most one other part.
+ * If the part is attached to a another, the mirror part will also be
+ * attached to the same part at the mirror X location.
+ */
+zof_export zof_part zof_part_mirror(zof_part part);
+
 zof_export zof_str zof_part_name(zof_part part);
+
 zof_export zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
+
 zof_export zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
+
 zof_export zof_part zof_part_new_group(zof_str name, zof_part root);
+
 zof_export void zof_part_pos_add(zof_part part, zof_vec4 pos);
+
 zof_export void zof_part_pos_put(zof_part part, zof_vec4 pos);
+
 zof_export void zof_part_rot_add(zof_part part, zof_vec4 rot);
+
 zof_export void zof_part_rot_put(zof_part part, zof_vec4 rot);
 
 

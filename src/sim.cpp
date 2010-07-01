@@ -14,12 +14,23 @@
 
 namespace zof {
 
-zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale=1);
-btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale=1);
-btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale=1);
+zof_vec4 bt3ToVec4(const btVector3& bt3, zof_num scale=1);
+
+/**
+ * Changes any "_right" to "_left" or vice versa.
+ */
+void mirrorName(string* name);
+
+void mirrorX(btTransform* transform);
+
+btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale=1);
+
+btVector4 vec4ToBt4(zof_vec4 vec, zof_num scale=1);
 
 
 struct Joint: Any {
+
+	Joint(const string& name);
 
 	/**
 	 * Because this doesn't seem to be called automatically:
@@ -98,7 +109,7 @@ ostream& operator<<(ostream& out, const btTransform& transform) {
 	return out;
 }
 
-zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale) {
+zof_vec4 bt3ToVec4(const btVector3& bt3, zof_num scale) {
 	zof_vec4 vec;
 	for (zof_uint i = 0; i < 3; i++) {
 		vec.vals[i] = scale * bt3.m_floats[i];
@@ -107,7 +118,31 @@ zof_vec4 zof_bt3_to_vec4(const btVector3& bt3, zof_num scale) {
 	return vec;
 }
 
-btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
+void mirrorName(string* name) {
+	// TODO Should smartify this. Oh for regexps.
+	string left("_left");
+	string right("_right");
+	string::size_type pos = name->rfind(left);
+	if (pos != string::npos) {
+		name->replace(pos, left.size(), right);
+	} else {
+		// No left found, so try right.
+		pos = name->rfind(right);
+		if (pos != string::npos) {
+			name->replace(pos, right.size(), left);
+		}
+	}
+}
+
+void mirrorX(btTransform* transform) {
+	// cerr << "Mirroring transform from " << *transform;
+	// TODO What to do with rotations?
+	// TODO No good: *transform *= btTransform(btMatrix3x3(-1,0,0, 0,1,0, 0,0,1), btVector3(0,0,0));
+	transform->getOrigin().setX(-transform->getOrigin().getX());
+	// cerr << " to " << *transform << endl;
+}
+
+btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale) {
 	btVector3 bt;
 	for (zof_uint i = 0; i < 3; i++) {
 		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
@@ -116,7 +151,7 @@ btVector3 zof_vec4_to_bt3(zof_vec4 vec, zof_num scale) {
 	return bt;
 }
 
-btVector4 zof_vec4_to_bt4(zof_vec4 vec, zof_num scale) {
+btVector4 vec4ToBt4(zof_vec4 vec, zof_num scale) {
 	btVector4 bt;
 	for (zof_uint i = 0; i < 4; i++) {
 		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
@@ -134,7 +169,7 @@ extern "C" {
 zof_vec4 zof_box_radii(zof_box box) {
 	btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(box)->body->getCollisionShape());
 	btVector3 radii = shape->getHalfExtentsWithMargin();
-	return zof_bt3_to_vec4(radii, 1/zof_bt_scale);
+	return bt3ToVec4(radii, 1/zof_bt_scale);
 }
 
 zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio) {
@@ -147,7 +182,7 @@ zof_vec4 zof_capsule_end_pos_ex(
 	zof_vec4 axis,
 	zof_num half_spread_ratio
 ) {
-	btVector3 bt_axis = zof_vec4_to_bt3(axis);
+	btVector3 bt_axis = vec4ToBt3(axis);
 	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
 		BasicPart::of(capsule)->body->getCollisionShape()
 	);
@@ -161,7 +196,7 @@ zof_vec4 zof_capsule_end_pos_ex(
     }
     origin += bt_axis.normalize() * radius_ratio * shape->getRadius();
     //cerr << BasicPart::of(capsule)->name << " end: " << origin << endl;
-    return zof_bt3_to_vec4(origin, 1/zof_bt_scale);
+    return bt3ToVec4(origin, 1/zof_bt_scale);
 }
 
 zof_str zof_joint_name(zof_joint joint) {
@@ -169,16 +204,9 @@ zof_str zof_joint_name(zof_joint joint) {
 }
 
 zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
-	Joint* joint = new Joint;
-	joint->name = name;
-	joint->part = zof_null;
-	joint->other = zof_null;
-	joint->transform.setIdentity();
-	joint->transform.setRotation(btQuaternion(zof_vec4_to_bt3(rot),btScalar(rot.vals[3])));
-	joint->transform.setOrigin(zof_vec4_to_bt3(pos,zof_bt_scale));
-	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
-	memset(joint->posLimits, 0, sizeof(joint->posLimits));
-	memset(joint->rotLimits, 0, sizeof(joint->rotLimits));
+	Joint* joint = new Joint(name);
+	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3])));
+	joint->transform.setOrigin(vec4ToBt3(pos,zof_bt_scale));
 	return joint->asC();
 }
 
@@ -272,7 +300,7 @@ zof_part_kind zof_part_part_kind(zof_part part) {
 }
 
 zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
-	btVector3 bt_radii = zof_vec4_to_bt3(radii, zof_bt_scale);
+	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
 	BasicPart* part = new BasicPart(name, new btBoxShape(bt_radii));
 	return part->asC();
 }
@@ -291,7 +319,7 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 }
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
-	Part::of(part)->setPos(zof_vec4_to_bt3(pos, zof_bt_scale));
+	Part::of(part)->setPos(vec4ToBt3(pos, zof_bt_scale));
 }
 
 void zof_part_rot_add(zof_part part, zof_vec4 rot) {
@@ -321,8 +349,8 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 				zof_sim_part_add(sim, kid->asC());
 				btGeneric6DofConstraint* constraint = joint->createConstraint();
 				// TODO Max the mins of joint and other, and min the maxes.
-				constraint->setAngularLowerLimit(zof_vec4_to_bt3(joint->rotLimits[0]));
-				constraint->setAngularUpperLimit(zof_vec4_to_bt3(joint->rotLimits[1]));
+				constraint->setAngularLowerLimit(vec4ToBt3(joint->rotLimits[0]));
+				constraint->setAngularUpperLimit(vec4ToBt3(joint->rotLimits[1]));
 				// TODO Pos limits.
 				simPriv->addConstraint(constraint);
 			}
@@ -397,39 +425,43 @@ BasicPart* BasicPart::of(zof_part part) {
 Part* BasicPart::mirror() {
 	// TODO Copy the shape? Well, especially for meshes (for mirroring). Maybe others if mutable someday.
 	string otherName(name);
-	string left("_left");
-	string::size_type pos = otherName.rfind(left);
-	if (pos != string::npos) {
-		otherName.replace(pos, left.size(), "_right");
-	}
+	mirrorName(&otherName);
 	Part* mirrorPart = new BasicPart(otherName, body->getCollisionShape());
+	mirrorPart->setMaterial(material, false);
+	//cerr << "Created mirror part " << mirrorPart->name << endl;
+	Joint* attachedJoint = 0;
 	Joint* otherJoint = 0;
 	bool multi = false;
 	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
 		Joint* joint = j->second;
-		mirrorPart->jointPut(joint->mirror());
+		Joint* mirrored = joint->mirror();
+		mirrorPart->jointPut(mirrored);
 		if (joint->other) {
-			if (otherJoint) {
+			// It's attached. We want to attach to a mirror of this.
+			if (attachedJoint) {
 				multi = true;
 			} else {
-				otherJoint = joint;
+				attachedJoint = mirrored;
+				otherJoint = joint->other;
 			}
 		}
 	}
-	if (otherJoint && !multi) {
-		Joint* mirrorJoint = otherJoint->mirror();
-		// TODO Change the name to "_right" here or in mirror?
-		otherJoint->part->jointPut(mirrorJoint);
-		//otherJoint->part->at
-		// TODO Move all this to Joint::mirror.
-		// TODO Does the name tell us to what we need to attach it? Or just attach joints directly rather than parts?
-		mirrorJoint->name = otherJoint->name;
-		mirrorJoint->part = mirrorPart;
-		// TODO Mirror the limits!
-		//mirrorJoint->posLimits = otherJoint->posLimits;
-		//mirrorJoint->rotLimits = otherJoint->rotLimits;
+	if (attachedJoint && !multi) {
+		Joint* mirroredOther = otherJoint->mirror();
+		otherJoint->part->jointPut(mirroredOther);
+		mirroredOther->attach(attachedJoint);
 	}
 	return mirrorPart;
+}
+
+Joint::Joint(const string& name) {
+	this->name = name;
+	part = 0;
+	other = 0;
+	transform.setIdentity();
+	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
+	memset(posLimits, 0, sizeof(posLimits));
+	memset(rotLimits, 0, sizeof(rotLimits));
 }
 
 void Joint::attach(Joint* kid) {
@@ -453,8 +485,17 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 }
 
 Joint* Joint::mirror() {
-	// TODO !!
-	return 0;
+	Joint* mirrored = new Joint(name);
+	mirrorName(&mirrored->name);
+	mirrored->transform = transform;
+	mirrorX(&mirrored->transform);
+	//cerr << "Mirroring joint from " << name << " at " << transform << " to " << mirrored->name << " at " << mirrored->transform << endl;
+	for (int L = 0; L <= 1; L++) {
+		// TODO Mirror the limits!?! Think through this.
+		mirrored->posLimits[L] = posLimits[L];
+		mirrored->rotLimits[L] = rotLimits[L];
+	}
+	return mirrored;
 }
 
 GroupPart::GroupPart(const string& name, Part* root): Part(name) {
@@ -586,6 +627,7 @@ Joint* Part::jointPut(Joint* joint) {
 		oldJoint = old->second;
 		oldJoint->part = 0;
 	}
+	//cerr << "Creating a pair for joint " << joint->name << endl;
 	map<string,Joint*>::value_type pair(joint->name, joint);
 	part->joints.insert(old, pair);
 	joint->part = part;

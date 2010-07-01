@@ -57,7 +57,7 @@ zof_part head_new(void) {
 	);
 	zof_part_joint_put(skull, skull_to_eye_left);
 	zof_part_attach(skull, eye_left);
-	// TODO zof_part_mirror(eye_left);
+	zof_part_mirror(eye_left);
 	// Return group.
 	return zof_part_new_group("head", skull);
 }

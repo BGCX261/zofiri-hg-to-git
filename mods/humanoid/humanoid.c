@@ -2,7 +2,7 @@
 #include "zof.h"
 
 zof_part arm_new(int side_x);
-zof_part base_new(void);
+zof_part base_wheeled_new(void);
 zof_part hand_new(int side_x);
 zof_part head_new(void);
 zof_part humanoid_new(void);
@@ -15,6 +15,35 @@ zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
 	zof_part_pos_put(humanoid, zof_xyz(-0.2,1,0.2));
 	zof_sim_part_add(sim, humanoid);
 	return zof_true;
+}
+
+zof_part base_wheeled_new(void) {
+	zof_part hips, support;
+	zof_joint hips_to_support, hips_to_torso, support_to_hips;
+	// Hips.
+    hips = zof_part_new_capsule("hips", 0.12, 0.1);
+    hips_to_torso = zof_joint_new(
+		"torso",
+		zof_capsule_end_pos(zof_part_capsule(hips), 0.8),
+		zof_xyzw(0,1,0,0)
+    );
+    zof_part_joint_put(hips, hips_to_torso);
+    hips_to_support = zof_joint_new(
+		"support",
+		zof_capsule_end_pos(zof_part_capsule(hips), -1),
+		zof_xyzw(0,1,0,0)
+    );
+    zof_part_joint_put(hips, hips_to_support);
+    // Support.
+    support = zof_part_new_cylinder(
+		"support",
+		zof_xyz(0.9*zof_capsule_radius(zof_part_capsule(hips)), 0.02, 0.2)
+    );
+    support_to_hips = zof_joint_new("hips", zof_xyz(0,0,0), zof_xyzw(0,1,0,0));
+    zof_part_joint_put(support, support_to_hips);
+    zof_part_attach(hips, support);
+    // Base.
+    return zof_part_new_group("base", hips);
 }
 
 zof_part head_new(void) {
@@ -65,8 +94,8 @@ zof_part head_new(void) {
 zof_part humanoid_new(void) {
 	zof_part humanoid, torso;
 	torso = torso_new();
-	//printf("torso kind: %d\n", zof_part_part_kind(torso));
 	zof_part_attach(torso, head_new());
+	zof_part_attach(torso, base_wheeled_new());
 	humanoid = zof_part_new_group("humanoid", torso);
 	zof_part_material_put(humanoid, zof_material_new(0xFF808080,1));
 	return humanoid;
@@ -74,29 +103,35 @@ zof_part humanoid_new(void) {
 
 zof_part torso_new(void) {
 	zof_part abdomen, chest;
-	zof_joint joint_to_abdomen, joint_to_chest, joint_to_head;
+	zof_joint abdomen_to_base, abdomen_to_chest, chest_to_abdomen, chest_to_head;
 	// Chest.
 	chest = zof_part_new_capsule("chest", 0.1, 0.0725);
-	joint_to_abdomen = zof_joint_new(
+	chest_to_abdomen = zof_joint_new(
 		"abdomen",
 		zof_capsule_end_pos(zof_part_capsule(chest), -0.5),
 		zof_xyzw(0,1,0,0)
 	);
-	zof_part_joint_put(chest, joint_to_abdomen);
-	joint_to_head = zof_joint_new(
+	zof_part_joint_put(chest, chest_to_abdomen);
+	chest_to_head = zof_joint_new(
 		"head",
 		zof_capsule_end_pos(zof_part_capsule(chest), 1),
 		zof_xyzw(0,1,0,0)
 	);
-	zof_part_joint_put(chest, joint_to_head);
+	zof_part_joint_put(chest, chest_to_head);
 	// Abdomen.
 	abdomen = zof_part_new_capsule("abdomen", 0.08, 0.05);
-	joint_to_chest = zof_joint_new(
+	abdomen_to_chest = zof_joint_new(
 		"chest",
 		zof_capsule_end_pos(zof_part_capsule(abdomen), 0.5),
 		zof_xyzw(0,1,0,0)
 	);
-	zof_part_joint_put(abdomen, joint_to_chest);
+	zof_part_joint_put(abdomen, abdomen_to_chest);
+	abdomen_to_base = zof_joint_new(
+		"base",
+		zof_capsule_end_pos(zof_part_capsule(abdomen), -0.5),
+		zof_xyzw(0,1,0,0)
+	);
+	zof_part_joint_put(abdomen, abdomen_to_base);
 	// Attach them.
 	zof_part_attach(chest, abdomen);
 	return zof_part_new_group("torso", chest);

@@ -199,6 +199,13 @@ zof_vec4 zof_capsule_end_pos_ex(
     return bt3ToVec4(origin, 1/zof_bt_scale);
 }
 
+zof_export zof_num zof_capsule_radius(zof_capsule capsule) {
+	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
+		BasicPart::of(capsule)->body->getCollisionShape()
+	);
+	return shape->getRadius() / zof_bt_scale;
+}
+
 zof_str zof_joint_name(zof_joint joint) {
 	return zof_str(((Joint*)joint)->name.c_str());
 }
@@ -307,6 +314,12 @@ zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
 
 zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread) {
 	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zof_bt_scale,2*half_spread*zof_bt_scale));
+	return part->asC();
+}
+
+zof_export zof_part zof_part_new_cylinder(zof_str name, zof_vec4 radii) {
+	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
+	BasicPart* part = new BasicPart(name, new btCylinderShape(bt_radii));
 	return part->asC();
 }
 

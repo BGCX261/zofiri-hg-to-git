@@ -149,6 +149,8 @@ zof_export zof_vec4 zof_capsule_end_pos_ex(
 	zof_num half_spread_ratio
 );
 
+zof_export zof_num zof_capsule_radius(zof_capsule capsule);
+
 zof_export zof_str zof_joint_name(zof_joint joint);
 zof_export zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
 zof_export zof_joint zof_joint_other(zof_joint joint);
@@ -213,6 +215,8 @@ zof_export zof_str zof_part_name(zof_part part);
 zof_export zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
 
 zof_export zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
+
+zof_export zof_part zof_part_new_cylinder(zof_str name, zof_vec4 radii);
 
 zof_export zof_part zof_part_new_group(zof_str name, zof_part root);
 

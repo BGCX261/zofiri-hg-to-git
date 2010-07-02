@@ -138,8 +138,6 @@ zof_ref_def(zof_part);
 zof_ref_def(zof_sim);
 
 
-zof_export zof_vec4 zof_box_radii(zof_box box);
-
 zof_export zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio);
 
 zof_export zof_vec4 zof_capsule_end_pos_ex(
@@ -241,6 +239,8 @@ zof_export zof_part_kind zof_part_part_kind(zof_part part);
 zof_export void zof_part_pos_add(zof_part part, zof_vec4 pos);
 
 zof_export void zof_part_pos_put(zof_part part, zof_vec4 pos);
+
+zof_export zof_vec4 zof_part_radii(zof_part part);
 
 zof_export void zof_part_rot_add(zof_part part, zof_vec4 rot);
 

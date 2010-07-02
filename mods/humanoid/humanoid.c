@@ -167,8 +167,7 @@ zof_part wheel_new(void) {
 	zof_joint wheel_to_body;
 	wheel = zof_part_new_cylinder("wheel", zof_xyz(0.2,0.04,0.2));
 	zof_part_material_put(wheel, zof_material_new(0xFF202020, 1));
-	// TODO Get wheel y radius rather than duping number here! I had trouble with zof_part_end_pos. Why?
-	wheel_to_body = zof_joint_new("body", zof_xyz(0,0.04,0), zof_xyzw(0,1,0,0));
+	wheel_to_body = zof_joint_new("body", zof_part_end_pos(wheel,zof_xyz(0,1,0)), zof_xyzw(0,1,0,0));
 	zof_part_joint_put(wheel, wheel_to_body);
 	return wheel;
 }

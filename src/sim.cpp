@@ -173,12 +173,6 @@ using namespace zof;
 
 extern "C" {
 
-zof_vec4 zof_box_radii(zof_box box) {
-	btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(box)->body->getCollisionShape());
-	btVector3 radii = shape->getHalfExtentsWithMargin();
-	return bt3ToVec4(radii, 1/zof_bt_scale);
-}
-
 zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio) {
 	return zof_capsule_end_pos_ex(capsule, radius_ratio, zof_xyz(0,1,0), 1);
 }
@@ -257,17 +251,7 @@ zof_capsule zof_part_capsule(zof_part part) {
 }
 
 zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
-	// TODO Separate bounds function? What about non-centered origin?
-	zof_vec4 radii;
-	switch (zof_part_part_kind(part)) {
-	case zof_part_kind_box:
-		radii = zof_box_radii(zof_part_box(part));
-		break;
-	default:
-		// TODO Not easy to indicate error here!
-		memset(&radii, 0, sizeof(radii));
-		break;
-	}
+	zof_vec4 radii = zof_part_radii(part);
 	for (int i = 0; i < 4; i++) {
 		radii.vals[i] *= ratios.vals[i];
 	}
@@ -349,6 +333,30 @@ void zof_part_pos_add(zof_part part, zof_vec4 pos) {
 
 void zof_part_pos_put(zof_part part, zof_vec4 pos) {
 	Part::of(part)->setPos(vec4ToBt3(pos, zof_bt_scale));
+}
+
+zof_vec4 zof_part_radii(zof_part part) {
+	// TODO What about non-centered origins?
+	zof_vec4 radii;
+	switch (zof_part_part_kind(part)) {
+	case zof_part_kind_box: {
+		btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(part)->body->getCollisionShape());
+		btVector3 btRadii = shape->getHalfExtentsWithMargin();
+		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
+		break;
+	}
+	case zof_part_kind_cylinder: {
+		btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(BasicPart::of(part)->body->getCollisionShape());
+		btVector3 btRadii = shape->getHalfExtentsWithMargin();
+		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
+		break;
+	}
+	default:
+		// TODO Not easy to indicate error here!
+		memset(&radii, 0, sizeof(radii));
+		break;
+	}
+	return radii;
 }
 
 void zof_part_rot_add(zof_part part, zof_vec4 rot) {

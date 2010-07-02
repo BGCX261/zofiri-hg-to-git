@@ -46,6 +46,11 @@ struct Joint: Any {
 	void attach(Joint* kid);
 
 	/**
+	 * It doesn't copy part or other over, just the joint info.
+	 */
+	Joint* copy();
+
+	/**
 	 * Doable if part, other, and remaining items already set.
 	 */
 	btGeneric6DofConstraint* createConstraint();
@@ -135,13 +140,13 @@ void mirrorName(string* name) {
 }
 
 void mirrorX(btTransform* transform) {
-	cerr << "Mirroring transform from " << *transform;
+	//cerr << "Mirroring transform from " << *transform;
 	// TODO What to do with rotations?
 	// TODO No good: *transform *= btTransform(btMatrix3x3(-1,0,0, 0,1,0, 0,0,1), btVector3(0,0,0));
 	// TODO Is there a better way than this?
-	//transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zof_pi));
+	transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zof_pi));
 	transform->getOrigin().setX(-transform->getOrigin().getX());
-	cerr << " to " << *transform << endl;
+	//cerr << " to " << *transform << endl;
 }
 
 btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale) {
@@ -458,14 +463,14 @@ Part* BasicPart::mirror() {
 	bool multi = false;
 	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
 		Joint* joint = j->second;
-		Joint* mirrored = joint->mirror();
-		mirrorPart->jointPut(mirrored);
+		Joint* copied = joint->copy();
+		mirrorPart->jointPut(copied);
 		if (joint->other) {
 			// It's attached. We want to attach to a mirror of this.
 			if (attachedJoint) {
 				multi = true;
 			} else {
-				attachedJoint = mirrored;
+				attachedJoint = copied;
 				otherJoint = joint->other;
 			}
 		}
@@ -480,8 +485,8 @@ Part* BasicPart::mirror() {
 
 Joint::Joint(const string& name) {
 	this->name = name;
-	part = 0;
 	other = 0;
+	part = 0;
 	transform.setIdentity();
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
 	memset(posLimits, 0, sizeof(posLimits));
@@ -502,6 +507,16 @@ void Joint::attach(Joint* kid) {
 	kid->other = this;
 }
 
+Joint* Joint::copy() {
+	Joint* joint = new Joint(name);
+	joint->transform = transform;
+	for (int L = 0; L <= 1; L++) {
+		joint->posLimits[L] = posLimits[L];
+		joint->rotLimits[L] = rotLimits[L];
+	}
+	return joint;
+}
+
 btGeneric6DofConstraint* Joint::createConstraint() {
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Limits, etc.
@@ -509,16 +524,11 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 }
 
 Joint* Joint::mirror() {
-	Joint* mirrored = new Joint(name);
+	Joint* mirrored = copy();
 	mirrorName(&mirrored->name);
-	mirrored->transform = transform;
 	mirrorX(&mirrored->transform);
 	//cerr << "Mirroring joint from " << name << " at " << transform << " to " << mirrored->name << " at " << mirrored->transform << endl;
-	for (int L = 0; L <= 1; L++) {
-		// TODO Mirror the limits!?! Think through this.
-		mirrored->posLimits[L] = posLimits[L];
-		mirrored->rotLimits[L] = rotLimits[L];
-	}
+	// TODO Mirror the limits!?! Think through this.
 	return mirrored;
 }
 

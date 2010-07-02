@@ -151,9 +151,17 @@ zof_export zof_vec4 zof_capsule_end_pos_ex(
 
 zof_export zof_num zof_capsule_radius(zof_capsule capsule);
 
+/**
+ * For attaching joints directly rather than matching by name as with zof_part_attach.
+ */
+zof_export void zof_joint_attach(zof_joint joint, zof_joint kid);
+
 zof_export zof_str zof_joint_name(zof_joint joint);
+
 zof_export zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
+
 zof_export zof_joint zof_joint_other(zof_joint joint);
+
 zof_export zof_part zof_joint_part(zof_joint joint);
 
 zof_export zof_num zof_mat_get(zof_mat, zof_mat pos);
@@ -184,10 +192,18 @@ zof_export zof_mod zof_mod_new(zof_str uri);
 zof_export zof_str zof_mod_uri(zof_mod mod);
 
 // Parts.
+
+/**
+ * Attach parts based on joint names matching part names.
+ */
 zof_export zof_bool zof_part_attach(zof_part part, zof_part kid);
+
 zof_export zof_box zof_part_box(zof_part part);
+
 zof_export zof_capsule zof_part_capsule(zof_part part);
+
 zof_export zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
+
 zof_export zof_joint zof_part_joint(zof_part part, zof_str name);
 
 /**
@@ -195,8 +211,6 @@ zof_export zof_joint zof_part_joint(zof_part part, zof_str name);
  * TODO Allow leaving name null for auto-assignment?
  */
 zof_export zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
-
-zof_export zof_part_kind zof_part_part_kind(zof_part part);
 
 zof_export void zof_part_material_put(zof_part part, zof_material material);
 
@@ -212,6 +226,8 @@ zof_export zof_part zof_part_mirror(zof_part part);
 
 zof_export zof_str zof_part_name(zof_part part);
 
+zof_export void zof_part_name_put(zof_part part, zof_str name);
+
 zof_export zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
 
 zof_export zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
@@ -219,6 +235,8 @@ zof_export zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num h
 zof_export zof_part zof_part_new_cylinder(zof_str name, zof_vec4 radii);
 
 zof_export zof_part zof_part_new_group(zof_str name, zof_part root);
+
+zof_export zof_part_kind zof_part_part_kind(zof_part part);
 
 zof_export void zof_part_pos_add(zof_part part, zof_vec4 pos);
 

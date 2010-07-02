@@ -538,7 +538,7 @@ void IrrViz::run() {
 				pub->update();
 			}
 			if(sim) {
-				sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
+				//sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
 			}
 		} catch(const char* err) {
 			cerr << err << endl;

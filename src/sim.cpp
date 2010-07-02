@@ -135,11 +135,13 @@ void mirrorName(string* name) {
 }
 
 void mirrorX(btTransform* transform) {
-	// cerr << "Mirroring transform from " << *transform;
+	cerr << "Mirroring transform from " << *transform;
 	// TODO What to do with rotations?
 	// TODO No good: *transform *= btTransform(btMatrix3x3(-1,0,0, 0,1,0, 0,0,1), btVector3(0,0,0));
+	// TODO Is there a better way than this?
+	//transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zof_pi));
 	transform->getOrigin().setX(-transform->getOrigin().getX());
-	// cerr << " to " << *transform << endl;
+	cerr << " to " << *transform << endl;
 }
 
 btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale) {
@@ -204,6 +206,11 @@ zof_export zof_num zof_capsule_radius(zof_capsule capsule) {
 		BasicPart::of(capsule)->body->getCollisionShape()
 	);
 	return shape->getRadius() / zof_bt_scale;
+}
+
+void zof_joint_attach(zof_joint joint, zof_joint kid) {
+	// TODO Return anything?
+	Joint::of(joint)->attach(Joint::of(kid));
 }
 
 zof_str zof_joint_name(zof_joint joint) {
@@ -280,6 +287,10 @@ zof_part zof_part_mirror(zof_part part) {
 
 zof_str zof_part_name(zof_part part) {
 	return const_cast<zof_str>(Part::of(part)->name.c_str());
+}
+
+zof_export void zof_part_name_put(zof_part part, zof_str name) {
+	Part::of(part)->name = name;
 }
 
 zof_part_kind zof_part_part_kind(zof_part part) {
@@ -701,7 +712,7 @@ void Part::setTransform(const btTransform& transform) {
 
 void Part::transformBy(const btTransform& relative, BasicPart* parent) {
 	//cerr << "Moving " << name << " from " << getTransform();
-	body->getWorldTransform() *= relative;
+	body->setWorldTransform(relative * body->getWorldTransform());
 	map<string,Joint*>& joints = basic()->joints;
 	//cerr << " to " << getTransform() << " by " << relative << endl;
 	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {

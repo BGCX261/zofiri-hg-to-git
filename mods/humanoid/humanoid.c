@@ -1,11 +1,24 @@
 #include <stdio.h>
 #include "zof.h"
 
-zof_part arm_new(int side_x);
+zof_part arm_left_new();
+
 zof_part base_wheeled_new(void);
-zof_part hand_new(int side_x);
+
+zof_part hand_left_new();
+
 zof_part head_new(void);
+
 zof_part humanoid_new(void);
+
+/**
+ * So far, our tires are simple, but it's so easy to imagine them as
+ * independent parts, and they could have caps or whatnot, too.
+ *
+ * TODO Introduce size parameters and so on.
+ */
+zof_part wheel_new(void);
+
 zof_part torso_new(void);
 
 zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
@@ -18,8 +31,8 @@ zof_mod_export zof_bool sim_init(zof_mod mod, zof_sim sim) {
 }
 
 zof_part base_wheeled_new(void) {
-	zof_part hips, support;
-	zof_joint hips_to_support, hips_to_torso, support_to_hips;
+	zof_part hips, support, wheel_left;
+	zof_joint hips_to_support, hips_to_torso, support_to_hips, hips_to_wheel_left;
 	// Hips.
     hips = zof_part_new_capsule("hips", 0.12, 0.1);
     hips_to_torso = zof_joint_new(
@@ -34,6 +47,17 @@ zof_part base_wheeled_new(void) {
 		zof_xyzw(0,1,0,0)
     );
     zof_part_joint_put(hips, hips_to_support);
+    // Wheels.
+    wheel_left = wheel_new();
+    zof_part_name_put(wheel_left, "wheel_left");
+    hips_to_wheel_left = zof_joint_new(
+    	"wheel_left",
+    	zof_capsule_end_pos_ex(zof_part_capsule(hips), 1, zof_xyz(-1,0,0), -1),
+    	zof_xyzw(0,0,1,-zof_pi/2)
+    );
+    zof_part_joint_put(hips, hips_to_wheel_left);
+    zof_joint_attach(hips_to_wheel_left, zof_part_joint(wheel_left, "body"));
+    zof_part_mirror(wheel_left);
     // Support.
     support = zof_part_new_cylinder(
 		"support",
@@ -75,6 +99,7 @@ zof_part head_new(void) {
 	zof_part_joint_put(neck, neck_to_skull);
 	zof_part_attach(skull, neck);
 	// Eyes.
+	// TODO Consider making eyes a separately defined part.
 	eye_left = zof_part_new_capsule("eye_left", 0.015, 0);
 	zof_part_material_put(eye_left, zof_material_new(0xFF0060A0,0.001));
 	eye_left_to_skull = zof_joint_new("skull", zof_xyz(0,0,0), zof_xyzw(0,1,0,0));
@@ -135,4 +160,15 @@ zof_part torso_new(void) {
 	// Attach them.
 	zof_part_attach(chest, abdomen);
 	return zof_part_new_group("torso", chest);
+}
+
+zof_part wheel_new(void) {
+	zof_part wheel;
+	zof_joint wheel_to_body;
+	wheel = zof_part_new_cylinder("wheel", zof_xyz(0.2,0.04,0.2));
+	zof_part_material_put(wheel, zof_material_new(0xFF202020, 1));
+	// TODO Get wheel y radius rather than duping number here! I had trouble with zof_part_end_pos. Why?
+	wheel_to_body = zof_joint_new("body", zof_xyz(0,0.04,0), zof_xyzw(0,1,0,0));
+	zof_part_joint_put(wheel, wheel_to_body);
+	return wheel;
 }

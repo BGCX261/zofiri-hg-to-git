@@ -520,6 +520,7 @@ void IrrViz::run() {
 	// And a point light for nice effect.
 	scene()->addLightSceneNode(0, sim->m(vector3df(0.5,3.0,1.0)), SColor(0xFFFFFFFF), sim->m(2.0));
 	device->setEventReceiver(new EventReceiver(this));
+	int ticks = 0;
 	while(device->run()) {
 		if(true || device->isWindowActive()) {
 			video()->beginScene();
@@ -539,6 +540,10 @@ void IrrViz::run() {
 			}
 			if(sim) {
 				sim->dynamics->stepSimulation(btScalar(1)/btScalar(60));
+				ticks++;
+				if (ticks % 60 == 0) {
+					cerr << '.';
+				}
 			}
 		} catch(const char* err) {
 			cerr << err << endl;

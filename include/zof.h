@@ -218,6 +218,8 @@ zofExport zofJoint zofPartJoint(zofPart part, zofString name);
  */
 zofExport zofJoint zofPartJointPut(zofPart part, zofJoint joint);
 
+zofExport zofMaterial zofPartMaterial(zofPart part);
+
 zofExport void zofPartMaterialPut(zofPart part, zofMaterial material);
 
 /**
@@ -243,6 +245,8 @@ zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii);
 zofExport zofPart zofPartNewGroup(zofString name, zofPart root);
 
 zofExport zofPartKind zofPartPartKind(zofPart part);
+
+zofExport zofVec4 zofPartPos(zofPart part);
 
 zofExport void zofPartPosAdd(zofPart part, zofVec4 pos);
 

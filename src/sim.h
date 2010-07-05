@@ -139,13 +139,17 @@ struct Material: Any {
 
 	zofExport Material(zofColor color = 0xFFFFFFFF);
 
+	static Material* defaultMaterial();
+
+	static Material* of(zofMaterial material);
+
+	zofMaterial asC();
+
 	zofColor color;
 
 	btScalar density;
 
 	// TODO btScalar friction;
-
-	static Material* defaultMaterial();
 
 };
 

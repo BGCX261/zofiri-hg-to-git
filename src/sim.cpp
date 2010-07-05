@@ -213,7 +213,7 @@ void zofJointAttach(zofJoint joint, zofJoint kid) {
 }
 
 zofString zofJointName(zofJoint joint) {
-	return zofString(((Joint*)joint)->name.c_str());
+	return zofString(Joint::of(joint)->name.c_str());
 }
 
 zofJoint zofJointNew(zofString name, zofVec4 pos) {
@@ -232,13 +232,13 @@ zofJoint zofJointOther(zofJoint joint) {
 }
 
 zofPart zofJointPart(zofJoint joint) {
-	return ((Joint*)joint)->part->asC();
+	return Joint::of(joint)->part->asC();
 }
 
 zofMaterial zofMaterialNew(zofColor color, zofNum density) {
 	Material* material = new Material(color);
 	material->density = btScalar(density);
-	return reinterpret_cast<zofMaterial>(material);
+	return material->asC();
 }
 
 zofBool zofPartAttach(zofPart part, zofPart kid) {
@@ -270,8 +270,12 @@ zofJoint zofPartJointPut(zofPart part, zofJoint joint) {
 	return Part::of(part)->jointPut(Joint::of(joint))->asC();
 }
 
+zofMaterial zofPartMaterial(zofPart part) {
+	return BasicPart::of(part)->material->asC();
+}
+
 void zofPartMaterialPut(zofPart part, zofMaterial material) {
-	Part::of(part)->setMaterial(reinterpret_cast<Material*>(material));
+	Part::of(part)->setMaterial(Material::of(material));
 }
 
 zofPart zofPartMirror(zofPart part) {
@@ -329,6 +333,10 @@ zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii) {
 
 zofPart zofPartNewGroup(zofString name, zofPart root) {
 	return (new GroupPart(name, Part::of(root)))->asC();
+}
+
+zofVec4 zofPartPos(zofPart part) {
+	return bt3ToVec4(Part::of(part)->getTransform().getOrigin(), 1/zof_bt_scale);
 }
 
 void zofPartPosAdd(zofPart part, zofVec4 pos) {
@@ -594,9 +602,17 @@ Material::Material(zofColor c): color(c), density(1) {
 	// Nothing more to do.
 }
 
+zofMaterial Material::asC() {
+	return reinterpret_cast<zofMaterial>(this);
+}
+
 Material* Material::defaultMaterial() {
 	static Material* material = new Material;
 	return material;
+}
+
+Material* Material::of(zofMaterial material) {
+	return reinterpret_cast<Material*>(material);
 }
 
 void MotionState::setWorldTransform(const btTransform& worldTransform) {

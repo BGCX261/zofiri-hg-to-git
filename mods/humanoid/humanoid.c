@@ -35,22 +35,14 @@ zofPart humBaseWheeledNew(void) {
 	zofJoint hipsToSupport, hipsToTorso, supportToHips, hipsToWheelLeft;
 	// Hips.
     hips = zofPartNewCapsule("hips", 0.12, 0.1);
-    hipsToTorso = zofJointNew(
-		"torso",
-		zofCapsuleEndPos(zofPartCapsule(hips), 0.8),
-		zofXyzw(0,1,0,0)
-    );
+    hipsToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(hips),0.8));
     zofPartJointPut(hips, hipsToTorso);
-    hipsToSupport = zofJointNew(
-		"support",
-		zofCapsuleEndPos(zofPartCapsule(hips), -1),
-		zofXyzw(0,1,0,0)
-    );
+    hipsToSupport = zofJointNew("support", zofCapsuleEndPos(zofPartCapsule(hips),-1));
     zofPartJointPut(hips, hipsToSupport);
     // Wheels.
     wheelLeft = humWheelNew();
     zofPartNamePut(wheelLeft, "wheelLeft");
-    hipsToWheelLeft = zofJointNew(
+    hipsToWheelLeft = zofJointNewEx(
     	"wheelLeft",
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,0,1,-zofPi/2)
@@ -63,7 +55,7 @@ zofPart humBaseWheeledNew(void) {
 		"support",
 		zofXyz(0.9*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.2)
     );
-    supportToHips = zofJointNew("hips", zofXyz(0,0,0), zofXyzw(0,1,0,0));
+    supportToHips = zofJointNew("hips", zofXyz(0,0,0));
     zofPartJointPut(support, supportToHips);
     zofPartAttach(hips, support);
     // Base.
@@ -75,7 +67,7 @@ zofPart humHeadNew(void) {
 	zofJoint eyeLeftToSkull, neckToSkull, neckToTorso, skullToEyeLeft, skullToNeck;
 	// Skull.
 	skull = zofPartNewCapsule("skull", 0.06, 0.01);
-	skullToNeck = zofJointNew(
+	skullToNeck = zofJointNewEx(
 		"neck",
 		zofCapsuleEndPos(zofPartCapsule(skull), -1),
 		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
@@ -84,13 +76,9 @@ zofPart humHeadNew(void) {
 	zofPartJointPut(skull, skullToNeck);
 	// Neck.
 	neck = zofPartNewCapsule("neck", 0.04, 0);
-	neckToTorso = zofJointNew(
-		"torso",
-		zofCapsuleEndPos(zofPartCapsule(neck), -0.3),
-		zofXyzw(0,1,0,0)
-	);
+	neckToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(neck),-0.3));
 	zofPartJointPut(neck, neckToTorso);
-	neckToSkull = zofJointNew(
+	neckToSkull = zofJointNewEx(
 		"skull",
 		zofCapsuleEndPos(zofPartCapsule(neck), 0.3),
 		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
@@ -102,17 +90,16 @@ zofPart humHeadNew(void) {
 	// TODO Consider making eyes a separately defined part.
 	eyeLeft = zofPartNewCapsule("eyeLeft", 0.015, 0);
 	zofPartMaterialPut(eyeLeft, zofMaterialNew(0xFF0060A0,0.001));
-	eyeLeftToSkull = zofJointNew("skull", zofXyz(0,0,0), zofXyzw(0,1,0,0));
+	eyeLeftToSkull = zofJointNew("skull", zofXyz(0,0,0));
 	zofPartJointPut(eyeLeft, eyeLeftToSkull);
 	skullToEyeLeft = zofJointNew(
 		"eyeLeft",
-		zofCapsuleEndPosEx(zofPartCapsule(skull), 0.8, zofXyz(-0.2,0,1), 1),
-		zofXyzw(0,1,0,0)
+		zofCapsuleEndPosEx(zofPartCapsule(skull), 0.8, zofXyz(-0.2,0,1), 1)
 	);
 	zofPartJointPut(skull, skullToEyeLeft);
 	zofPartAttach(skull, eyeLeft);
 	zofPartMirror(eyeLeft);
-	// Return group.
+	// Head.
 	return zofPartNewGroup("head", skull);
 }
 
@@ -131,34 +118,18 @@ zofPart humTorsoNew(void) {
 	zofJoint abdomenToBase, abdomenToChest, chestToAbdomen, chestToHead;
 	// Chest.
 	chest = zofPartNewCapsule("chest", 0.1, 0.0725);
-	chestToAbdomen = zofJointNew(
-		"abdomen",
-		zofCapsuleEndPos(zofPartCapsule(chest), -0.5),
-		zofXyzw(0,1,0,0)
-	);
+	chestToAbdomen = zofJointNew("abdomen", zofCapsuleEndPos(zofPartCapsule(chest),-0.5));
 	zofPartJointPut(chest, chestToAbdomen);
-	chestToHead = zofJointNew(
-		"head",
-		zofCapsuleEndPos(zofPartCapsule(chest), 1),
-		zofXyzw(0,1,0,0)
-	);
+	chestToHead = zofJointNew("head", zofCapsuleEndPos(zofPartCapsule(chest), 1));
 	zofPartJointPut(chest, chestToHead);
 	// Abdomen.
 	abdomen = zofPartNewCapsule("abdomen", 0.08, 0.05);
-	abdomenToChest = zofJointNew(
-		"chest",
-		zofCapsuleEndPos(zofPartCapsule(abdomen), 0.5),
-		zofXyzw(0,1,0,0)
-	);
+	abdomenToChest = zofJointNew("chest", zofCapsuleEndPos(zofPartCapsule(abdomen),0.5));
 	zofPartJointPut(abdomen, abdomenToChest);
-	abdomenToBase = zofJointNew(
-		"base",
-		zofCapsuleEndPos(zofPartCapsule(abdomen), -0.5),
-		zofXyzw(0,1,0,0)
-	);
+	abdomenToBase = zofJointNew("base", zofCapsuleEndPos(zofPartCapsule(abdomen),-0.5));
 	zofPartJointPut(abdomen, abdomenToBase);
-	// Attach them.
 	zofPartAttach(chest, abdomen);
+	// Torso.
 	return zofPartNewGroup("torso", chest);
 }
 
@@ -167,7 +138,7 @@ zofPart humWheelNew(void) {
 	zofJoint wheelToBody;
 	wheel = zofPartNewCylinder("wheel", zofXyz(0.2,0.04,0.2));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 1));
-	wheelToBody = zofJointNew("body", zofPartEndPos(wheel, zofXyz(0,1,0)), zofXyzw(0,1,0,0));
+	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

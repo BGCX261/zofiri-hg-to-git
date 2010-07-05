@@ -156,7 +156,12 @@ zofExport void zofJointAttach(zofJoint joint, zofJoint kid);
 
 zofExport zofString zofJointName(zofJoint joint);
 
-zofExport zofJoint zofJointNew(zofString name, zofVec4 pos, zofVec4 rot);
+/**
+ * Assumes no rotation for the joint transform.
+ */
+zofExport zofJoint zofJointNew(zofString name, zofVec4 pos);
+
+zofExport zofJoint zofJointNewEx(zofString name, zofVec4 pos, zofVec4 rot);
 
 zofExport zofJoint zofJointOther(zofJoint joint);
 

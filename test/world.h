@@ -15,7 +15,7 @@ struct Hand {
 
 	Hand(World* world);
 
-	void buildFinger(btRigidBody* metacarpal, zof_uint count, const btVector3& position);
+	void buildFinger(btRigidBody* metacarpal, zofUint count, const btVector3& position);
 
 	vector<btHingeConstraint*> fingerHinges;
 	vector<btGeneric6DofConstraint*> fingerJoints;
@@ -46,11 +46,11 @@ struct Stacker {
 
 	btRigidBody* cargo;
 
-	btRigidBody* findBlock(zof_color color);
+	btRigidBody* findBlock(zofColor color);
 
 	Hand* hand;
 
-	bool trackToTarget(zof_color color);
+	bool trackToTarget(zofColor color);
 
 	Mode mode;
 
@@ -65,7 +65,7 @@ struct World {
 
 	World(Sim* sim);
 
-	void buildBlock(zof_color color, const btVector3& position);
+	void buildBlock(zofColor color, const btVector3& position);
 
 	void buildTable(const btVector3& halfExtents, const btVector3& position);
 

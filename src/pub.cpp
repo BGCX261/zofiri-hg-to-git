@@ -232,7 +232,7 @@ struct MaterialCommand: Command {
 		// TODO Make helper functions for converting types?
 		btScalar density;
 		tx->args[1] >> density;
-		zof_color color;
+		zofColor color;
 		stringstream args;
 		args << tx->args[2];
 		args >> hex >> color;
@@ -284,7 +284,7 @@ void initCommands(Pub* pub) {
 
 Pub::Pub(Viz* viz, int port) {
 	server = new Server(port);
-	mod_uri = zof_null;
+	modUri = zofNull;
 	this->viz = viz;
 	viz->pub = this;
 	initCommands(this);
@@ -299,16 +299,16 @@ Pub::~Pub() {
 
 void Pub::update() {
 
-	if (mod_uri) {
-		zof_mod mod = zof_mod_new(mod_uri);
+	if (modUri) {
+		zofMod mod = zofModNew(modUri);
 		if (!mod) {
 			exit(EXIT_FAILURE);
 		}
-		if (!zof_mod_sim_init(mod, (zof_sim)viz->sim)) {
+		if (!zofModSimInit(mod, (zofSim)viz->sim)) {
 			exit(EXIT_FAILURE);
 		}
-		zof_ref_free(mod);
-		mod_uri = zof_null;
+		zofRefFree(mod);
+		modUri = zofNull;
 	}
 
 	vector<std::string> results;

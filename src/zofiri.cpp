@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
 		Viz* viz = Viz::create(&sim);
 		Pub pub(viz);
 		if (argc > 1) {
-			pub.mod_uri = argv[1];
+			pub.modUri = argv[1];
 		}
 		viz->run();
 		// TODO auto_ptr

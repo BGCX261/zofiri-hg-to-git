@@ -3,21 +3,21 @@
 
 #ifdef _WIN32
 	#ifdef zof_EXPORTS
-		#define zof_export __declspec(dllexport)
+		#define zofExport __declspec(dllexport)
 	#else
-		#define zof_export __declspec(dllimport)
+		#define zofExport __declspec(dllimport)
 	#endif
-	// zof_export becomes export or import.
-	// zof_mod_export is always export and should be used for functions
+	// zofExport becomes export or import.
+	// zofModExport is always export and should be used for functions
 	//   exported by mods.
 	// TODO A system of exports from mods with structs of function pointers.
 	// TODO That guarantees keeping the namespace clean.
 	// TODO Then each mod could just have a single dllexport function that
 	// TODO provides all setup and other exports in the struct.
-	#define zof_mod_export __declspec(dllexport)
+	#define zofModExport __declspec(dllexport)
 #else
-	#define zof_export
-	#define zof_mod_export
+	#define zofExport
+	#define zofModExport
 #endif
 
 #ifdef __cplusplus
@@ -28,84 +28,84 @@ extern "C" {
 
 // Core expandeds.
 // TODO Ensure fixed bit lengths.
-typedef enum {zof_false=0, zof_true=1} zof_bool;
-typedef int zof_int;
-typedef double zof_num;
-typedef unsigned int zof_uint;
+typedef enum {zofFalse=0, zofTrue=1} zofBool;
+typedef int zofInt;
+typedef double zofNum;
+typedef unsigned int zofUint;
 
-#define zof_pi 3.14159265358979323846
+#define zofPi 3.14159265358979323846
 
 // Core opaques.
 
-#define zof_ref_def(name) typedef struct name##_struct {int unused;}* name;
+#define zofRefDef(name) typedef struct name##_struct {int unused;}* name;
 
 #ifdef __cplusplus
 	// C++ vs. C distinction from gcc.
-	// I provide zof_null to avoid need to import stdlib.h.
-	#define zof_null 0
+	// I provide zofNull to avoid need to import stdlib.h.
+	#define zofNull 0
 #else
-	#define zof_null ((void*)0)
+	#define zofNull ((void*)0)
 #endif
 
-typedef void* zof_any;
+typedef void* zofAny;
 
 /**
  * Opaquify?
  */
-typedef char* zof_str;
+typedef char* zofString;
 
-zof_ref_def(zof_err);
-zof_ref_def(zof_type);
+zofRefDef(zofErr);
+zofRefDef(zofType);
 
-zof_export zof_str zof_err_code(zof_err err);
+zofExport zofString zofErrCode(zofErr err);
 
 // Thread local reference to most recent error.
-zof_export zof_err zof_err_last(void);
+zofExport zofErr zofErrLast(void);
 
-zof_export void zof_err_last_replace(zof_err err);
+zofExport void zofErrLastReplace(zofErr err);
 
-zof_export zof_num zof_num_max(zof_num a, zof_num b);
+zofExport zofNum zofNumMax(zofNum a, zofNum b);
 
-zof_export zof_num zof_num_min(zof_num a, zof_num b);
+zofExport zofNum zofNumMin(zofNum a, zofNum b);
 
-zof_export void zof_ref_free(zof_any ref);
+zofExport void zofRefFree(zofAny ref);
 
-zof_export zof_type zof_ref_type(zof_any ref);
+zofExport zofType zofRefType(zofAny ref);
 
-typedef void (*zof_ref_close)(zof_any ref);
+typedef void (*zofRefClose)(zofAny ref);
 
 typedef struct {
-	zof_ref_close close;
-	zof_str name;
-} zof_type_info;
+	zofRefClose close;
+	zofString name;
+} zofTypeInfo;
 
-zof_export zof_str zof_type_name(zof_type type);
+zofExport zofString zofTypeName(zofType type);
 
 // info - shallow copy to new type
-zof_export zof_type zof_type_new(zof_type_info* info);
+zofExport zofType zofTypeNew(zofTypeInfo* info);
 
-zof_export zof_ref_close zof_type_ref_close(zof_type type);
+zofExport zofRefClose zofTypeRefClose(zofType type);
 
 // Math expandeds.
-enum {zof_x, zof_y, zof_z, zof_w};
+enum {zofX, zofY, zofZ, zofW};
 
 typedef struct {
-	zof_num vals[4];
-} zof_vec4;
+	zofNum vals[4];
+} zofVec4;
 
 // Math opaques.
 
-zof_ref_def(zof_mat);
+zofRefDef(zofMat);
 
 /**
  * Leave it compatible. The int is just a hint.
  */
-typedef zof_mat zof_mat_int;
+typedef zofMat zofMatInt;
 
 
-zof_export zof_vec4 zof_xyz(zof_num x, zof_num y, zof_num z);
+zofExport zofVec4 zofXyz(zofNum x, zofNum y, zofNum z);
 
-zof_export zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w);
+zofExport zofVec4 zofXyzw(zofNum x, zofNum y, zofNum z, zofNum w);
 
 
 // More domainish stuff.
@@ -116,101 +116,104 @@ zof_export zof_vec4 zof_xyzw(zof_num x, zof_num y, zof_num z, zof_num w);
  * TODO Perhaps something more sophisticated later, but this
  * TODO will do for now and at least tag our references to color.
  */
-typedef zof_uint zof_color;
+typedef zofUint zofColor;
 
 typedef enum {
-	zof_part_kind_error,
-	zof_part_kind_box,
-	zof_part_kind_capsule,
-	zof_part_kind_cylinder,
-	zof_part_kind_group,
-	zof_part_kind_mesh,
-} zof_part_kind;
+	zofPartKindError,
+	zofPartKindBox,
+	zofPartKindCapsule,
+	zofPartKindCylinder,
+	zofPartKindGroup,
+	zofPartKindMesh,
+} zofPartKind;
 
-zof_ref_def(zof_app);
-zof_ref_def(zof_box);
-zof_ref_def(zof_capsule);
-zof_ref_def(zof_joint);
-zof_ref_def(zof_material);
-zof_ref_def(zof_mesh);
-zof_ref_def(zof_mod);
-zof_ref_def(zof_part);
-zof_ref_def(zof_sim);
+zofRefDef(zofApp);
+zofRefDef(zofBox);
+zofRefDef(zofCapsule);
+zofRefDef(zofJoint);
+zofRefDef(zofMaterial);
+zofRefDef(zofMesh);
+zofRefDef(zofMod);
+zofRefDef(zofPart);
+zofRefDef(zofSim);
 
 
-zof_export zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio);
+zofExport zofVec4 zofCapsuleEndPos(zofCapsule capsule, zofNum radiusRatio);
 
-zof_export zof_vec4 zof_capsule_end_pos_ex(
-	zof_capsule capsule,
-	zof_num radius_ratio,
-	zof_vec4 axis,
-	zof_num half_spread_ratio
+zofExport zofVec4 zofCapsuleEndPosEx(
+	zofCapsule capsule,
+	zofNum radiusRatio,
+	zofVec4 axis,
+	zofNum halfSpreadRatio
 );
 
-zof_export zof_num zof_capsule_radius(zof_capsule capsule);
+zofExport zofNum zofCapsuleRadius(zofCapsule capsule);
 
 /**
  * For attaching joints directly rather than matching by name as with zof_part_attach.
  */
-zof_export void zof_joint_attach(zof_joint joint, zof_joint kid);
+zofExport void zofJointAttach(zofJoint joint, zofJoint kid);
 
-zof_export zof_str zof_joint_name(zof_joint joint);
+zofExport zofString zofJointName(zofJoint joint);
 
-zof_export zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot);
+zofExport zofJoint zofJointNew(zofString name, zofVec4 pos, zofVec4 rot);
 
-zof_export zof_joint zof_joint_other(zof_joint joint);
+zofExport zofJoint zofJointOther(zofJoint joint);
 
-zof_export zof_part zof_joint_part(zof_joint joint);
+zofExport zofPart zofJointPart(zofJoint joint);
 
-zof_export zof_num zof_mat_get(zof_mat, zof_mat pos);
-zof_export zof_int zof_mat_geti(zof_mat, zof_mat pos);
-zof_export zof_num zof_mat_get1(zof_mat, zof_int i);
-zof_export zof_int zof_mat_get1i(zof_mat, zof_int i);
-zof_export zof_num zof_mat_get2(zof_mat, zof_int i, zof_int j);
-zof_export zof_int zof_mat_get2i(zof_mat, zof_int i, zof_int j);
-zof_export zof_int zof_mat_ncols(zof_mat mat);
-zof_export zof_int zof_mat_nrows(zof_mat mat);
-zof_export zof_mat zof_mat_shape(zof_mat mat);
-zof_export zof_int zof_mat_size(zof_mat mat);
+zofExport zofNum zofMatGet(zofMat, zofMat pos);
+zofExport zofInt zofMatGetInt(zofMat, zofMat pos);
+zofExport zofNum zofMatGet1D(zofMat, zofInt i);
+zofExport zofInt zofMatGetInt1D(zofMat, zofInt i);
+zofExport zofNum zofMatGet2D(zofMat, zofInt i, zofInt j);
+zofExport zofInt zofMatGetInt2D(zofMat, zofInt i, zofInt j);
+zofExport zofInt zofMatNCols(zofMat mat);
+zofExport zofInt zofMatNRows(zofMat mat);
+zofExport zofMat zofMatShape(zofMat mat);
+zofExport zofInt zofMatSize(zofMat mat);
 
-zof_export zof_material zof_material_new(zof_color color, zof_num density);
+zofExport zofMaterial zofMaterialNew(zofColor color, zofNum density);
 
 // Meshes.
-zof_export zof_mesh zof_mesh_new(zof_part shape);
+zofExport zofMesh zofMeshNew(zofPart shape);
 // TODO zof_mesh_new_empty?
 // TODO zof_mesh_new_copy
 // TODO zof_mesh_subdivide, other coolness, ...
 
 
 // TODO Allow mods at both app and sim level?
-zof_export zof_bool zof_mod_sim_init(zof_mod mod, zof_sim sim);
+// TODO Should this be in zof.h or just a mod.h for internal use? Maybe good to let mods load others?
+zofExport zofBool zofModSimInit(zofMod mod, zofSim sim);
 
 // Just supports relativish local files for now.
-zof_export zof_mod zof_mod_new(zof_str uri);
-zof_export zof_str zof_mod_uri(zof_mod mod);
+zofExport zofMod zofModNew(zofString uri);
+
+// This one definitely stays in zof.h.
+zofExport zofString zofModUri(zofMod mod);
 
 // Parts.
 
 /**
  * Attach parts based on joint names matching part names.
  */
-zof_export zof_bool zof_part_attach(zof_part part, zof_part kid);
+zofExport zofBool zofPartAttach(zofPart part, zofPart kid);
 
-zof_export zof_box zof_part_box(zof_part part);
+zofExport zofBox zofPartBox(zofPart part);
 
-zof_export zof_capsule zof_part_capsule(zof_part part);
+zofExport zofCapsule zofPartCapsule(zofPart part);
 
-zof_export zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios);
+zofExport zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios);
 
-zof_export zof_joint zof_part_joint(zof_part part, zof_str name);
+zofExport zofJoint zofPartJoint(zofPart part, zofString name);
 
 /**
  * Returns any previous joint with this name or null.
  * TODO Allow leaving name null for auto-assignment?
  */
-zof_export zof_joint zof_part_joint_put(zof_part part, zof_joint joint);
+zofExport zofJoint zofPartJointPut(zofPart part, zofJoint joint);
 
-zof_export void zof_part_material_put(zof_part part, zof_material material);
+zofExport void zofPartMaterialPut(zofPart part, zofMaterial material);
 
 /**
  * Convenience for building symmetries.
@@ -220,34 +223,34 @@ zof_export void zof_part_material_put(zof_part part, zof_material material);
  * If the part is attached to a another, the mirror part will also be
  * attached to the same part at the mirror X location.
  */
-zof_export zof_part zof_part_mirror(zof_part part);
+zofExport zofPart zofPartMirror(zofPart part);
 
-zof_export zof_str zof_part_name(zof_part part);
+zofExport zofString zofPartName(zofPart part);
 
-zof_export void zof_part_name_put(zof_part part, zof_str name);
+zofExport void zofPartNamePut(zofPart part, zofString name);
 
-zof_export zof_part zof_part_new_box(zof_str name, zof_vec4 radii);
+zofExport zofPart zofPartNewBox(zofString name, zofVec4 radii);
 
-zof_export zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread);
+zofExport zofPart zofPartNewCapsule(zofString name, zofNum radius, zofNum halfSpread);
 
-zof_export zof_part zof_part_new_cylinder(zof_str name, zof_vec4 radii);
+zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii);
 
-zof_export zof_part zof_part_new_group(zof_str name, zof_part root);
+zofExport zofPart zofPartNewGroup(zofString name, zofPart root);
 
-zof_export zof_part_kind zof_part_part_kind(zof_part part);
+zofExport zofPartKind zofPartPartKind(zofPart part);
 
-zof_export void zof_part_pos_add(zof_part part, zof_vec4 pos);
+zofExport void zofPartPosAdd(zofPart part, zofVec4 pos);
 
-zof_export void zof_part_pos_put(zof_part part, zof_vec4 pos);
+zofExport void zofPartPosPut(zofPart part, zofVec4 pos);
 
-zof_export zof_vec4 zof_part_radii(zof_part part);
+zofExport zofVec4 zofPartRadii(zofPart part);
 
-zof_export void zof_part_rot_add(zof_part part, zof_vec4 rot);
+zofExport void zofPartRotAdd(zofPart part, zofVec4 rot);
 
-zof_export void zof_part_rot_put(zof_part part, zof_vec4 rot);
+zofExport void zofPartRotPut(zofPart part, zofVec4 rot);
 
 
-zof_export void zof_sim_part_add(zof_sim sim, zof_part part);
+zofExport void zofSimPartAdd(zofSim sim, zofPart part);
 
 
 

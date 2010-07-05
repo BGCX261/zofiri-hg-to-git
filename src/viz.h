@@ -12,7 +12,7 @@ namespace zof {
  */
 struct Viz {
 
-	static zof_export Viz* create(Sim* sim);
+	static zofExport Viz* create(Sim* sim);
 
 	virtual ~Viz() {
 		// Nothing to do.

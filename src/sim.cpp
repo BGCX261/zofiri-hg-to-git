@@ -14,18 +14,18 @@
 
 namespace zof {
 
-zof_vec4 bt3ToVec4(const btVector3& bt3, zof_num scale=1);
+zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale=1);
 
 /**
- * Changes any "_right" to "_left" or vice versa.
+ * Changes any "Right" to "Left" or vice versa.
  */
 void mirrorName(string* name);
 
 void mirrorX(btTransform* transform);
 
-btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale=1);
+btVector3 vec4ToBt3(zofVec4 vec, zofNum scale=1);
 
-btVector4 vec4ToBt4(zof_vec4 vec, zof_num scale=1);
+btVector4 vec4ToBt4(zofVec4 vec, zofNum scale=1);
 
 
 struct Joint: Any {
@@ -36,8 +36,8 @@ struct Joint: Any {
 	 * Because this doesn't seem to be called automatically:
 	 *   operator zof_joint() {
 	 */
-	zof_joint asC() {
-		return reinterpret_cast<zof_joint>(this);
+	zofJoint asC() {
+		return reinterpret_cast<zofJoint>(this);
 	}
 
 	/**
@@ -60,7 +60,7 @@ struct Joint: Any {
 	 */
 	Joint* mirror();
 
-	static Joint* of(zof_joint joint) {
+	static Joint* of(zofJoint joint) {
 		return reinterpret_cast<Joint*>(joint);
 	}
 
@@ -68,8 +68,8 @@ struct Joint: Any {
 	Part* part;
 	Joint* other;
 	btTransform transform;
-	zof_vec4 posLimits[2];
-	zof_vec4 rotLimits[2];
+	zofVec4 posLimits[2];
+	zofVec4 rotLimits[2];
 
 };
 
@@ -114,9 +114,9 @@ ostream& operator<<(ostream& out, const btTransform& transform) {
 	return out;
 }
 
-zof_vec4 bt3ToVec4(const btVector3& bt3, zof_num scale) {
-	zof_vec4 vec;
-	for (zof_uint i = 0; i < 3; i++) {
+zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale) {
+	zofVec4 vec;
+	for (zofUint i = 0; i < 3; i++) {
 		vec.vals[i] = scale * bt3.m_floats[i];
 	}
 	vec.vals[3] = 0;
@@ -125,8 +125,8 @@ zof_vec4 bt3ToVec4(const btVector3& bt3, zof_num scale) {
 
 void mirrorName(string* name) {
 	// TODO Should smartify this. Oh for regexps.
-	string left("_left");
-	string right("_right");
+	string left("Left");
+	string right("Right");
 	string::size_type pos = name->rfind(left);
 	if (pos != string::npos) {
 		name->replace(pos, left.size(), right);
@@ -144,23 +144,23 @@ void mirrorX(btTransform* transform) {
 	// TODO What to do with rotations?
 	// TODO No good: *transform *= btTransform(btMatrix3x3(-1,0,0, 0,1,0, 0,0,1), btVector3(0,0,0));
 	// TODO Is there a better way than this?
-	transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zof_pi));
+	transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zofPi));
 	transform->getOrigin().setX(-transform->getOrigin().getX());
 	//cerr << " to " << *transform << endl;
 }
 
-btVector3 vec4ToBt3(zof_vec4 vec, zof_num scale) {
+btVector3 vec4ToBt3(zofVec4 vec, zofNum scale) {
 	btVector3 bt;
-	for (zof_uint i = 0; i < 3; i++) {
+	for (zofUint i = 0; i < 3; i++) {
 		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
 	}
 	bt.m_floats[3] = btScalar(0);
 	return bt;
 }
 
-btVector4 vec4ToBt4(zof_vec4 vec, zof_num scale) {
+btVector4 vec4ToBt4(zofVec4 vec, zofNum scale) {
 	btVector4 bt;
-	for (zof_uint i = 0; i < 4; i++) {
+	for (zofUint i = 0; i < 4; i++) {
 		bt.m_floats[i] = btScalar(scale * vec.vals[i]);
 	}
 	return bt;
@@ -173,15 +173,15 @@ using namespace zof;
 
 extern "C" {
 
-zof_vec4 zof_capsule_end_pos(zof_capsule capsule, zof_num radius_ratio) {
-	return zof_capsule_end_pos_ex(capsule, radius_ratio, zof_xyz(0,1,0), 1);
+zofVec4 zofCapsuleEndPos(zofCapsule capsule, zofNum radius_ratio) {
+	return zofCapsuleEndPosEx(capsule, radius_ratio, zofXyz(0,1,0), 1);
 }
 
-zof_vec4 zof_capsule_end_pos_ex(
-	zof_capsule capsule,
-	zof_num radius_ratio,
-	zof_vec4 axis,
-	zof_num half_spread_ratio
+zofVec4 zofCapsuleEndPosEx(
+	zofCapsule capsule,
+	zofNum radius_ratio,
+	zofVec4 axis,
+	zofNum half_spread_ratio
 ) {
 	btVector3 bt_axis = vec4ToBt3(axis);
 	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
@@ -200,152 +200,152 @@ zof_vec4 zof_capsule_end_pos_ex(
     return bt3ToVec4(origin, 1/zof_bt_scale);
 }
 
-zof_export zof_num zof_capsule_radius(zof_capsule capsule) {
+zofExport zofNum zofCapsuleRadius(zofCapsule capsule) {
 	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
 		BasicPart::of(capsule)->body->getCollisionShape()
 	);
 	return shape->getRadius() / zof_bt_scale;
 }
 
-void zof_joint_attach(zof_joint joint, zof_joint kid) {
+void zofJointAttach(zofJoint joint, zofJoint kid) {
 	// TODO Return anything?
 	Joint::of(joint)->attach(Joint::of(kid));
 }
 
-zof_str zof_joint_name(zof_joint joint) {
-	return zof_str(((Joint*)joint)->name.c_str());
+zofString zofJointName(zofJoint joint) {
+	return zofString(((Joint*)joint)->name.c_str());
 }
 
-zof_joint zof_joint_new(zof_str name, zof_vec4 pos, zof_vec4 rot) {
+zofJoint zofJointNew(zofString name, zofVec4 pos, zofVec4 rot) {
 	Joint* joint = new Joint(name);
 	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3])));
 	joint->transform.setOrigin(vec4ToBt3(pos,zof_bt_scale));
 	return joint->asC();
 }
 
-zof_joint zof_joint_other(zof_joint joint) {
+zofJoint zofJointOther(zofJoint joint) {
 	return Joint::of(joint)->other->asC();
 }
 
-zof_part zof_joint_part(zof_joint joint) {
+zofPart zofJointPart(zofJoint joint) {
 	return ((Joint*)joint)->part->asC();
 }
 
-zof_material zof_material_new(zof_color color, zof_num density) {
+zofMaterial zofMaterialNew(zofColor color, zofNum density) {
 	Material* material = new Material(color);
 	material->density = btScalar(density);
-	return reinterpret_cast<zof_material>(material);
+	return reinterpret_cast<zofMaterial>(material);
 }
 
-zof_bool zof_part_attach(zof_part part, zof_part kid) {
+zofBool zofPartAttach(zofPart part, zofPart kid) {
 	// TODO Some casting operator for general use?
-	return Part::of(part)->attach(Part::of(kid)) ? zof_true : zof_false;
+	return Part::of(part)->attach(Part::of(kid)) ? zofTrue : zofFalse;
 }
 
-zof_box zof_part_box(zof_part part) {
-	return zof_part_part_kind(part) == zof_part_kind_box ? (zof_box)part : zof_null;
+zofBox zofPartBox(zofPart part) {
+	return zofPartPartKind(part) == zofPartKindBox ? (zofBox)part : zofNull;
 }
 
-zof_capsule zof_part_capsule(zof_part part) {
-	return zof_part_part_kind(part) == zof_part_kind_capsule ? (zof_capsule)part : zof_null;
+zofCapsule zofPartCapsule(zofPart part) {
+	return zofPartPartKind(part) == zofPartKindCapsule ? (zofCapsule)part : zofNull;
 }
 
-zof_vec4 zof_part_end_pos(zof_part part, zof_vec4 ratios) {
-	zof_vec4 radii = zof_part_radii(part);
+zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios) {
+	zofVec4 radii = zofPartRadii(part);
 	for (int i = 0; i < 4; i++) {
 		radii.vals[i] *= ratios.vals[i];
 	}
 	return radii;
 }
 
-zof_joint zof_part_joint(zof_part part, zof_str name) {
+zofJoint zofPartJoint(zofPart part, zofString name) {
 	return Part::of(part)->joint(name)->asC();
 }
 
-zof_joint zof_part_joint_put(zof_part part, zof_joint joint) {
+zofJoint zofPartJointPut(zofPart part, zofJoint joint) {
 	return Part::of(part)->jointPut(Joint::of(joint))->asC();
 }
 
-void zof_part_material_put(zof_part part, zof_material material) {
+void zofPartMaterialPut(zofPart part, zofMaterial material) {
 	Part::of(part)->setMaterial(reinterpret_cast<Material*>(material));
 }
 
-zof_part zof_part_mirror(zof_part part) {
+zofPart zofPartMirror(zofPart part) {
 	return Part::of(part)->mirror()->asC();
 }
 
-zof_str zof_part_name(zof_part part) {
-	return const_cast<zof_str>(Part::of(part)->name.c_str());
+zofString zofPartName(zofPart part) {
+	return const_cast<zofString>(Part::of(part)->name.c_str());
 }
 
-zof_export void zof_part_name_put(zof_part part, zof_str name) {
+zofExport void zofPartNamePut(zofPart part, zofString name) {
 	Part::of(part)->name = name;
 }
 
-zof_part_kind zof_part_part_kind(zof_part part) {
+zofPartKind zofPartPartKind(zofPart part) {
 	Part* abstractPart = Part::of(part);
 	GroupPart* group = dynamic_cast<GroupPart*>(abstractPart);
 	if (group) {
-		return zof_part_kind_group;
+		return zofPartKindGroup;
 	}
 	BasicPart* basic = dynamic_cast<BasicPart*>(abstractPart);
 	if (!basic) {
 		// What is this thing anyway?
-		return zof_part_kind_error;
+		return zofPartKindError;
 	}
 	switch(basic->body->getCollisionShape()->getShapeType()) {
 	case BOX_SHAPE_PROXYTYPE:
-		return zof_part_kind_box;
+		return zofPartKindBox;
 	case CAPSULE_SHAPE_PROXYTYPE:
-		return zof_part_kind_capsule;
+		return zofPartKindCapsule;
 	case CYLINDER_SHAPE_PROXYTYPE:
-		return zof_part_kind_cylinder;
+		return zofPartKindCylinder;
 	default:
 		// Unsupported shape type.
-		return zof_part_kind_error;
+		return zofPartKindError;
 	}
 }
 
-zof_part zof_part_new_box(zof_str name, zof_vec4 radii) {
+zofPart zofPartNewBox(zofString name, zofVec4 radii) {
 	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
 	BasicPart* part = new BasicPart(name, new btBoxShape(bt_radii));
 	return part->asC();
 }
 
-zof_part zof_part_new_capsule(zof_str name, zof_num radius, zof_num half_spread) {
+zofPart zofPartNewCapsule(zofString name, zofNum radius, zofNum half_spread) {
 	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zof_bt_scale,2*half_spread*zof_bt_scale));
 	return part->asC();
 }
 
-zof_export zof_part zof_part_new_cylinder(zof_str name, zof_vec4 radii) {
+zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii) {
 	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
 	BasicPart* part = new BasicPart(name, new btCylinderShape(bt_radii));
 	return part->asC();
 }
 
-zof_part zof_part_new_group(zof_str name, zof_part root) {
+zofPart zofPartNewGroup(zofString name, zofPart root) {
 	return (new GroupPart(name, Part::of(root)))->asC();
 }
 
-void zof_part_pos_add(zof_part part, zof_vec4 pos) {
+void zofPartPosAdd(zofPart part, zofVec4 pos) {
 	// TODO
 }
 
-void zof_part_pos_put(zof_part part, zof_vec4 pos) {
+void zofPartPosPut(zofPart part, zofVec4 pos) {
 	Part::of(part)->setPos(vec4ToBt3(pos, zof_bt_scale));
 }
 
-zof_vec4 zof_part_radii(zof_part part) {
+zofVec4 zofPartRadii(zofPart part) {
 	// TODO What about non-centered origins?
-	zof_vec4 radii;
-	switch (zof_part_part_kind(part)) {
-	case zof_part_kind_box: {
+	zofVec4 radii;
+	switch (zofPartPartKind(part)) {
+	case zofPartKindBox: {
 		btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(part)->body->getCollisionShape());
 		btVector3 btRadii = shape->getHalfExtentsWithMargin();
 		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
 		break;
 	}
-	case zof_part_kind_cylinder: {
+	case zofPartKindCylinder: {
 		btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(BasicPart::of(part)->body->getCollisionShape());
 		btVector3 btRadii = shape->getHalfExtentsWithMargin();
 		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
@@ -359,15 +359,15 @@ zof_vec4 zof_part_radii(zof_part part) {
 	return radii;
 }
 
-void zof_part_rot_add(zof_part part, zof_vec4 rot) {
+void zofPartRotAdd(zofPart part, zofVec4 rot) {
 	// TODO
 }
 
-void zof_part_rot_put(zof_part part, zof_vec4 rot) {
+void zofPartRotPut(zofPart part, zofVec4 rot) {
 	// TODO
 }
 
-void zof_sim_part_add(zof_sim sim, zof_part part) {
+void zofSimPartAdd(zofSim sim, zofPart part) {
 	Sim* simPriv = reinterpret_cast<Sim*>(sim);
 	BasicPart* part_struct = BasicPart::of(part);
 	// Add full graph whether composite or not.
@@ -383,7 +383,7 @@ void zof_sim_part_add(zof_sim sim, zof_part part) {
 			if (other) {
 				Part* kid = other->part;
 				//cerr << "Found attached " << zof_part_name(kid) << endl;
-				zof_sim_part_add(sim, kid->asC());
+				zofSimPartAdd(sim, kid->asC());
 				btGeneric6DofConstraint* constraint = joint->createConstraint();
 				// TODO Max the mins of joint and other, and min the maxes.
 				constraint->setAngularLowerLimit(vec4ToBt3(joint->rotLimits[0]));
@@ -426,7 +426,7 @@ BasicPart::BasicPart(const string& name, btCollisionShape* shape): Part(name) {
 	body = new btRigidBody(bodyConstruct);
 	// Sim will need set when the part is added to the sim.
 	// TODO When and how to copy parts? Obviously important need.
-	sim = zof_null;
+	sim = zofNull;
 	body->setUserPointer(this);
 	motionState->m_userPointer = body;
 }
@@ -447,15 +447,15 @@ BasicPart* BasicPart::of(btCollisionObject* body) {
 	return reinterpret_cast<BasicPart*>(body->getUserPointer());
 }
 
-BasicPart* BasicPart::of(zof_box box) {
+BasicPart* BasicPart::of(zofBox box) {
 	return reinterpret_cast<BasicPart*>(box);
 }
 
-BasicPart* BasicPart::of(zof_capsule capsule) {
+BasicPart* BasicPart::of(zofCapsule capsule) {
 	return reinterpret_cast<BasicPart*>(capsule);
 }
 
-BasicPart* BasicPart::of(zof_part part) {
+BasicPart* BasicPart::of(zofPart part) {
 	return Part::of(part)->basic();
 }
 
@@ -560,7 +560,7 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 		} else {
 			// Add detached joints to the group for nice access.
 			// This assumes (somewhat fairly) that they'll have unique names.
-			//cerr << "joint " << name << " to " << zof_joint_name(joint) << endl;
+			//cerr << "joint " << name << " to " << joint->name << endl;
 			this->joints[joint->name] = joint;
 		}
 	}
@@ -586,7 +586,7 @@ Part* GroupPart::mirror() {
 	return 0;
 }
 
-Material::Material(zof_color c): color(c), density(1) {
+Material::Material(zofColor c): color(c), density(1) {
 	// Nothing more to do.
 }
 
@@ -621,8 +621,8 @@ Part::Part(const string& name) {
 	init();
 }
 
-zof_part Part::asC() {
-	return reinterpret_cast<zof_part>(this);
+zofPart Part::asC() {
+	return reinterpret_cast<zofPart>(this);
 }
 
 bool Part::attach(Part* kid) {
@@ -685,7 +685,7 @@ void Part::init() {
 	group = 0;
 }
 
-Part* Part::of(zof_part part) {
+Part* Part::of(zofPart part) {
 	return reinterpret_cast<Part*>(part);
 }
 

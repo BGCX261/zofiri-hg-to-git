@@ -28,7 +28,7 @@ Hand::Hand(World* w): world(w) {
 	target = sim->m(2);
 }
 
-void Hand::buildFinger(btRigidBody* metacarpal, zof_uint count, const btVector3& position) {
+void Hand::buildFinger(btRigidBody* metacarpal, zofUint count, const btVector3& position) {
 	Sim* sim = world->sim;
 	bool isThumb = count == 3;
 	// The metacarpal is expected to be stretched along the z axis.
@@ -51,7 +51,7 @@ void Hand::buildFinger(btRigidBody* metacarpal, zof_uint count, const btVector3&
 	transformB.getOrigin() += baseOrigin - constraintTransformB.getOrigin();
 	btVector3 hingeAxis(1,0,0);
 	btRigidBody* a = metacarpal;
-	for (zof_uint p = 0; p < count; p++) {
+	for (zofUint p = 0; p < count; p++) {
 		btRigidBody* b = sim->createBody(new btCapsuleShape(sim->cm(1.0),sim->cm(1.5)), transformB, BasicPart::of(a)->material);
 		b->setFriction(500);
 		//b->setDamping(0.5,0.5);
@@ -107,13 +107,13 @@ bool Hand::grip() {
 		btHingeConstraint* joint = *j;
 		joint->setMotorTarget(target < 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
-		maxVel = zof_num_max(vel, maxVel);
+		maxVel = zofNumMax(vel, maxVel);
 	}
 	for (vector<btHingeConstraint*>::iterator j = thumbHinges.begin(); j < thumbHinges.end(); j++) {
 		btHingeConstraint* joint = *j;
 		joint->setMotorTarget(target > 0 ? joint->getLowerLimit() : joint->getUpperLimit(), 0.1);
 		btScalar vel = (handVel - joint->getRigidBodyB().getLinearVelocity()).length();
-		maxVel = zof_num_max(vel, maxVel);
+		maxVel = zofNumMax(vel, maxVel);
 	}
 	//	for (vector<btGeneric6DofConstraint*>::iterator j = fingerJoints.begin(); j < fingerJoints.end(); j++) {
 	//		btGeneric6DofConstraint* joint = *j;
@@ -207,10 +207,10 @@ void Stacker::act() {
 	hand->grip();
 }
 
-btRigidBody* Stacker::findBlock(zof_color color) {
+btRigidBody* Stacker::findBlock(zofColor color) {
 	for (vector<btRigidBody*>::iterator b = hand->world->blocks.begin(); b < hand->world->blocks.end(); b++) {
 		btRigidBody* block = *b;
-		zof_color blockColor = BasicPart::of(block)->material->color;
+		zofColor blockColor = BasicPart::of(block)->material->color;
 		if (blockColor == color) {
 			// Target the red block.
 			return block;
@@ -219,7 +219,7 @@ btRigidBody* Stacker::findBlock(zof_color color) {
 	return 0;
 }
 
-bool Stacker::trackToTarget(zof_color color) {
+bool Stacker::trackToTarget(zofColor color) {
 	Sim& sim = *hand->world->sim;
 	btTransform handTransform;
 	btMotionState* handMotionState = hand->carpal->getMotionState();
@@ -259,7 +259,7 @@ World::World(Sim* s): sim(s) {
 	reset();
 }
 
-void World::buildBlock(zof_color color, const btVector3& position) {
+void World::buildBlock(zofColor color, const btVector3& position) {
 	Material* material = new Material(color);
 	material->density = 0.1; // TODO Units!!!
     btVector3 halfExtents = sim->cm(btVector3(4.0, 4.0, 4.0));
@@ -294,9 +294,9 @@ void World::buildTable(const btVector3& halfExtents, const btVector3& position) 
 	btTransform constraintTransformTable(btQuaternion::getIdentity(), btVector3(0,0,0));
 	btTransform constraintTransformLeg(btQuaternion::getIdentity(), btVector3(0,0,0));
 	btScalar y = -legSize.y() - halfExtents.y();
-	for (zof_int ix = -1; ix <= 1; ix += 2) {
+	for (zofInt ix = -1; ix <= 1; ix += 2) {
 		btScalar x = ix * (halfExtents.x() - legSize.x());
-		for (zof_int iz = -1; iz <= 1; iz += 2) {
+		for (zofInt iz = -1; iz <= 1; iz += 2) {
 			btScalar z = iz * (halfExtents.z() - legSize.z());
 			//cout << "leg: " << x << ", " << y << ", " << z << "\n";
 			btVector3 legPosition(x,y,z);
@@ -339,7 +339,7 @@ void World::reset() {
 		table->getMotionState()->getWorldTransform(tableTransform);
 		// Find a place over the table to drop the block.
 		const btVector3& tableSize = tableShape->getHalfExtentsWithoutMargin();
-		btScalar maxRadius = zof_num_min(tableSize.x(), tableSize.z()) - blockShape->getHalfExtentsWithoutMargin().x();
+		btScalar maxRadius = zofNumMin(tableSize.x(), tableSize.z()) - blockShape->getHalfExtentsWithoutMargin().x();
 		btScalar radius = random(maxRadius);
 		btScalar angle = pi(random(2.0));
 		btScalar dx = cos(angle) * radius;

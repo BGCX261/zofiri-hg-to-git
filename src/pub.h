@@ -13,7 +13,7 @@ namespace zof {
 /**
  * The main zof server that publishes the simulation, hence "pub".
  */
-struct zof_export Pub {
+struct zofExport Pub {
 
 	/**
 	 * Expose the viz here for now, so can manipulate both the
@@ -35,7 +35,7 @@ struct zof_export Pub {
 	/**
 	 * TODO Just a hack for now for testing. Clean all this up.
 	 */
-	zof_str mod_uri;
+	zofString modUri;
 
 	/**
 	 * Reads incoming messages, if any, and updates the sim or viz.

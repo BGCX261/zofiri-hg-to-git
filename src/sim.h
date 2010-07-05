@@ -22,9 +22,9 @@ struct Part: Any {
 
 	Part(const string& name);
 
-	static Part* of(zof_part part);
+	static Part* of(zofPart part);
 
-	zof_part asC();
+	zofPart asC();
 
 	/**
 	 * Returns true of successfully attached.
@@ -94,13 +94,13 @@ struct BasicPart: Part {
 
 	virtual ~BasicPart();
 
-	static zof_export BasicPart* of(btCollisionObject* body);
+	static zofExport BasicPart* of(btCollisionObject* body);
 
-	static BasicPart* of(zof_box box);
+	static BasicPart* of(zofBox box);
 
-	static BasicPart* of(zof_capsule capsule);
+	static BasicPart* of(zofCapsule capsule);
 
-	static BasicPart* of(zof_part part);
+	static BasicPart* of(zofPart part);
 
 	virtual Part* mirror();
 
@@ -137,9 +137,9 @@ private:
 
 struct Material: Any {
 
-	zof_export Material(zof_color color = 0xFFFFFFFF);
+	zofExport Material(zofColor color = 0xFFFFFFFF);
 
-	zof_color color;
+	zofColor color;
 
 	btScalar density;
 
@@ -157,9 +157,9 @@ struct MotionState: btDefaultMotionState {
 
 struct Sim: Any {
 
-	zof_export Sim();
+	zofExport Sim();
 
-	zof_export ~Sim();
+	zofExport ~Sim();
 
 	int addBody(btRigidBody* body);
 
@@ -204,13 +204,13 @@ struct Sim: Any {
 	 */
 	std::map<int, btTypedConstraint*> constraints;
 
-	zof_export btRigidBody* createBody(
+	zofExport btRigidBody* createBody(
 		btCollisionShape* shape,
 		const btTransform& transform,
 		Material* material = Material::defaultMaterial()
 	);
 
-	zof_export btRigidBody* createPlane();
+	zofExport btRigidBody* createPlane();
 
 	btCollisionDispatcher* dispatcher;
 

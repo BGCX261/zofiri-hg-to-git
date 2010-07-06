@@ -93,6 +93,21 @@ typedef struct {
 	zofNum vals[4];
 } zofVec4;
 
+/**
+ * Meters.
+ */
+typedef zofNum zofM;
+
+/**
+ * For positions or sizes (meters cubed).
+ */
+typedef zofVec4 zofM3;
+
+/**
+ * For axis-angle orientations.
+ */
+typedef zofVec4 zofM3Rad;
+
 // Math opaques.
 
 zofRefDef(zofMat);
@@ -207,6 +222,8 @@ zofExport zofBool zofPartAttach(zofPart part, zofPart kid);
 zofExport zofBox zofPartBox(zofPart part);
 
 zofExport zofCapsule zofPartCapsule(zofPart part);
+
+zofExport zofPart zofPartCopyTo(zofPart part, zofM3 pos, zofString oldSub, zofString newSub);
 
 zofExport zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios);
 

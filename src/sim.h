@@ -33,6 +33,8 @@ struct Part: Any {
 
 	BasicPart* basic();
 
+	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub) = 0;
+
 	const btTransform& getTransform();
 
 	bool inGroup(GroupPart* group);
@@ -102,6 +104,8 @@ struct BasicPart: Part {
 
 	static BasicPart* of(zofPart part);
 
+	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub);
+
 	virtual Part* mirror();
 
 	Material* material;
@@ -121,6 +125,8 @@ struct GroupPart: Part {
 	GroupPart(const string& name, Part* root);
 
 	// TODO Destructor to delete whole tree.
+
+	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub);
 
 	virtual Part* mirror();
 

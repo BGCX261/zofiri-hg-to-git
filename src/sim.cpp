@@ -10,7 +10,7 @@
 /**
  * Make the core unit centimeters for finer control.
  */
-#define zof_bt_scale 100.0
+#define zofBtScale 100.0
 
 namespace zof {
 
@@ -22,6 +22,11 @@ zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale=1);
 void mirrorName(string* name);
 
 void mirrorX(btTransform* transform);
+
+/**
+ * Replaces the last occurrence of oldSub with newSub.
+ */
+bool replaceLast(string* text, const string& oldSub, const string& newSub);
 
 btVector3 vec4ToBt3(zofVec4 vec, zofNum scale=1);
 
@@ -124,18 +129,9 @@ zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale) {
 }
 
 void mirrorName(string* name) {
-	// TODO Should smartify this. Oh for regexps.
-	string left("Left");
-	string right("Right");
-	string::size_type pos = name->rfind(left);
-	if (pos != string::npos) {
-		name->replace(pos, left.size(), right);
-	} else {
-		// No left found, so try right.
-		pos = name->rfind(right);
-		if (pos != string::npos) {
-			name->replace(pos, right.size(), left);
-		}
+	// TODO Should smartify this. Oh for regexps. Consider bundling V8 (for that and more).
+	if (!replaceLast(name, "Left", "Right")) {
+		replaceLast(name, "Right", "Left");
 	}
 }
 
@@ -147,6 +143,15 @@ void mirrorX(btTransform* transform) {
 	transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zofPi));
 	transform->getOrigin().setX(-transform->getOrigin().getX());
 	//cerr << " to " << *transform << endl;
+}
+
+bool replaceLast(string* text, const string& oldSub, const string& newSub) {
+	string::size_type pos = text->rfind(oldSub);
+	if (pos == string::npos) {
+		return false;
+	}
+	text->replace(pos, oldSub.size(), newSub);
+	return true;
 }
 
 btVector3 vec4ToBt3(zofVec4 vec, zofNum scale) {
@@ -197,14 +202,14 @@ zofVec4 zofCapsuleEndPosEx(
     }
     origin += bt_axis.normalize() * radius_ratio * shape->getRadius();
     //cerr << BasicPart::of(capsule)->name << " end: " << origin << endl;
-    return bt3ToVec4(origin, 1/zof_bt_scale);
+    return bt3ToVec4(origin, 1/zofBtScale);
 }
 
 zofExport zofNum zofCapsuleRadius(zofCapsule capsule) {
 	btCapsuleShape* shape = reinterpret_cast<btCapsuleShape*>(
 		BasicPart::of(capsule)->body->getCollisionShape()
 	);
-	return shape->getRadius() / zof_bt_scale;
+	return shape->getRadius() / zofBtScale;
 }
 
 void zofJointAttach(zofJoint joint, zofJoint kid) {
@@ -223,7 +228,7 @@ zofJoint zofJointNew(zofString name, zofVec4 pos) {
 zofJoint zofJointNewEx(zofString name, zofVec4 pos, zofVec4 rot) {
 	Joint* joint = new Joint(name);
 	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3])));
-	joint->transform.setOrigin(vec4ToBt3(pos,zof_bt_scale));
+	joint->transform.setOrigin(vec4ToBt3(pos,zofBtScale));
 	return joint->asC();
 }
 
@@ -252,6 +257,10 @@ zofBox zofPartBox(zofPart part) {
 
 zofCapsule zofPartCapsule(zofPart part) {
 	return zofPartPartKind(part) == zofPartKindCapsule ? (zofCapsule)part : zofNull;
+}
+
+zofPart zofPartCopyTo(zofPart part, zofM3 pos, zofString oldSub, zofString newSub) {
+	return Part::of(part)->copyTo(vec4ToBt3(pos, zofBtScale), string(oldSub), string(newSub))->asC();
 }
 
 zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios) {
@@ -315,18 +324,18 @@ zofPartKind zofPartPartKind(zofPart part) {
 }
 
 zofPart zofPartNewBox(zofString name, zofVec4 radii) {
-	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
+	btVector3 bt_radii = vec4ToBt3(radii, zofBtScale);
 	BasicPart* part = new BasicPart(name, new btBoxShape(bt_radii));
 	return part->asC();
 }
 
 zofPart zofPartNewCapsule(zofString name, zofNum radius, zofNum half_spread) {
-	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zof_bt_scale,2*half_spread*zof_bt_scale));
+	BasicPart* part = new BasicPart(name, new btCapsuleShape(radius*zofBtScale,2*half_spread*zofBtScale));
 	return part->asC();
 }
 
-zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii) {
-	btVector3 bt_radii = vec4ToBt3(radii, zof_bt_scale);
+zofPart zofPartNewCylinder(zofString name, zofVec4 radii) {
+	btVector3 bt_radii = vec4ToBt3(radii, zofBtScale);
 	BasicPart* part = new BasicPart(name, new btCylinderShape(bt_radii));
 	return part->asC();
 }
@@ -336,7 +345,7 @@ zofPart zofPartNewGroup(zofString name, zofPart root) {
 }
 
 zofVec4 zofPartPos(zofPart part) {
-	return bt3ToVec4(Part::of(part)->getTransform().getOrigin(), 1/zof_bt_scale);
+	return bt3ToVec4(Part::of(part)->getTransform().getOrigin(), 1/zofBtScale);
 }
 
 void zofPartPosAdd(zofPart part, zofVec4 pos) {
@@ -344,7 +353,7 @@ void zofPartPosAdd(zofPart part, zofVec4 pos) {
 }
 
 void zofPartPosPut(zofPart part, zofVec4 pos) {
-	Part::of(part)->setPos(vec4ToBt3(pos, zof_bt_scale));
+	Part::of(part)->setPos(vec4ToBt3(pos, zofBtScale));
 }
 
 zofVec4 zofPartRadii(zofPart part) {
@@ -354,13 +363,13 @@ zofVec4 zofPartRadii(zofPart part) {
 	case zofPartKindBox: {
 		btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(part)->body->getCollisionShape());
 		btVector3 btRadii = shape->getHalfExtentsWithMargin();
-		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
+		radii = bt3ToVec4(btRadii, 1/zofBtScale);
 		break;
 	}
 	case zofPartKindCylinder: {
 		btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(BasicPart::of(part)->body->getCollisionShape());
 		btVector3 btRadii = shape->getHalfExtentsWithMargin();
-		radii = bt3ToVec4(btRadii, 1/zof_bt_scale);
+		radii = bt3ToVec4(btRadii, 1/zofBtScale);
 		break;
 	}
 	default:
@@ -449,6 +458,41 @@ BasicPart::~BasicPart() {
 	delete body;
 }
 
+Part* BasicPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
+	// TODO Merge with mirror (and others later)?
+	// TODO Copy the shape? Well, especially for meshes (for mirroring). Maybe others if mutable someday.
+	string otherName(name);
+	replaceLast(&otherName, oldSub, newSub);
+	Part* mirrorPart = new BasicPart(otherName, body->getCollisionShape());
+	mirrorPart->setMaterial(material, false);
+	//cerr << "Created mirror part " << mirrorPart->name << endl;
+	Joint* attachedJoint = 0;
+	Joint* otherJoint = 0;
+	bool multi = false;
+	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+		Joint* joint = j->second;
+		Joint* copied = joint->copy();
+		mirrorPart->jointPut(copied);
+		if (joint->other) {
+			// It's attached. We want to attach to a mirror of this.
+			if (attachedJoint) {
+				multi = true;
+			} else {
+				attachedJoint = copied;
+				otherJoint = joint->other;
+			}
+		}
+	}
+	if (attachedJoint && !multi) {
+		Joint* copiedOther = otherJoint->copy();
+		replaceLast(&copiedOther->name, oldSub, newSub);
+		copiedOther->transform.setOrigin(pos);
+		otherJoint->part->jointPut(copiedOther);
+		copiedOther->attach(attachedJoint);
+	}
+	return mirrorPart;
+}
+
 void BasicPart::init() {
 	material = Material::defaultMaterial();
 	sceneNode = 0;
@@ -472,6 +516,7 @@ BasicPart* BasicPart::of(zofPart part) {
 }
 
 Part* BasicPart::mirror() {
+	// TODO Merge with copyTo (and others later)?
 	// TODO Copy the shape? Well, especially for meshes (for mirroring). Maybe others if mutable someday.
 	string otherName(name);
 	mirrorName(&otherName);
@@ -591,6 +636,11 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 		}
 		partInGroup = partInGroup->group;
 	}
+}
+
+Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
+	// TODO !!
+	return 0;
 }
 
 Part* GroupPart::mirror() {

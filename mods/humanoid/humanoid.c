@@ -63,6 +63,7 @@ zofPart humBaseWheeledNew(void) {
     // Casters.
     casterBack = zofPartNewCapsule(
     	"casterBack",
+    	// Make the casters just big enough to reach the same base point as the wheels.
     	zofPartRadii(wheelLeft).vals[0] - (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]),
     	0
     );
@@ -72,7 +73,7 @@ zofPart humBaseWheeledNew(void) {
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
-    // TODO zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
+    zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
     // Base.
     return zofPartNewGroup("base", hips);
 }

@@ -61,15 +61,18 @@ zofPart humBaseWheeledNew(void) {
     zofPartJointPut(support, supportToHips);
     zofPartAttach(hips, support);
     // Casters.
-    casterBack = zofPartNewCapsule("casterBack", 0.49 * (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]), 0);
-    fprintf(stderr, "%f\n", zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]);
+    casterBack = zofPartNewCapsule(
+    	"casterBack",
+    	zofPartRadii(wheelLeft).vals[0] - (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]),
+    	0
+    );
     zofPartMaterialPut(casterBack, zofPartMaterial(wheelLeft));
     casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
     zofPartJointPut(casterBack, casterBackToSupport);
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
-    //zofPartMirrorEx(casterBack, zofZ);
+    // TODO zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
     // Base.
     return zofPartNewGroup("base", hips);
 }

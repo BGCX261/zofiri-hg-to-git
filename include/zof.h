@@ -34,6 +34,7 @@ typedef double zofNum;
 typedef unsigned int zofUint;
 
 #define zofInf (1/0.0)
+#define zofNan (0/0.0)
 #define zofPi 3.14159265358979323846
 
 // Core opaques.

@@ -400,23 +400,25 @@ void zofPartRotPut(zofPart part, zofVec4 rot) {
 
 void zofSimPartAdd(zofSim sim, zofPart part) {
 	Sim* simPriv = reinterpret_cast<Sim*>(sim);
-	BasicPart* part_struct = BasicPart::of(part);
+	BasicPart* partStruct = BasicPart::of(part);
 	// Add full graph whether composite or not.
 	// Avoid infinite recursion by checking sim.
 	// TODO If in another sim, move to this one?
-	if (!part_struct->sim) {
-		part_struct->sim = simPriv;
-		simPriv->addBody(part_struct->body);
-		//cerr << zof_part_name(part) << " #joints: " << part_struct->joints.size() << endl;
-		for (map<string,Joint*>::iterator j = part_struct->joints.begin(); j != part_struct->joints.end(); j++) {
+	if (!partStruct->sim) {
+		partStruct->sim = simPriv;
+		simPriv->addBody(partStruct->body);
+		//cerr << partStruct->name << " #joints: " << partStruct->joints.size() << endl;
+		for (map<string,Joint*>::iterator j = partStruct->joints.begin(); j != partStruct->joints.end(); j++) {
 			Joint* joint = j->second;
 			Joint* other = joint->other;
 			if (other) {
 				Part* kid = other->part;
-				//cerr << "Found attached " << zof_part_name(kid) << endl;
-				zofSimPartAdd(sim, kid->asC());
-				btGeneric6DofConstraint* constraint = joint->createConstraint();
-				simPriv->addConstraint(constraint);
+				if (!kid->basic()->sim) {
+					//cerr << "Found attached " << kid->name << endl;
+					zofSimPartAdd(sim, kid->asC());
+					btGeneric6DofConstraint* constraint = joint->createConstraint();
+					simPriv->addConstraint(constraint);
+				}
 			}
 		}
 	}
@@ -610,17 +612,45 @@ Joint* Joint::copy() {
 }
 
 btGeneric6DofConstraint* Joint::createConstraint() {
+	struct Limits {
+		static void constraintLimits(btVector3* minOut, btVector3* maxOut, const zofExtents3& a, const zofExtents3& b) {
+			// TODO Normalize angles first?
+			for (int i = 0; i < 3; i++) {
+				if (abnormal(a.min.vals[i]) || abnormal(a.max.vals[i]) || abnormal(b.min.vals[i]) || abnormal(b.max.vals[i])) {
+					// Unconstrained.
+					//cerr << "Abnormal axis " << i << endl;
+					minOut->m_floats[i] = 1;
+					maxOut->m_floats[i] = -1;
+				} else {
+					minOut->m_floats[i] = btScalar(btMin(a.min.vals[i], b.min.vals[i]));
+					maxOut->m_floats[i] = btScalar(btMax(a.max.vals[i], b.max.vals[i]));
+				}
+				//minOut->m_floats[i] = 0;
+				//maxOut->m_floats[i] = 0;
+			}
+		}
+		static bool abnormal(zofNum num) {
+			return num != num || num == zofInf || num == -zofInf;
+		}
+	};
+	//cerr << "Creating constraint for joint from " << part->name << " to " << name << endl;
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Unconstrained to Bullet means lower > upper.
 	// TODO Consider other, and make the limits be the extreme of the two?
-	constraint->setAngularLowerLimit(vec4ToBt3(rotLimits.min));
-	constraint->setAngularUpperLimit(vec4ToBt3(rotLimits.max));
-	constraint->setLinearLowerLimit(vec4ToBt3(posLimits.min));
-	constraint->setLinearUpperLimit(vec4ToBt3(posLimits.max));
+	btVector3 min, max;
+	Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
+	constraint->setAngularLowerLimit(min);
+	constraint->setAngularUpperLimit(max);
+	Limits::constraintLimits(&min, &max, posLimits, other->posLimits);
+	constraint->setLinearLowerLimit(min*zofBtScale);
+	constraint->setLinearUpperLimit(max*zofBtScale);
 	for (int i = 0; i < 3; i++) {
 		if (constraint->getRotationalLimitMotor(i)->m_loLimit != constraint->getRotationalLimitMotor(i)->m_hiLimit) {
 			//cerr << "Joint to " << name << " rot axis " << i << " can move." << endl;
 			constraint->getRotationalLimitMotor(i)->m_enableMotor = true;
+			// Sample code just to see any effect. So far none.
+			//constraint->getRotationalLimitMotor(i)->m_maxMotorForce = 500;
+			//constraint->getRotationalLimitMotor(i)->m_targetVelocity = 500;
 		}
 		if (constraint->getTranslationalLimitMotor()->m_lowerLimit.m_floats[i] != constraint->getTranslationalLimitMotor()->m_upperLimit.m_floats[i]) {
 			//cerr << "Joint to " << name << " pos axis " << i << " can move." << endl;

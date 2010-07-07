@@ -49,7 +49,7 @@ zofPart humBaseWheeledNew(void) {
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,0,1,-zofPi/2)
     );
-    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,1,0), zofXyz(0,-1,0));
+    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
     zofPartJointPut(hips, hipsToWheelLeft);
     zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
     zofPartMirror(wheelLeft);
@@ -72,7 +72,7 @@ zofPart humBaseWheeledNew(void) {
     casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
     zofPartJointPut(casterBack, casterBackToSupport);
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
-    zofJointLimitsRotPut(supportToCasterBack, zofXyz(1,0,1), zofXyz(-1,0,-1));
+    zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,0,zofNan), zofXyz(zofNan,0,zofNan));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
     zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
@@ -102,6 +102,7 @@ zofPart humHeadNew(void) {
 		// TODO Rotate around Z for Y sideways? Or just make X the axis of rotation?
 		zofXyzw(0,1,0,0)
 	);
+	//zofJointLimitsRotPut(neckToSkull, zofXyz(-1,0,0), zofXyz(1,0,0));
 	zofPartJointPut(neck, neckToSkull);
 	zofPartAttach(skull, neck);
 	// Eyes.

@@ -25,7 +25,7 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	// TODO Obviously need more to the humanoid than this.
 	// TODO Especially want group parts.
 	zofPart humanoid = humHumanoidNew();
-	zofPartPosPut(humanoid, zofXyz(-0.2,1,0.2));
+	zofPartPosPut(humanoid, zofXyz(-0.2,-zofPartExtents(humanoid).min.vals[1],0.2));
 	zofSimPartAdd(sim, humanoid);
 	return zofTrue;
 }

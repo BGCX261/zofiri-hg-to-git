@@ -271,6 +271,15 @@ zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios) {
 	return radii;
 }
 
+zofExport zofExtentsM3 zofPartExtents(zofPart part) {
+	zofExtentsM3 extents;
+	btVector3 min, max;
+	Part::of(part)->extents(&min, &max);
+	extents.min = bt3ToVec4(min, 1/zofBtScale);
+	extents.max = bt3ToVec4(max, 1/zofBtScale);
+	return extents;
+}
+
 zofJoint zofPartJoint(zofPart part, zofString name) {
 	return Part::of(part)->joint(name)->asC();
 }
@@ -360,16 +369,11 @@ zofVec4 zofPartRadii(zofPart part) {
 	// TODO What about non-centered origins?
 	zofVec4 radii;
 	switch (zofPartPartKind(part)) {
-	case zofPartKindBox: {
-		btBoxShape* shape = reinterpret_cast<btBoxShape*>(BasicPart::of(part)->body->getCollisionShape());
-		btVector3 btRadii = shape->getHalfExtentsWithMargin();
-		radii = bt3ToVec4(btRadii, 1/zofBtScale);
-		break;
-	}
+	case zofPartKindBox:
 	case zofPartKindCylinder: {
-		btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(BasicPart::of(part)->body->getCollisionShape());
-		btVector3 btRadii = shape->getHalfExtentsWithMargin();
-		radii = bt3ToVec4(btRadii, 1/zofBtScale);
+		btVector3 min, max;
+		Part::of(part)->extents(&min, &max);
+		radii = bt3ToVec4(max, 1/zofBtScale);
 		break;
 	}
 	default:
@@ -493,6 +497,29 @@ Part* BasicPart::copyTo(const btVector3& pos, const string& oldSub, const string
 	return mirrorPart;
 }
 
+void BasicPart::extents(btVector3* min, btVector3* max) {
+	switch(body->getCollisionShape()->getShapeType()) {
+	case BOX_SHAPE_PROXYTYPE: {
+		btBoxShape* shape = reinterpret_cast<btBoxShape*>(body->getCollisionShape());
+		*max = shape->getHalfExtentsWithMargin();
+		break;
+	}
+	case CYLINDER_SHAPE_PROXYTYPE: {
+		btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(body->getCollisionShape());
+		*max = shape->getHalfExtentsWithMargin();
+		break;
+	}
+	case CAPSULE_SHAPE_PROXYTYPE:
+	default: {
+		// TODO Indicate error.
+		min->setZero();
+		max->setZero();
+		break;
+	}
+	}
+	*min = -*max;
+}
+
 void BasicPart::init() {
 	material = Material::defaultMaterial();
 	sceneNode = 0;
@@ -602,6 +629,41 @@ GroupPart::GroupPart(const string& name, Part* root): Part(name) {
 	init(root->basic());
 }
 
+Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
+	// TODO !!
+	return 0;
+}
+
+void GroupPart::extents(btVector3* min, btVector3* max) {
+	struct ExtentsWalker: Walker {
+		GroupPart* group; btVector3* min; btVector3* max;
+		ExtentsWalker(GroupPart* group_, btVector3* min_, btVector3* max_): group(group_), min(min_), max(max_) {}
+		void handle(BasicPart* part) {
+			//cerr << "Walking at " << part->name << endl;
+			if (part->inGroup(group)) {
+				btVector3 partMin, partMax;
+				part->extents(&partMin, &partMax);
+				const btTransform& transform = part->getTransform();
+				partMin = transform(partMin);
+				partMax = transform(partMax);
+				//cerr << "  Min " << partMin << " and max " << partMax << endl;
+				// TODO Batch forms of min and max would sure be nice.
+				min->setX(btMin(min->getX(),partMin.getX()));
+				min->setY(btMin(min->getY(),partMin.getY()));
+				min->setZ(btMin(min->getZ(),partMin.getZ()));
+				max->setX(btMax(max->getX(),partMax.getX()));
+				max->setY(btMax(max->getY(),partMax.getY()));
+				max->setZ(btMax(max->getZ(),partMax.getZ()));
+			}
+		}
+	} walker(this, min, max);
+	walker.walk(basic());
+	const btTransform& transform = getTransform();
+	*min = transform.invXform(*min);
+	*max = transform.invXform(*max);
+	//cerr << "Group min " << *min << " and max " << *max << endl;
+}
+
 void GroupPart::init(BasicPart* part, BasicPart* parent) {
 	// Recurse around, finding detached joints.
 	//cerr << "init " << name << " at " << part->name << endl;
@@ -636,11 +698,6 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 		}
 		partInGroup = partInGroup->group;
 	}
-}
-
-Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
-	// TODO !!
-	return 0;
 }
 
 Part* GroupPart::mirror() {

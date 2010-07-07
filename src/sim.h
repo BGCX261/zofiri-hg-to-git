@@ -35,6 +35,8 @@ struct Part: Any {
 
 	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub) = 0;
 
+	virtual void extents(btVector3* min, btVector3* max) = 0;
+
 	const btTransform& getTransform();
 
 	bool inGroup(GroupPart* group);
@@ -106,6 +108,8 @@ struct BasicPart: Part {
 
 	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub);
 
+	virtual void extents(btVector3* min, btVector3* max);
+
 	virtual Part* mirror();
 
 	Material* material;
@@ -127,6 +131,8 @@ struct GroupPart: Part {
 	// TODO Destructor to delete whole tree.
 
 	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub);
+
+	virtual void extents(btVector3* min, btVector3* max);
 
 	virtual Part* mirror();
 

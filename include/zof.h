@@ -89,9 +89,24 @@ zofExport zofRefClose zofTypeRefClose(zofType type);
 // Math expandeds.
 enum {zofX, zofY, zofZ, zofW};
 
+/**
+ * Basic expanded vector type.
+ */
 typedef struct {
 	zofNum vals[4];
 } zofVec4;
+
+typedef zofVec4 zofVec3;
+
+/**
+ * Pairs of vectors for min/max ranges.
+ */
+typedef struct {
+	zofVec4 min;
+	zofVec4 max;
+} zofExtents4;
+
+typedef zofExtents4 zofExtents3;
 
 /**
  * Meters.
@@ -101,7 +116,8 @@ typedef zofNum zofM;
 /**
  * For positions or sizes (meters cubed).
  */
-typedef zofVec4 zofM3;
+typedef zofExtents3 zofExtentsM3;
+typedef zofVec3 zofM3;
 
 /**
  * For axis-angle orientations.
@@ -226,6 +242,8 @@ zofExport zofCapsule zofPartCapsule(zofPart part);
 zofExport zofPart zofPartCopyTo(zofPart part, zofM3 pos, zofString oldSub, zofString newSub);
 
 zofExport zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios);
+
+zofExport zofExtentsM3 zofPartExtents(zofPart part);
 
 zofExport zofJoint zofPartJoint(zofPart part, zofString name);
 

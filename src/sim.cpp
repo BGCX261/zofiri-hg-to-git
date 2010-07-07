@@ -60,6 +60,8 @@ struct Joint: Any {
 	 */
 	btGeneric6DofConstraint* createConstraint();
 
+	void limitsRotPut(const zofRad3& min, const zofRad3& max);
+
 	/**
 	 * Returns a mirror of this joint about the X axis, including any necessary changes to joint limits.
 	 */
@@ -73,8 +75,8 @@ struct Joint: Any {
 	Part* part;
 	Joint* other;
 	btTransform transform;
-	zofVec4 posLimits[2];
-	zofVec4 rotLimits[2];
+	zofExtents3 posLimits;
+	zofExtents3 rotLimits;
 
 };
 
@@ -215,6 +217,10 @@ zofExport zofNum zofCapsuleRadius(zofCapsule capsule) {
 void zofJointAttach(zofJoint joint, zofJoint kid) {
 	// TODO Return anything?
 	Joint::of(joint)->attach(Joint::of(kid));
+}
+
+void zofJointLimitsRotPut(zofJoint joint, zofRad3 min, zofRad3 max) {
+	Joint::of(joint)->limitsRotPut(min, max);
 }
 
 zofString zofJointName(zofJoint joint) {
@@ -410,10 +416,6 @@ void zofSimPartAdd(zofSim sim, zofPart part) {
 				//cerr << "Found attached " << zof_part_name(kid) << endl;
 				zofSimPartAdd(sim, kid->asC());
 				btGeneric6DofConstraint* constraint = joint->createConstraint();
-				// TODO Max the mins of joint and other, and min the maxes.
-				constraint->setAngularLowerLimit(vec4ToBt3(joint->rotLimits[0]));
-				constraint->setAngularUpperLimit(vec4ToBt3(joint->rotLimits[1]));
-				// TODO Pos limits.
 				simPriv->addConstraint(constraint);
 			}
 		}
@@ -581,8 +583,8 @@ Joint::Joint(const string& name) {
 	part = 0;
 	transform.setIdentity();
 	// TODO Or would it be better just to store a partially filled btGeneric6DofConstraint?
-	memset(posLimits, 0, sizeof(posLimits));
-	memset(rotLimits, 0, sizeof(rotLimits));
+	memset(&posLimits, 0, sizeof(posLimits));
+	memset(&rotLimits, 0, sizeof(rotLimits));
 }
 
 void Joint::attach(Joint* kid) {
@@ -602,17 +604,39 @@ void Joint::attach(Joint* kid) {
 Joint* Joint::copy() {
 	Joint* joint = new Joint(name);
 	joint->transform = transform;
-	for (int L = 0; L <= 1; L++) {
-		joint->posLimits[L] = posLimits[L];
-		joint->rotLimits[L] = rotLimits[L];
-	}
+	joint->posLimits = posLimits;
+	joint->rotLimits = rotLimits;
 	return joint;
 }
 
 btGeneric6DofConstraint* Joint::createConstraint() {
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
-	// TODO Limits, etc.
+	// TODO Unconstrained to Bullet means lower > upper.
+	// TODO Consider other, and make the limits be the extreme of the two?
+	constraint->setAngularLowerLimit(vec4ToBt3(rotLimits.min));
+	constraint->setAngularUpperLimit(vec4ToBt3(rotLimits.max));
+	constraint->setLinearLowerLimit(vec4ToBt3(posLimits.min));
+	constraint->setLinearUpperLimit(vec4ToBt3(posLimits.max));
+	for (int i = 0; i < 3; i++) {
+		if (constraint->getRotationalLimitMotor(i)->m_loLimit != constraint->getRotationalLimitMotor(i)->m_hiLimit) {
+			//cerr << "Joint to " << name << " rot axis " << i << " can move." << endl;
+			constraint->getRotationalLimitMotor(i)->m_enableMotor = true;
+		}
+		if (constraint->getTranslationalLimitMotor()->m_lowerLimit.m_floats[i] != constraint->getTranslationalLimitMotor()->m_upperLimit.m_floats[i]) {
+			//cerr << "Joint to " << name << " pos axis " << i << " can move." << endl;
+			constraint->getTranslationalLimitMotor()->m_enableMotor[i] = true;
+		}
+	}
+	//	cerr << "Joint to " << name
+	//		<< " angular lower " << btVector3(constraint->getRotationalLimitMotor(0)->m_loLimit, constraint->getRotationalLimitMotor(1)->m_loLimit, constraint->getRotationalLimitMotor(2)->m_loLimit)
+	//		<< " upper" << btVector3(constraint->getRotationalLimitMotor(0)->m_hiLimit, constraint->getRotationalLimitMotor(1)->m_hiLimit, constraint->getRotationalLimitMotor(2)->m_hiLimit)
+	//		<< endl;
 	return constraint;
+}
+
+void Joint::limitsRotPut(const zofRad3& min, const zofRad3& max) {
+	rotLimits.min = min;
+	rotLimits.max = max;
 }
 
 Joint* Joint::mirror() {

@@ -49,6 +49,7 @@ zofPart humBaseWheeledNew(void) {
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,0,1,-zofPi/2)
     );
+    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,1,0), zofXyz(0,-1,0));
     zofPartJointPut(hips, hipsToWheelLeft);
     zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
     zofPartMirror(wheelLeft);
@@ -71,6 +72,7 @@ zofPart humBaseWheeledNew(void) {
     casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
     zofPartJointPut(casterBack, casterBackToSupport);
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
+    zofJointLimitsRotPut(supportToCasterBack, zofXyz(1,0,1), zofXyz(-1,0,-1));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
     zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");

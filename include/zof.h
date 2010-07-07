@@ -33,6 +33,7 @@ typedef int zofInt;
 typedef double zofNum;
 typedef unsigned int zofUint;
 
+#define zofInf (1/0.0)
 #define zofPi 3.14159265358979323846
 
 // Core opaques.
@@ -118,6 +119,7 @@ typedef zofNum zofM;
  */
 typedef zofExtents3 zofExtentsM3;
 typedef zofVec3 zofM3;
+typedef zofVec3 zofRad3;
 
 /**
  * For axis-angle orientations.
@@ -184,6 +186,8 @@ zofExport zofNum zofCapsuleRadius(zofCapsule capsule);
  * For attaching joints directly rather than matching by name as with zof_part_attach.
  */
 zofExport void zofJointAttach(zofJoint joint, zofJoint kid);
+
+zofExport void zofJointLimitsRotPut(zofJoint joint, zofRad3 min, zofRad3 max);
 
 zofExport zofString zofJointName(zofJoint joint);
 

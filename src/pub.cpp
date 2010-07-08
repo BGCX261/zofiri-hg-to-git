@@ -299,6 +299,7 @@ Pub::~Pub() {
 
 void Pub::update() {
 
+	// TODO Move this all elsewhere.
 	if (modUri) {
 		zofMod mod = zofModNew(modUri);
 		if (!mod) {
@@ -307,7 +308,7 @@ void Pub::update() {
 		if (!zofModSimInit(mod, (zofSim)viz->sim)) {
 			exit(EXIT_FAILURE);
 		}
-		zofRefFree(mod);
+		// Can't do world step callbacks if closed!! -> zofRefFree(mod);
 		modUri = zofNull;
 	}
 

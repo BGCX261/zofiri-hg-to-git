@@ -11,6 +11,8 @@ zofPart humHeadNew(void);
 
 zofPart humHumanoidNew(void);
 
+void humUpdate(zofSim sim, zofAny data);
+
 zofPart humTorsoNew(void);
 
 /**
@@ -27,6 +29,7 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	zofPart humanoid = humHumanoidNew();
 	zofPartPosPut(humanoid, zofXyz(-0.2,-zofPartExtents(humanoid).min.vals[1],0.2));
 	zofSimPartAdd(sim, humanoid);
+	zofSimUpdaterAdd(sim, humUpdate, humanoid);
 	return zofTrue;
 }
 
@@ -130,6 +133,11 @@ zofPart humHumanoidNew(void) {
 	humanoid = zofPartNewGroup("humanoid", torso);
 	zofPartMaterialPut(humanoid, zofMaterialNew(0xFF808080,1));
 	return humanoid;
+}
+
+void humUpdate(zofSim sim, zofAny data) {
+	zofPart humanoid = (zofPart)data;
+	fprintf(stderr, "*");
 }
 
 zofPart humTorsoNew(void) {

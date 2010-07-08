@@ -5,6 +5,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <map>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -15,6 +16,7 @@ struct BasicPart;
 struct GroupPart;
 struct Joint;
 struct Part;
+struct Updater;
 
 struct Part: Any {
 
@@ -177,6 +179,8 @@ struct Sim: Any {
 
 	zofExport ~Sim();
 
+	static Sim* of(zofSim sim);
+
 	int addBody(btRigidBody* body);
 
 	int addConstraint(btTypedConstraint* constraint);
@@ -185,13 +189,7 @@ struct Sim: Any {
 
 	int addShape(btCollisionShape* body);
 
-	/**
-	 * Mapped for protocol access.
-	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.
-	 */
-	map<int, btRigidBody*> bodies;
-
-	btDbvtBroadphase broadphase;
+	zofSim asC();
 
 	static btScalar calcVolume(btCollisionShape* shape);
 
@@ -203,8 +201,6 @@ struct Sim: Any {
 
 	static btScalar calcVolumeSphere(btSphereShape* shape);
 
-	btDefaultCollisionConfiguration collisionConfiguration;
-
 	/**
 	 * Converts the value in centimeters to whatever unit we use internally.
 	 * This relates to needs perhaps in Bullet to scale differently depending
@@ -215,11 +211,6 @@ struct Sim: Any {
 		return m(0.01 * centimeters);
 	}
 
-	/**
-	 * Mapped for protocol access.
-	 */
-	std::map<int, btTypedConstraint*> constraints;
-
 	zofExport btRigidBody* createBody(
 		btCollisionShape* shape,
 		const btTransform& transform,
@@ -227,10 +218,6 @@ struct Sim: Any {
 	);
 
 	zofExport btRigidBody* createPlane();
-
-	btCollisionDispatcher* dispatcher;
-
-	btDiscreteDynamicsWorld* dynamics;
 
 	/**
 	 * Required to generate an ID that hasn't been generated yet.
@@ -258,6 +245,27 @@ struct Sim: Any {
 		return Num(unitsRatio * meters);
 	}
 
+	void update();
+
+	/**
+	 * Mapped for protocol access.
+	 * TODO btCollisionObject or btRigidBody? Can just say 'bodies' either way, especially since 'objects' is vague.
+	 */
+	map<int, btRigidBody*> bodies;
+
+	btDbvtBroadphase broadphase;
+
+	btDefaultCollisionConfiguration collisionConfiguration;
+
+	/**
+	 * Mapped for protocol access.
+	 */
+	map<int, btTypedConstraint*> constraints;
+
+	btCollisionDispatcher* dispatcher;
+
+	btDiscreteDynamicsWorld* dynamics;
+
 	/**
 	 * Mapped for protocol access.
 	 */
@@ -272,11 +280,17 @@ struct Sim: Any {
 
 	btScalar unitsRatio;
 
+	vector<Updater*> updaters;
+
 	/**
 	 * Not disposed.
 	 */
 	Viz* viz;
 
+};
+
+struct Updater {
+	virtual void update(Sim* sim) = 0;
 };
 
 }

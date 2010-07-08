@@ -424,6 +424,17 @@ void zofSimPartAdd(zofSim sim, zofPart part) {
 	}
 }
 
+void zofSimUpdaterAdd(zofSim sim, void (*updater)(zofSim,zofAny), zofAny data) {
+	struct CallbackUpdater: Updater {
+		void (*updater)(zofSim,zofAny); zofAny data;
+		CallbackUpdater(void(*u)(zofSim,zofAny), zofAny d): updater(u), data(d) {}
+		virtual void update(Sim* sim) {
+			updater(sim->asC(), data);
+		}
+	};
+	Sim::of(sim)->updaters.push_back(new CallbackUpdater(updater, data));
+}
+
 }
 
 
@@ -689,6 +700,8 @@ Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string
 }
 
 void GroupPart::extents(btVector3* min, btVector3* max) {
+	min->setZero();
+	max->setZero();
 	struct ExtentsWalker: Walker {
 		GroupPart* group; btVector3* min; btVector3* max;
 		ExtentsWalker(GroupPart* group_, btVector3* min_, btVector3* max_): group(group_), min(min_), max(max_) {}
@@ -971,6 +984,10 @@ int Sim::addShape(btCollisionShape* shape) {
 	return id;
 }
 
+zofSim Sim::asC() {
+	return reinterpret_cast<zofSim>(this);
+}
+
 btScalar Sim::calcVolume(btCollisionShape* shape) {
 	// Just stick to internal units here for now.
 	// Let people convert outside as needed.
@@ -1081,6 +1098,22 @@ Material* Sim::getMaterial(int id) {
 btCollisionShape* Sim::getShape(int id) {
 	std::map<int,btCollisionShape*>::iterator s = shapes.find(id);
 	return s == shapes.end() ? 0 : s->second;
+}
+
+Sim* Sim::of(zofSim sim) {
+	return reinterpret_cast<Sim*>(sim);
+}
+
+void Sim::update() {
+	//	int ticks = 0;
+	for (vector<Updater*>::iterator u = updaters.begin(); u < updaters.end(); u++) {
+		(*u)->update(this);
+	}
+	dynamics->stepSimulation(btScalar(1)/btScalar(60));
+	//	ticks++;
+	//	if (ticks % 60 == 0) {
+	//		cerr << '.';
+	//	}
 }
 
 }

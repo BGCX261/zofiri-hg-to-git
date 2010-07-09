@@ -666,17 +666,24 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 	Limits::constraintLimits(&min, &max, posLimits, other->posLimits);
 	constraint->setLinearLowerLimit(min*zofBtScale);
 	constraint->setLinearUpperLimit(max*zofBtScale);
+	btScalar defaultMaxMotorForce(1e6);
 	for (int i = 0; i < 3; i++) {
 		if (constraint->getRotationalLimitMotor(i)->m_loLimit != constraint->getRotationalLimitMotor(i)->m_hiLimit) {
 			//cerr << "Joint to " << name << " rot axis " << i << " can move." << endl;
-			constraint->getRotationalLimitMotor(i)->m_enableMotor = true;
-			// Sample code just to see any effect. So far none.
-			//constraint->getRotationalLimitMotor(i)->m_maxMotorForce = 500;
-			//constraint->getRotationalLimitMotor(i)->m_targetVelocity = 500;
+			// Default motor force/torque rather high here, but it seems necessary to work with the scales I've got.
+			btRotationalLimitMotor* motor = constraint->getRotationalLimitMotor(i);
+			motor->m_maxMotorForce = defaultMaxMotorForce;
+			//			motor->m_damping = 1e4;
+			//			motor->m_normalCFM = 1e4;
+			//			motor->m_maxLimitForce = 0;
+			//			motor->m_stopCFM = 1e4;
+			//			motor->m_stopERP = 1e4;
+			//			motor->m_limitSoftness = 1e4;
 		}
 		if (constraint->getTranslationalLimitMotor()->m_lowerLimit.m_floats[i] != constraint->getTranslationalLimitMotor()->m_upperLimit.m_floats[i]) {
 			//cerr << "Joint to " << name << " pos axis " << i << " can move." << endl;
-			constraint->getTranslationalLimitMotor()->m_enableMotor[i] = true;
+			//constraint->getTranslationalLimitMotor()->m_enableMotor[i] = true;
+			constraint->getTranslationalLimitMotor()->m_maxMotorForce[i] = defaultMaxMotorForce;
 		}
 	}
 	//	cerr << "Joint to " << name
@@ -729,12 +736,20 @@ void Joint::velPut(zofNum vel) {
 	if (multi) {
 		index = -1;
 	}
+	// TODO zofIsNan
+	bool enableMotor = vel == vel;
 	if (index >= 0) {
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
 		if (rot) {
-			constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
+			if (enableMotor) {
+				constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
+			}
+			constraint->getRotationalLimitMotor(index)->m_enableMotor = enableMotor;
 		} else {
-			constraint->getTranslationalLimitMotor()->m_targetVelocity.m_floats[index] = btScalar(vel);
+			if (enableMotor) {
+				constraint->getTranslationalLimitMotor()->m_targetVelocity.m_floats[index] = btScalar(vel);
+			}
+			constraint->getTranslationalLimitMotor()->m_enableMotor[index] = enableMotor;
 		}
 	}
 }
@@ -1047,7 +1062,7 @@ void Part::transformBy(const btTransform& relative, BasicPart* parent) {
 Sim::Sim() {
 	dispatcher = new btCollisionDispatcher(&collisionConfiguration);
 	dynamics = new btDiscreteDynamicsWorld(dispatcher, &broadphase, &solver, &collisionConfiguration);
-	unitsRatio = 100;
+	unitsRatio = zofBtScale;
 	viz = 0;
 	// Weaken gravity a bit. Copes this way better at larger ratios.
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());

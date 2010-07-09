@@ -52,15 +52,16 @@ zofPart humBaseWheeledNew(void) {
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,0,1,-zofPi/2)
     );
-    //zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
+    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
     zofPartJointPut(hips, hipsToWheelLeft);
     zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
     zofPartMirror(wheelLeft);
     // Support.
     support = zofPartNewCylinder(
 		"support",
-		zofXyz(0.9*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.2)
+		zofXyz(0.7*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.2)
     );
+    zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
     supportToHips = zofJointNew("hips", zofXyz(0,0,0));
     zofPartJointPut(support, supportToHips);
     zofPartAttach(hips, support);
@@ -75,7 +76,7 @@ zofPart humBaseWheeledNew(void) {
     casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
     zofPartJointPut(casterBack, casterBackToSupport);
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
-    //zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,0,zofNan), zofXyz(zofNan,0,zofNan));
+    zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,0,zofNan), zofXyz(zofNan,0,zofNan));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
     zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
@@ -88,6 +89,7 @@ zofPart humHeadNew(void) {
 	zofJoint eyeLeftToSkull, neckToSkull, neckToTorso, skullToEyeLeft, skullToNeck;
 	// Skull.
 	skull = zofPartNewCapsule("skull", 0.06, 0.01);
+	//zofPartMaterialPut(skull, zofMaterialNew(0xFFA0A0A0, 0.1));
 	skullToNeck = zofJointNewEx(
 		"neck",
 		zofCapsuleEndPos(zofPartCapsule(skull), -1),
@@ -136,14 +138,20 @@ zofPart humHumanoidNew(void) {
 }
 
 void humUpdate(zofSim sim, zofAny data) {
+	static zofNum dir = 1;
+	static zofNum vel = 0;
 	zofPart humanoid;
 	zofJoint neckToSkull;
 	humanoid = (zofPart)data;
 	neckToSkull = zofPartJoint(humanoid, "//neck/skull");
-	zofJointVelPut(neckToSkull, 0.5);
-	//zofJoint wheelLeft, wheelRight;
-	//zofPart
-	//fprintf(stderr, "*");
+	if (vel < -5 || 5 < vel) {
+		dir = -dir;
+		//fprintf(stderr, "Changing dir!\n");
+	}
+	vel += dir * 0.1;
+	//zofJointVelPut(neckToSkull, vel > 0 ? 5 : -5);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -10);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 10);
 }
 
 zofPart humTorsoNew(void) {
@@ -170,7 +178,7 @@ zofPart humWheelNew(void) {
 	zofPart wheel;
 	zofJoint wheelToBody;
 	wheel = zofPartNewCylinder("wheel", zofXyz(0.2,0.04,0.2));
-	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 1));
+	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
 	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;

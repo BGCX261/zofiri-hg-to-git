@@ -203,6 +203,12 @@ zofExport zofJoint zofJointOther(zofJoint joint);
 
 zofExport zofPart zofJointPart(zofJoint joint);
 
+/**
+ * If there is only one degree of freedom on this joint, set its target
+ * velocity to vel.
+ */
+zofExport void zofJointVelPut(zofJoint joint, zofNum vel);
+
 zofExport zofNum zofMatGet(zofMat, zofMat pos);
 zofExport zofInt zofMatGetInt(zofMat, zofMat pos);
 zofExport zofNum zofMatGet1D(zofMat, zofInt i);

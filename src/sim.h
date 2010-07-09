@@ -53,6 +53,11 @@ struct Part: Any {
 	virtual Part* mirror() = 0;
 
 	/**
+	 * Return the child part or descendent if starts with "//".
+	 */
+	Part* part(const string& name);
+
+	/**
 	 * If flood, then search and replace all of the current
 	 * material with the given, across attached parts.
 	 */

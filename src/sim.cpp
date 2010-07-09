@@ -71,12 +71,15 @@ struct Joint: Any {
 		return reinterpret_cast<Joint*>(joint);
 	}
 
+	void velPut(zofNum vel);
+
+	btGeneric6DofConstraint* constraint;
 	string name;
 	Part* part;
 	Joint* other;
-	btTransform transform;
 	zofExtents3 posLimits;
 	zofExtents3 rotLimits;
+	btTransform transform;
 
 };
 
@@ -244,6 +247,10 @@ zofJoint zofJointOther(zofJoint joint) {
 
 zofPart zofJointPart(zofJoint joint) {
 	return Joint::of(joint)->part->asC();
+}
+
+void zofJointVelPut(zofJoint joint, zofNum vel) {
+	Joint::of(joint)->velPut(vel);
 }
 
 zofMaterial zofMaterialNew(zofColor color, zofNum density) {
@@ -592,6 +599,7 @@ Part* BasicPart::mirror() {
 
 Joint::Joint(const string& name) {
 	this->name = name;
+	constraint = 0;
 	other = 0;
 	part = 0;
 	transform.setIdentity();
@@ -644,6 +652,9 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 			return num != num || num == zofInf || num == -zofInf;
 		}
 	};
+	if (!(part && other && other->part)) {
+		return 0;
+	}
 	//cerr << "Creating constraint for joint from " << part->name << " to " << name << endl;
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Unconstrained to Bullet means lower > upper.
@@ -672,6 +683,8 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 	//		<< " angular lower " << btVector3(constraint->getRotationalLimitMotor(0)->m_loLimit, constraint->getRotationalLimitMotor(1)->m_loLimit, constraint->getRotationalLimitMotor(2)->m_loLimit)
 	//		<< " upper" << btVector3(constraint->getRotationalLimitMotor(0)->m_hiLimit, constraint->getRotationalLimitMotor(1)->m_hiLimit, constraint->getRotationalLimitMotor(2)->m_hiLimit)
 	//		<< endl;
+	this->constraint = constraint;
+	other->constraint = constraint;
 	return constraint;
 }
 
@@ -687,6 +700,43 @@ Joint* Joint::mirror() {
 	//cerr << "Mirroring joint from " << name << " at " << transform << " to " << mirrored->name << " at " << mirrored->transform << endl;
 	// TODO Mirror the limits!?! Think through this.
 	return mirrored;
+}
+
+void Joint::velPut(zofNum vel) {
+	if (!constraint) {
+		return;
+	}
+	int index = -1;
+	bool multi = false;
+	bool rot = true;
+	for (int i = 0; i < 3; i++) {
+		if (rotLimits.min.vals[i] != rotLimits.max.vals[i]) {
+			if (index >= 0) {
+				multi = true;
+				break;
+			}
+			index = i;
+		}
+		if (posLimits.min.vals[i] != posLimits.max.vals[i]) {
+			if (index >= 0) {
+				multi = true;
+				break;
+			}
+			index = i;
+			rot = false;
+		}
+	}
+	if (multi) {
+		index = -1;
+	}
+	if (index >= 0) {
+		//cerr << "Setting target vel for " << name << " to " << vel << endl;
+		if (rot) {
+			constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
+		} else {
+			constraint->getTranslationalLimitMotor()->m_targetVelocity.m_floats[index] = btScalar(vel);
+		}
+	}
 }
 
 GroupPart::GroupPart(const string& name, Part* root): Part(name) {
@@ -849,6 +899,21 @@ bool Part::inGroup(GroupPart* group) {
 }
 
 Joint* Part::joint(const string& name) {
+	//cerr << "Looking in " << this->name << " for joint " << name << endl;
+	if (name.substr(0, 2) == "//") {
+		// TODO Make path parsing more thorough. Base on CSS?
+		string::size_type pos(name.find('/', 2));
+		if (pos == string::npos) {
+			// TODO Look for _any_ joint with this name?
+			return 0;
+		} else {
+			string partName(name.substr(0, pos));
+			string jointName(name.substr(pos + 1));
+			//cerr << "Finding part " << partName << " for joint " << jointName << endl;
+			Part* part = this->part(partName);
+			return part ? part->joint(jointName) : 0;
+		}
+	}
 	map<string,Joint*>::iterator j = joints.find(name);
 	return j == joints.end() ? 0 : j->second;
 }
@@ -881,6 +946,46 @@ void Part::init() {
 
 Part* Part::of(zofPart part) {
 	return reinterpret_cast<Part*>(part);
+}
+
+Part* Part::part(const string& name) {
+	struct PartWalker: Walker {
+		bool multi;
+		const string& name;
+		Part* part;
+		PartWalker(const string& n): multi(false), name(n), part(0) {}
+		void handle(BasicPart* part) {
+			//cerr << "Is " << part->name << " == " << name << endl;
+			if (part->name == name) {
+				if (multi || this->part) {
+					multi = true;
+					this->part = 0;
+				} else {
+					this->part = part;
+				}
+			}
+		}
+	};
+	// TODO Make path parsing more thorough. Base on CSS?
+	//cerr << "Looking in " << this->name << " for " << name << endl;
+	bool goDeep = name.substr(0,2) == "//";
+	string partName(goDeep ? name.substr(2) : name);
+	PartWalker walker(partName);
+	if (goDeep) {
+		//cerr << "Walking on " << walker.name << " - not " << name.substr(2) << "?" << endl;
+		walker.walk(basic());
+		//cerr << "Walked and found " << (walker.part ? walker.part->name : "nothing") << endl;
+	} else {
+		// Kids only.
+		// TODO Make walker option for kids only and so on?
+		for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+			Joint* joint = j->second;
+			if (joint->other && joint->other->part) {
+				walker.handle(joint->other->part->basic());
+			}
+		}
+	}
+	return walker.part;
 }
 
 void Part::setMaterial(Material* material, bool flood) {

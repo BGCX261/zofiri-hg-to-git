@@ -11,6 +11,7 @@
  * Make the core unit centimeters for finer control.
  */
 #define zofBtScale 100.0
+#define zofBtScale3 (zofBtScale*zofBtScale*zofBtScale)
 
 namespace zof {
 
@@ -58,7 +59,7 @@ struct Joint: Any {
 	/**
 	 * Doable if part, other, and remaining items already set.
 	 */
-	btGeneric6DofConstraint* createConstraint();
+	btTypedConstraint* createConstraint();
 
 	void limitsRotPut(const zofRad3& min, const zofRad3& max);
 
@@ -73,7 +74,7 @@ struct Joint: Any {
 
 	void velPut(zofNum vel);
 
-	btGeneric6DofConstraint* constraint;
+	btTypedConstraint* constraint;
 	string name;
 	Part* part;
 	Joint* other;
@@ -423,7 +424,7 @@ void zofSimPartAdd(zofSim sim, zofPart part) {
 				if (!kid->basic()->sim) {
 					//cerr << "Found attached " << kid->name << endl;
 					zofSimPartAdd(sim, kid->asC());
-					btGeneric6DofConstraint* constraint = joint->createConstraint();
+					btTypedConstraint* constraint = joint->createConstraint();
 					simPriv->addConstraint(constraint);
 				}
 			}
@@ -630,7 +631,7 @@ Joint* Joint::copy() {
 	return joint;
 }
 
-btGeneric6DofConstraint* Joint::createConstraint() {
+btTypedConstraint* Joint::createConstraint() {
 	struct Limits {
 		static void constraintLimits(btVector3* minOut, btVector3* maxOut, const zofExtents3& a, const zofExtents3& b) {
 			// TODO Normalize angles first?
@@ -655,6 +656,19 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 	if (!(part && other && other->part)) {
 		return 0;
 	}
+	if (true) {
+		// Go with a hinge.
+		btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, transform, other->transform, false);
+		//btVector3 axis(-1,0,0);
+		//constraint->setAxis(axis);
+		btVector3 min, max;
+		Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
+		constraint->setLimit(min.m_floats[1], max.m_floats[1]);
+		constraint->setMaxMotorImpulse(1e3);
+		this->constraint = constraint;
+		other->constraint = constraint;
+		return constraint;
+	}
 	//cerr << "Creating constraint for joint from " << part->name << " to " << name << endl;
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Unconstrained to Bullet means lower > upper.
@@ -666,7 +680,7 @@ btGeneric6DofConstraint* Joint::createConstraint() {
 	Limits::constraintLimits(&min, &max, posLimits, other->posLimits);
 	constraint->setLinearLowerLimit(min*zofBtScale);
 	constraint->setLinearUpperLimit(max*zofBtScale);
-	btScalar defaultMaxMotorForce(1e6);
+	btScalar defaultMaxMotorForce(1e2);
 	for (int i = 0; i < 3; i++) {
 		if (constraint->getRotationalLimitMotor(i)->m_loLimit != constraint->getRotationalLimitMotor(i)->m_hiLimit) {
 			//cerr << "Joint to " << name << " rot axis " << i << " can move." << endl;
@@ -740,6 +754,17 @@ void Joint::velPut(zofNum vel) {
 	bool enableMotor = vel == vel;
 	if (index >= 0) {
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
+		if (true) {
+			// Hinge only for now.
+			btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
+			if (enableMotor) {
+				constraint->enableAngularMotor(true, vel, constraint->getMaxMotorImpulse());
+			} else {
+				constraint->enableMotor(false);
+			}
+			return;
+		}
+		btGeneric6DofConstraint* constraint = dynamic_cast<btGeneric6DofConstraint*>(this->constraint);
 		if (rot) {
 			if (enableMotor) {
 				constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
@@ -1130,7 +1155,7 @@ btScalar Sim::calcVolume(btCollisionShape* shape) {
 
 btScalar Sim::calcVolumeBox(btBoxShape* shape) {
 	btVector3 extents = 2 * shape->getHalfExtentsWithMargin();
-	return extents.x() * extents.y() * extents.z();
+	return extents.x() * extents.y() * extents.z() / zofBtScale3;
 }
 
 btScalar Sim::calcVolumeCapsule(btCapsuleShape* shape) {
@@ -1138,16 +1163,16 @@ btScalar Sim::calcVolumeCapsule(btCapsuleShape* shape) {
 	btScalar radius = shape->getRadius();
 	btScalar sphereVol = pi(4.0/3.0) * pow(radius, 3);
 	btScalar cylinderVol = pi(2.0) * radius * radius * shape->getHalfHeight();
-	return sphereVol + cylinderVol;
+	return (sphereVol + cylinderVol)  / zofBtScale3;
 }
 
 btScalar Sim::calcVolumeCylinder(btCylinderShape* shape) {
 	btVector3 halfExtents = shape->getHalfExtentsWithMargin();
-	return pi(1.0) * halfExtents.x() * halfExtents.z() * 2 * halfExtents.y();
+	return pi(1.0) * halfExtents.x() * halfExtents.z() * 2 * halfExtents.y() / zofBtScale3;
 }
 
 btScalar Sim::calcVolumeSphere(btSphereShape* shape) {
-	return pi(4.0/3.0) * pow(shape->getRadius(), 3);
+	return pi(4.0/3.0) * pow(shape->getRadius(), 3) / zofBtScale3;
 }
 
 btRigidBody* Sim::createBody(btCollisionShape* shape, const btTransform& transform, Material* material) {

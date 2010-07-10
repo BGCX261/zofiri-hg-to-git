@@ -50,7 +50,7 @@ zofPart humBaseWheeledNew(void) {
     hipsToWheelLeft = zofJointNewEx(
     	"wheelLeft",
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
-    	zofXyzw(0,0,1,-zofPi/2)
+    	zofXyzw(0,1,0,zofPi/2)
     );
     zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
     zofPartJointPut(hips, hipsToWheelLeft);
@@ -64,7 +64,7 @@ zofPart humBaseWheeledNew(void) {
     zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
     supportToHips = zofJointNew("hips", zofXyz(0,0,0));
     zofPartJointPut(support, supportToHips);
-    zofPartAttach(hips, support);
+    //zofPartAttach(hips, support);
     // Casters.
     casterBack = zofPartNewCapsule(
     	"casterBack",
@@ -129,10 +129,11 @@ zofPart humHeadNew(void) {
 
 zofPart humHumanoidNew(void) {
 	zofPart humanoid, torso;
-	torso = humTorsoNew();
-	zofPartAttach(torso, humHeadNew());
-	zofPartAttach(torso, humBaseWheeledNew());
-	humanoid = zofPartNewGroup("humanoid", torso);
+	//torso = humTorsoNew();
+	//zofPartAttach(torso, humHeadNew());
+	//zofPartAttach(torso, humBaseWheeledNew());
+	//humanoid = zofPartNewGroup("humanoid", torso);
+	humanoid = humBaseWheeledNew();
 	zofPartMaterialPut(humanoid, zofMaterialNew(0xFF808080,1));
 	return humanoid;
 }
@@ -150,7 +151,7 @@ void humUpdate(zofSim sim, zofAny data) {
 	}
 	vel += dir * 0.1;
 	//zofJointVelPut(neckToSkull, vel > 0 ? 5 : -5);
-	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -10);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 10);
 	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 10);
 }
 
@@ -179,7 +180,7 @@ zofPart humWheelNew(void) {
 	zofJoint wheelToBody;
 	wheel = zofPartNewCylinder("wheel", zofXyz(0.2,0.04,0.2));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
-	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
+	wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

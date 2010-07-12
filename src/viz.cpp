@@ -187,6 +187,7 @@ void IrrViz::addBody(btCollisionObject* body) {
 	btScalar yaw, pitch, roll;
 	body->getWorldTransform().getBasis().getEulerYPR(yaw, pitch, roll);
 	// TODO Vectorize the radToDeg transform?
+	//cerr << " rot: " << radToDeg(roll) << ", " << radToDeg(pitch) << ", " << radToDeg(yaw) << endl;
 	node->setRotation(vector3df(radToDeg(roll), radToDeg(pitch), radToDeg(yaw)));
 }
 

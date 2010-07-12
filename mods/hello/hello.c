@@ -11,7 +11,7 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	joint1 = zofJointNewEx(
 		"box2",
 		zofPartEndPos(box1, zofXyz(-1,0,0)),
-		zofXyzw(0,0,1,-zofPi/2)
+		zofXyzw(0,1,0,zofPi/2)
 	);
 	zofPartMaterialPut(box1, zofMaterialNew(0xFFFF8000,1));
 	// TODO Joint limits.
@@ -21,7 +21,7 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	zofPartJointPut(box2, zofJointNewEx(
 		"box1",
 		zofPartEndPos(box2, zofXyz(0,1,0)),
-		zofXyzw(0,1,0,0)
+		zofXyzw(1,0,0,-zofPi/2)
 	));
 	zofPartMaterialPut(box2, zofMaterialNew(0xFF800080,1));
 	// Attach the boxes.

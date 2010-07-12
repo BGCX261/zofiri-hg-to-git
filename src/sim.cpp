@@ -13,6 +13,11 @@
 #define zofBtScale 100.0
 #define zofBtScale3 (zofBtScale*zofBtScale*zofBtScale)
 
+/**
+ * Use a hinge for a single axis of rotation.
+ */
+#define zofHingeForRot1 true
+
 namespace zof {
 
 zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale=1);
@@ -67,6 +72,12 @@ struct Joint: Any {
 	 * Returns a mirror of this joint about the X axis, including any necessary changes to joint limits.
 	 */
 	Joint* mirror();
+
+	/**
+	 * The index and type of the moveable DOF, if exactly one, else -1.
+	 * Returns true if exactly one.
+	 */
+	bool moveableDof(int* index, bool* rot);
 
 	static Joint* of(zofJoint joint) {
 		return reinterpret_cast<Joint*>(joint);
@@ -146,7 +157,8 @@ void mirrorX(btTransform* transform) {
 	// TODO What to do with rotations?
 	// TODO No good: *transform *= btTransform(btMatrix3x3(-1,0,0, 0,1,0, 0,0,1), btVector3(0,0,0));
 	// TODO Is there a better way than this?
-	transform->setRotation(transform->getRotation() *= btQuaternion(btVector3(0,0,1),zofPi));
+	// TODO We need to do the rotation in the original coordinate frame, but this is local.
+	transform->setRotation(btQuaternion(btVector3(0,0,1),zofPi) * transform->getRotation());
 	transform->getOrigin().setX(-transform->getOrigin().getX());
 	//cerr << " to " << *transform << endl;
 }
@@ -612,11 +624,15 @@ Joint::Joint(const string& name) {
 void Joint::attach(Joint* kid) {
 	// TODO What if already attached??
 	btTransform transform = part->getTransform();
-	//cerr << "part " << part->name << " at " << transform << endl;
+	cerr << "part " << part->name << " at " << transform << endl;
 	btTransform relTransform = this->transform * kid->transform.inverse();
-	//cerr << "relTransform of " << relTransform << endl;
+	cerr << "relTransform of " << relTransform << endl;
 	transform *= relTransform;
-	//cerr << "kid " << kid->part->name << " at " << transform << endl;
+	cerr << "kid " << kid->part->name << " at " << transform << endl;
+	cerr << "xyz "
+		 << (transform(btVector3(1,0,0)) - transform.getOrigin()) << "; "
+		 << (transform(btVector3(0,1,0)) - transform.getOrigin()) << "; "
+		 << (transform(btVector3(0,0,1)) - transform.getOrigin()) << endl;
 	kid->part->setTransform(transform);
 	// Now actually attach joints.
 	other = kid;
@@ -656,18 +672,22 @@ btTypedConstraint* Joint::createConstraint() {
 	if (!(part && other && other->part)) {
 		return 0;
 	}
-	if (true) {
+	if (zofHingeForRot1) {
 		// Go with a hinge.
-		btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, transform, other->transform, false);
-		//btVector3 axis(-1,0,0);
-		//constraint->setAxis(axis);
-		btVector3 min, max;
-		Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
-		constraint->setLimit(min.m_floats[1], max.m_floats[1]);
-		constraint->setMaxMotorImpulse(1e3);
-		this->constraint = constraint;
-		other->constraint = constraint;
-		return constraint;
+		int index;
+		bool rot;
+		if (moveableDof(&index, &rot)) {
+			btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, transform, other->transform, false);
+			//btVector3 axis(-1,0,0);
+			//constraint->setAxis(axis);
+			btVector3 min, max;
+			Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
+			constraint->setLimit(min.m_floats[index], max.m_floats[index]);
+			constraint->setMaxMotorImpulse(1e1);
+			this->constraint = constraint;
+			other->constraint = constraint;
+			return constraint;
+		}
 	}
 	//cerr << "Creating constraint for joint from " << part->name << " to " << name << endl;
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
@@ -723,54 +743,63 @@ Joint* Joint::mirror() {
 	return mirrored;
 }
 
+bool Joint::moveableDof(int* index, bool* rot) {
+	*index = -1;
+	*rot = true;
+	bool multi = false;
+	for (int i = 0; i < 3; i++) {
+		if (rotLimits.min.vals[i] != rotLimits.max.vals[i]) {
+			if (*index >= 0) {
+				multi = true;
+				break;
+			}
+			*index = i;
+		}
+		if (posLimits.min.vals[i] != posLimits.max.vals[i]) {
+			if (*index >= 0) {
+				multi = true;
+				break;
+			}
+			*index = i;
+			*rot = false;
+		}
+	}
+	if (multi) {
+		*index = -1;
+	}
+	return *index >= 0;
+}
+
 void Joint::velPut(zofNum vel) {
 	if (!constraint) {
 		return;
 	}
-	int index = -1;
-	bool multi = false;
-	bool rot = true;
-	for (int i = 0; i < 3; i++) {
-		if (rotLimits.min.vals[i] != rotLimits.max.vals[i]) {
-			if (index >= 0) {
-				multi = true;
-				break;
-			}
-			index = i;
-		}
-		if (posLimits.min.vals[i] != posLimits.max.vals[i]) {
-			if (index >= 0) {
-				multi = true;
-				break;
-			}
-			index = i;
-			rot = false;
-		}
-	}
-	if (multi) {
-		index = -1;
-	}
 	// TODO zofIsNan
 	bool enableMotor = vel == vel;
-	if (index >= 0) {
+	int index;
+	bool rot;
+	if (moveableDof(&index, &rot)) {
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
-		if (true) {
-			// Hinge only for now.
-			btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
-			if (enableMotor) {
-				constraint->enableAngularMotor(true, vel, constraint->getMaxMotorImpulse());
-			} else {
-				constraint->enableMotor(false);
-			}
-			return;
-		}
-		btGeneric6DofConstraint* constraint = dynamic_cast<btGeneric6DofConstraint*>(this->constraint);
 		if (rot) {
-			if (enableMotor) {
-				constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
+			if (zofHingeForRot1) {
+				// Hinge only for now.
+				btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
+				if (enableMotor) {
+					constraint->enableAngularMotor(true, vel, constraint->getMaxMotorImpulse());
+				} else {
+					constraint->enableMotor(false);
+				}
+				return;
+			} else {
+				// TODO Delete this?
+				btGeneric6DofConstraint* constraint = dynamic_cast<btGeneric6DofConstraint*>(this->constraint);
+				if (enableMotor) {
+					constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);
+				}
+				constraint->getRotationalLimitMotor(index)->m_enableMotor = enableMotor;
 			}
-			constraint->getRotationalLimitMotor(index)->m_enableMotor = enableMotor;
 		} else {
+			btGeneric6DofConstraint* constraint = dynamic_cast<btGeneric6DofConstraint*>(this->constraint);
 			if (enableMotor) {
 				constraint->getTranslationalLimitMotor()->m_targetVelocity.m_floats[index] = btScalar(vel);
 			}

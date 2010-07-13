@@ -61,7 +61,7 @@ zofPart humBaseWheeledNew(void) {
     // Support.
     support = zofPartNewCylinder(
 		"support",
-		zofXyz(0.7*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.2)
+		zofXyz(0.7*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.15)
     );
     zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
     supportToHips = zofJointNew("hips", zofXyz(0,0,0));
@@ -180,7 +180,7 @@ zofPart humTorsoNew(void) {
 zofPart humWheelNew(void) {
 	zofPart wheel;
 	zofJoint wheelToBody;
-	wheel = zofPartNewCylinder("wheel", zofXyz(0.2,0.04,0.2));
+	wheel = zofPartNewCylinder("wheel", zofXyz(0.18,0.04,0.18));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
 	wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
 	//wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));

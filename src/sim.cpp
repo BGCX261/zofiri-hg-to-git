@@ -427,6 +427,11 @@ void zofSimPartAdd(zofSim sim, zofPart part) {
 	if (!partStruct->sim) {
 		partStruct->sim = simPriv;
 		simPriv->addBody(partStruct->body);
+		//		const btTransform& transform = partStruct->getTransform();
+		//		cerr << partStruct->name << " axes: "
+		//				<< (transform(btVector3(1,0,0)) - transform.getOrigin()) << "; "
+		//				<< (transform(btVector3(0,1,0)) - transform.getOrigin()) << "; "
+		//				<< (transform(btVector3(0,0,1)) - transform.getOrigin()) << endl;
 		//cerr << partStruct->name << " #joints: " << partStruct->joints.size() << endl;
 		for (map<string,Joint*>::iterator j = partStruct->joints.begin(); j != partStruct->joints.end(); j++) {
 			Joint* joint = j->second;
@@ -624,15 +629,15 @@ Joint::Joint(const string& name) {
 void Joint::attach(Joint* kid) {
 	// TODO What if already attached??
 	btTransform transform = part->getTransform();
-	cerr << "part " << part->name << " at " << transform << endl;
+	//cerr << "part " << part->name << " at " << transform << endl;
 	btTransform relTransform = this->transform * kid->transform.inverse();
-	cerr << "relTransform of " << relTransform << endl;
+	//cerr << "relTransform of " << relTransform << endl;
 	transform *= relTransform;
-	cerr << "kid " << kid->part->name << " at " << transform << endl;
-	cerr << "xyz "
-		 << (transform(btVector3(1,0,0)) - transform.getOrigin()) << "; "
-		 << (transform(btVector3(0,1,0)) - transform.getOrigin()) << "; "
-		 << (transform(btVector3(0,0,1)) - transform.getOrigin()) << endl;
+	//cerr << "kid " << kid->part->name << " at " << transform << endl;
+	//	cerr << "xyz "
+	//		 << (transform(btVector3(1,0,0)) - transform.getOrigin()) << "; "
+	//		 << (transform(btVector3(0,1,0)) - transform.getOrigin()) << "; "
+	//		 << (transform(btVector3(0,0,1)) - transform.getOrigin()) << endl;
 	kid->part->setTransform(transform);
 	// Now actually attach joints.
 	other = kid;

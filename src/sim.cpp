@@ -16,7 +16,7 @@
 /**
  * Use a hinge for a single axis of rotation.
  */
-#define zofHingeForRot1 true
+#define zofHingeForRot1 false
 
 namespace zof {
 
@@ -672,6 +672,7 @@ btTypedConstraint* Joint::createConstraint() {
 	if (!(part && other && other->part)) {
 		return 0;
 	}
+	btScalar defaultMaxMotorForce(1e1);
 	if (zofHingeForRot1) {
 		// Go with a hinge.
 		int index;
@@ -683,7 +684,7 @@ btTypedConstraint* Joint::createConstraint() {
 			btVector3 min, max;
 			Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
 			constraint->setLimit(min.m_floats[index], max.m_floats[index]);
-			constraint->setMaxMotorImpulse(1e1);
+			constraint->setMaxMotorImpulse(defaultMaxMotorForce);
 			this->constraint = constraint;
 			other->constraint = constraint;
 			return constraint;
@@ -700,7 +701,6 @@ btTypedConstraint* Joint::createConstraint() {
 	Limits::constraintLimits(&min, &max, posLimits, other->posLimits);
 	constraint->setLinearLowerLimit(min*zofBtScale);
 	constraint->setLinearUpperLimit(max*zofBtScale);
-	btScalar defaultMaxMotorForce(1e2);
 	for (int i = 0; i < 3; i++) {
 		if (constraint->getRotationalLimitMotor(i)->m_loLimit != constraint->getRotationalLimitMotor(i)->m_hiLimit) {
 			//cerr << "Joint to " << name << " rot axis " << i << " can move." << endl;

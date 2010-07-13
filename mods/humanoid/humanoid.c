@@ -51,8 +51,10 @@ zofPart humBaseWheeledNew(void) {
     	"wheelLeft",
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,1,0,zofPi/2)
+    	//zofXyzw(0,0,1,-zofPi/2)
     );
-    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
+    zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan), zofXyz(0,0,zofNan));
+    //zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
     zofPartJointPut(hips, hipsToWheelLeft);
     zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
     zofPartMirror(wheelLeft);
@@ -76,7 +78,7 @@ zofPart humBaseWheeledNew(void) {
     casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
     zofPartJointPut(casterBack, casterBackToSupport);
     supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,0,-1)));
-    //zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,0,zofNan), zofXyz(zofNan,0,zofNan));
+    zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,zofNan,zofNan), zofXyz(zofNan,zofNan,zofNan));
     zofPartJointPut(support, supportToCasterBack);
     zofPartAttach(support, casterBack);
     zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
@@ -181,6 +183,7 @@ zofPart humWheelNew(void) {
 	wheel = zofPartNewCylinder("wheel", zofXyz(0.2,0.04,0.2));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
 	wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
+	//wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

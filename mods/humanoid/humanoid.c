@@ -51,17 +51,17 @@ zofPart humBaseWheeledNew(void) {
     	"wheelLeft",
     	zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
     	zofXyzw(0,1,0,zofPi/2)
-    	//zofXyzw(0,0,1,-zofPi/2)
+    	// Unstable rotation about Y: zofXyzw(0,0,1,-zofPi/2)
     );
     zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan), zofXyz(0,0,zofNan));
-    //zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
+    // Unstable rotation about Y: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
     zofPartJointPut(hips, hipsToWheelLeft);
     zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
     zofPartMirror(wheelLeft);
     // Support.
     support = zofPartNewCylinder(
 		"support",
-		zofXyz(0.7*zofCapsuleRadius(zofPartCapsule(hips)), 0.02, 0.15)
+		zofXyz(0.8*zofCapsuleRadius(zofPartCapsule(hips)), 0.015, 0.15)
     );
     zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
     supportToHips = zofJointNew("hips", zofXyz(0,0,0));
@@ -153,8 +153,8 @@ void humUpdate(zofSim sim, zofAny data) {
 	}
 	vel += dir * 0.1;
 	zofJointVelPut(neckToSkull, vel > 0 ? 5 : -5);
-	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -1.8);
-	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 1);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -0.9);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
 }
 
 zofPart humTorsoNew(void) {
@@ -180,10 +180,10 @@ zofPart humTorsoNew(void) {
 zofPart humWheelNew(void) {
 	zofPart wheel;
 	zofJoint wheelToBody;
-	wheel = zofPartNewCylinder("wheel", zofXyz(0.18,0.04,0.18));
+	wheel = zofPartNewCylinder("wheel", zofXyz(0.18,0.03,0.18));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
 	wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
-	//wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
+	// Unstable rotation about Y: wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

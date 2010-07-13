@@ -787,7 +787,7 @@ void Joint::velPut(zofNum vel) {
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
 		if (rot) {
 			if (zofHingeForRot1) {
-				// Hinge only for now.
+				// Hinge version.
 				btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
 				if (enableMotor) {
 					constraint->enableAngularMotor(true, vel, constraint->getMaxMotorImpulse());
@@ -796,7 +796,7 @@ void Joint::velPut(zofNum vel) {
 				}
 				return;
 			} else {
-				// TODO Delete this?
+				// 6-DOF version.
 				btGeneric6DofConstraint* constraint = dynamic_cast<btGeneric6DofConstraint*>(this->constraint);
 				if (enableMotor) {
 					constraint->getRotationalLimitMotor(index)->m_targetVelocity = btScalar(vel);

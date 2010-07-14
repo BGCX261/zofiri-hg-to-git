@@ -3,6 +3,7 @@
 #include "sim.h"
 #include "viz.h"
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,8 @@
 #define zofHingeForRot1 true
 
 namespace zof {
+
+string axesString(const btTransform& transform);
 
 zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale=1);
 
@@ -134,6 +137,16 @@ ostream& operator<<(ostream& out, const btTransform& transform) {
 	btVector3 pos = transform.getOrigin();
 	out << "pos:" << pos << ")";
 	return out;
+}
+
+
+string axesString(const btTransform& transform) {
+	stringstream stream;
+	stream
+		<< (transform(btVector3(1,0,0)) - transform.getOrigin()) << "; "
+		<< (transform(btVector3(0,1,0)) - transform.getOrigin()) << "; "
+		<< (transform(btVector3(0,0,1)) - transform.getOrigin()) << flush;
+	return stream.str();
 }
 
 zofVec4 bt3ToVec4(const btVector3& bt3, zofNum scale) {
@@ -683,9 +696,23 @@ btTypedConstraint* Joint::createConstraint() {
 		int index;
 		bool rot;
 		if (moveableDof(&index, &rot)) {
-			btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, transform, other->transform, false);
+			btTransform a(transform);
+			btTransform b(other->transform);
+			if (index == 0 || index == 1) {
+				// Rotate both transforms until new Z == old X or Y.
+				//cerr << name << " axes1: " << axesString(a) << endl;
+				//cerr << other->name << " axes1: " << axesString(b) << endl;
+				btQuaternion rot = index == 0 ?
+					btQuaternion(btVector3(0,1,0),zofPi/2) * btQuaternion(btVector3(0,0,1),-zofPi/2) :
+					btQuaternion(btVector3(1,0,0),-zofPi/2) * btQuaternion(btVector3(0,0,1),zofPi/2);
+				a.setRotation(a * rot);
+				b.setRotation(b * rot);
+				//cerr << name << " axes2: " << axesString(a) << endl;
+				//cerr << other->name << " axes2: " << axesString(b) << endl;
+			}
+			btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, a, b, false);
 			//btVector3 axis(-1,0,0);
-			//constraint->setAxis(axis);
+			// Doesn't seem to do what I'd like: constraint->setAxis(axis);
 			btVector3 min, max;
 			Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
 			constraint->setLimit(min.m_floats[index], max.m_floats[index]);
@@ -695,7 +722,7 @@ btTypedConstraint* Joint::createConstraint() {
 			return constraint;
 		}
 	}
-	//cerr << "Creating constraint for joint from " << part->name << " to " << name << endl;
+	//cerr << "Creating 6-DOF constraint for joint from " << part->name << " to " << name << endl;
 	btGeneric6DofConstraint* constraint = new btGeneric6DofConstraint(*part->body, *other->part->body, transform, other->transform, false);
 	// TODO Unconstrained to Bullet means lower > upper.
 	// TODO Consider other, and make the limits be the extreme of the two?

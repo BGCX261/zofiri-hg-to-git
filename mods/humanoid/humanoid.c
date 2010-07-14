@@ -87,11 +87,11 @@ zofPart humBaseWheeledNew(void) {
 	hipsToWheelLeft = zofJointNewEx(
 		"wheelLeft",
 		zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofXyz(-1,0,0), -1),
-		zofXyzw(0,1,0,zofPi/2)
-		// Unstable rotation about Y: zofXyzw(0,0,1,-zofPi/2)
+		// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,zofPi/2)
+		zofXyzw(0,0,1,-zofPi/2)
 	);
-	zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan), zofXyz(0,0,zofNan));
-	// Unstable rotation about Y: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
+	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan), zofXyz(0,0,zofNan));
+	zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
 	zofPartJointPut(hips, hipsToWheelLeft);
 	zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
 	zofPartMirror(wheelLeft);
@@ -228,8 +228,8 @@ zofPart humWheelNew(void) {
 	zofJoint wheelToBody;
 	wheel = zofPartNewCylinder("wheel", zofXyz(0.18,0.03,0.18));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
-	wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
-	// Unstable rotation about Y: wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
+	// With hinges, the Y seems fine, so ignore this: wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-zofPi/2));
+	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofXyz(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

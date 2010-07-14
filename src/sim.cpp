@@ -16,7 +16,7 @@
 /**
  * Use a hinge for a single axis of rotation.
  */
-#define zofHingeForRot1 false
+#define zofHingeForRot1 true
 
 namespace zof {
 
@@ -243,11 +243,11 @@ zofString zofJointName(zofJoint joint) {
 	return zofString(Joint::of(joint)->name.c_str());
 }
 
-zofJoint zofJointNew(zofString name, zofVec4 pos) {
+zofJoint zofJointNew(zofString name, zofM3 pos) {
 	return zofJointNewEx(name, pos, zofXyzw(0,1,0,0));
 }
 
-zofJoint zofJointNewEx(zofString name, zofVec4 pos, zofVec4 rot) {
+zofJoint zofJointNewEx(zofString name, zofM3 pos, zofM3Rad rot) {
 	Joint* joint = new Joint(name);
 	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3])));
 	joint->transform.setOrigin(vec4ToBt3(pos,zofBtScale));

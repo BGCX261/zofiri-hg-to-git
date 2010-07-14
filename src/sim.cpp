@@ -86,6 +86,8 @@ struct Joint: Any {
 		return reinterpret_cast<Joint*>(joint);
 	}
 
+	void posPut(zofNum pos);
+
 	void velPut(zofNum vel);
 
 	btTypedConstraint* constraint;
@@ -273,6 +275,10 @@ zofJoint zofJointOther(zofJoint joint) {
 
 zofPart zofJointPart(zofJoint joint) {
 	return Joint::of(joint)->part->asC();
+}
+
+void zofJointPosPut(zofJoint joint, zofNum pos) {
+	Joint::of(joint)->posPut(pos);
 }
 
 void zofJointVelPut(zofJoint joint, zofNum vel) {
@@ -800,6 +806,33 @@ bool Joint::moveableDof(int* index, bool* rot) {
 		*index = -1;
 	}
 	return *index >= 0;
+}
+
+void Joint::posPut(zofNum pos) {
+	if (!constraint) {
+		return;
+	}
+	// TODO zofIsNan
+	bool enableMotor = pos == pos;
+	int index;
+	bool rot;
+	if (moveableDof(&index, &rot)) {
+		if (zofHingeForRot1) {
+			// Hinge version.
+			btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
+			if (enableMotor) {
+				constraint->enableMotor(true);
+				// TODO Parameterize target speed and/or target time.
+				// TODO Remember target pos in our joint DB and go through them to update at each step??
+				constraint->setMotorTarget(pos, 0.5);
+			} else {
+				constraint->enableMotor(false);
+			}
+			return;
+		} else {
+			// TODO Positioning for other types of constraints.
+		}
+	}
 }
 
 void Joint::velPut(zofNum vel) {

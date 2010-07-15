@@ -63,7 +63,7 @@ class Finger(object):
         return self.spread[key]
 
 class Hand(object):
-    
+
     def __init__(self, side_x):
         from parts import A, Capsule, Joint, Limits, pi
         self.name = 'hand'

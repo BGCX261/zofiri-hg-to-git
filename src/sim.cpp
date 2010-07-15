@@ -4,7 +4,9 @@
 #include "viz.h"
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <vector>
 
 
@@ -477,6 +479,12 @@ void zofSimUpdaterAdd(zofSim sim, void (*updater)(zofSim,zofAny), zofAny data) {
 		}
 	};
 	Sim::of(sim)->updaters.push_back(new CallbackUpdater(updater, data));
+}
+
+zofExport zofString zofStringNewCopy(zofString contents) {
+	zofString str = (zofString)malloc(strlen(contents) + 1);
+	strcpy(str, contents);
+	return str;
 }
 
 }
@@ -1066,6 +1074,9 @@ Joint* Part::jointPut(Joint* joint) {
 	map<string,Joint*>::value_type pair(joint->name, joint);
 	part->joints.insert(old, pair);
 	joint->part = part;
+	if (joint->name.find("finger") == 0) {
+		cerr << "joint " << joint->name << " with part " << part << endl;
+	}
 	return oldJoint;
 }
 

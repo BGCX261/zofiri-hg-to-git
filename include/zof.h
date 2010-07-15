@@ -311,6 +311,8 @@ zofExport void zofSimPartAdd(zofSim sim, zofPart part);
 
 zofExport void zofSimUpdaterAdd(zofSim sim, void (*updater)(zofSim,zofAny), zofAny data);
 
+zofExport zofString zofStringNewCopy(zofString contents);
+
 
 #ifdef __cplusplus
 }

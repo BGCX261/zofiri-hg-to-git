@@ -1074,9 +1074,6 @@ Joint* Part::jointPut(Joint* joint) {
 	map<string,Joint*>::value_type pair(joint->name, joint);
 	part->joints.insert(old, pair);
 	joint->part = part;
-	if (joint->name.find("finger") == 0) {
-		cerr << "joint " << joint->name << " with part " << part << endl;
-	}
 	return oldJoint;
 }
 

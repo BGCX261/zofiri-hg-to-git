@@ -134,31 +134,29 @@ zofPart humBaseWheeledNew(void) {
 }
 
 zofPart humFingerLeftNew(zofUint phalanxCount) {
+	zofInt p;
 	zofPart current, spread;
-	zofJoint fingerToHand, currentToNext;
-	// Spread. TODO Could 6-DOF avoid this?
+	zofJoint fingerToHand;
+	// Spread.
+	// TODO Could 6-DOF avoid this? Or do I still fear 6-DOF instability?
 	spread = zofPartNewCapsule("spread", 0.01, 0);
 	fingerToHand = zofJointNew("hand", zofCapsuleEndPos(zofPartCapsule(spread), 0.5));
-	// TODO Limits.
+	zofJointLimitsRotPut(fingerToHand, zofXyz(-zofPi/5,0,0), zofXyz(-zofPi/5,0,0));
 	zofPartJointPut(spread, fingerToHand);
 	current = spread;
-	//self.name = 'finger'
-	//self.spread = current = Capsule(0.01, 0, name='spread')
-	//current.add_joint(Joint(
-	//	current.end_pos(0.5),
-	//	limits=Limits.rot_x(A(-1,1)*0.2*pi),
-	//	name=parent))
-	//for n in xrange(phalanx_count):
-	//	next = Capsule(0.01, 0.01, name='phalanx'+str(n))
-	//	next.add_joint(Joint(
-	//		next.end_pos(0.5),
-	//		rot=(0,0,1,0),
-	//		limits=Limits.rot_x(A(-0.01,0.5)*pi),
-	//		name=current.name))
-	//	current.add_joint(Joint(
-	//		current.end_pos(-0.5), rot=(0,0,1,0), name=next.name))
-	//	current.attach(next)
-	//	current = next
+	for (p = 0; p < phalanxCount; p++) {
+		zofPart next;
+		zofJoint currentToNext, nextToCurrent;
+		// TODO Number them?
+		next = zofPartNewCapsule("phalanx", 0.01, 0.006);
+		currentToNext = zofJointNew("next", zofCapsuleEndPos(zofPartCapsule(current), -0.5));
+		zofJointLimitsRotPut(currentToNext, zofXyz(0,0,-zofPi/2), zofXyz(0,0,0));
+		zofPartJointPut(current, currentToNext);
+		nextToCurrent = zofJointNew("prev", zofCapsuleEndPos(zofPartCapsule(next), 0.5));
+		zofPartJointPut(next, nextToCurrent);
+		zofJointAttach(currentToNext, nextToCurrent);
+		current = next;
+	}
 	return zofPartNewGroup("fingerLeft", spread);
 }
 

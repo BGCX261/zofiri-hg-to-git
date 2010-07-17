@@ -163,10 +163,10 @@ zofPart humFingerLeftNew(zofUint phalanxCount) {
 zofPart humHandLeftNew(void) {
 	zofInt f;
 	zofString fingerJointName;
-	zofPart wrist;
-	zofJoint wristToArm;
+	zofPart thumbTwist, wrist;
+	zofJoint thumbTwistToThumb, thumbTwistToWrist, wristToArm, wristToThumbTwist;
 	// Wrist.
-	wrist = zofPartNewCapsule("wrist", 0.03, 0);
+	wrist = zofPartNewCapsule("wrist", 0.03, 0.005);
 	wristToArm = zofJointNew("armLeft", zofCapsuleEndPos(zofPartCapsule(wrist), 0.3));
 	zofPartJointPut(wrist, wristToArm);
 	// Fingers.
@@ -183,6 +183,21 @@ zofPart humHandLeftNew(void) {
 	}
 	// TODO zofFree?
 	free(fingerJointName);
+	// Thumb.
+	thumbTwist = zofPartNewCapsule("thumbTwist", 0.014, 0.004);
+	wristToThumbTwist = zofJointNew("thumbTwist", zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofXyz(1.5,0.7,1), 0));
+	zofJointLimitsRotPut(wristToThumbTwist, zofXyz(0,-zofPi/4,0), zofXyz(0,zofPi/2,0));
+	zofPartJointPut(wrist, wristToThumbTwist);
+	thumbTwistToWrist = zofJointNewEx("wrist", zofCapsuleEndPos(zofPartCapsule(thumbTwist),0.2), zofXyzw(0,0,1,-zofPi/2));
+	zofPartJointPut(thumbTwist, thumbTwistToWrist);
+	thumbTwistToThumb = zofJointNewEx(
+		"thumb",
+		zofCapsuleEndPosEx(zofPartCapsule(thumbTwist), -1, zofXyz(-1,2,0), -1),
+		zofXyzw(0, 1, 0, 0.75*zofPi)
+	);
+	zofPartJointPut(thumbTwist, thumbTwistToThumb);
+	zofJointAttach(thumbTwistToThumb, zofPartJoint(humFingerLeftNew(2), "hand"));
+	zofPartAttach(wrist, thumbTwist);
 	// Hand.
 	return zofPartNewGroup("handLeft", wrist);
 }
@@ -279,8 +294,11 @@ void humUpdate(zofSim sim, zofAny data) {
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), zofPi/4);
 	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0);
-	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/4);
+	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/4);
+	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), 0.6 * zofPi);
 	zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.5 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.2 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? zofPi : -zofPi);
 	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -0.9);
 	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
 }

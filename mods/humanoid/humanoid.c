@@ -100,8 +100,8 @@ zofPart humBaseWheeledNew(void) {
 		// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,zofPi/2)
 		zofXyzw(0,0,1,-zofPi/2)
 	);
-	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan), zofXyz(0,0,zofNan));
-	zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan,0), zofXyz(0,zofNan,0));
+	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan()), zofXyz(0,0,zofNan()));
+	zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,zofNan(),0), zofXyz(0,zofNan(),0));
 	zofPartJointPut(hips, hipsToWheelLeft);
 	zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
 	zofPartMirror(wheelLeft);
@@ -125,7 +125,7 @@ zofPart humBaseWheeledNew(void) {
 	casterBackToSupport = zofJointNew("support", zofXyz(0,0,0));
 	zofPartJointPut(casterBack, casterBackToSupport);
 	supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofXyz(0,-1,-1)));
-	zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan,zofNan,zofNan), zofXyz(zofNan,zofNan,zofNan));
+	zofJointLimitsRotPut(supportToCasterBack, zofXyz(zofNan(),zofNan(),zofNan()), zofXyz(zofNan(),zofNan(),zofNan()));
 	zofPartJointPut(support, supportToCasterBack);
 	zofPartAttach(support, casterBack);
 	zofPartCopyTo(casterBack, zofPartEndPos(support,zofXyz(0,0,1)), "Back", "Front");
@@ -294,16 +294,16 @@ void humUpdate(zofSim sim, zofAny data) {
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), 0.25 * zofPi);
 	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
-	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
-	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), -0.25 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
+	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), -0.25 * zofPi);
 	zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.25 * zofPi);
 	zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25 * zofPi);
 	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? zofPi : -zofPi);
 	zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), 0);
-	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -0.9);
-	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
-	zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0);
-	zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0.5);
+	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
+	//zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0);
+	//zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0);
 }
 
 zofPart humWheelNew(void) {

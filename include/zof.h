@@ -33,8 +33,6 @@ typedef int zofInt;
 typedef double zofNum;
 typedef unsigned int zofUint;
 
-#define zofInf (1/0.0)
-#define zofNan (0/0.0)
 #define zofPi 3.14159265358979323846
 
 // Core opaques.
@@ -136,6 +134,9 @@ zofRefDef(zofMat);
  */
 typedef zofMat zofMatInt;
 
+zofExport zofNum zofNan();
+
+zofExport zofNum zofInf();
 
 zofExport zofVec4 zofXyz(zofNum x, zofNum y, zofNum z);
 

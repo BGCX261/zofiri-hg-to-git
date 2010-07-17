@@ -698,7 +698,7 @@ btTypedConstraint* Joint::createConstraint() {
 			}
 		}
 		static bool abnormal(zofNum num) {
-			return num != num || num == zofInf || num == -zofInf;
+			return num != num || num == zofInf() || num == -zofInf();
 		}
 	};
 	if (!(part && other && other->part)) {
@@ -895,8 +895,8 @@ void GroupPart::extents(btVector3* min, btVector3* max) {
 	min->setZero();
 	max->setZero();
 	struct ExtentsWalker: Walker {
-		GroupPart* group; btVector3* min; btVector3* max;
-		ExtentsWalker(GroupPart* group_, btVector3* min_, btVector3* max_): group(group_), min(min_), max(max_) {}
+		GroupPart* group; btVector3* min_; btVector3* max_;
+		ExtentsWalker(GroupPart* group_, btVector3* min__, btVector3* max__): group(group_), min_(min__), max_(max__) {}
 		void handle(BasicPart* part) {
 			//cerr << "Walking at " << part->name << endl;
 			if (part->inGroup(group)) {
@@ -907,12 +907,12 @@ void GroupPart::extents(btVector3* min, btVector3* max) {
 				partMax = transform(partMax);
 				//cerr << "  Min " << partMin << " and max " << partMax << endl;
 				// TODO Batch forms of min and max would sure be nice.
-				min->setX(btMin(min->getX(),partMin.getX()));
-				min->setY(btMin(min->getY(),partMin.getY()));
-				min->setZ(btMin(min->getZ(),partMin.getZ()));
-				max->setX(btMax(max->getX(),partMax.getX()));
-				max->setY(btMax(max->getY(),partMax.getY()));
-				max->setZ(btMax(max->getZ(),partMax.getZ()));
+				min_->setX(btMin(min_->getX(),partMin.getX()));
+				min_->setY(btMin(min_->getY(),partMin.getY()));
+				min_->setZ(btMin(min_->getZ(),partMin.getZ()));
+				max_->setX(btMax(max_->getX(),partMax.getX()));
+				max_->setY(btMax(max_->getY(),partMax.getY()));
+				max_->setZ(btMax(max_->getZ(),partMax.getZ()));
 			}
 		}
 	} walker(this, min, max);

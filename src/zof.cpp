@@ -1,5 +1,8 @@
 #include "zofiri.h"
+#include <limits>
 #include <stdlib.h>
+
+using namespace std;
 
 namespace zof {
 
@@ -20,6 +23,14 @@ struct Type {
 using namespace zof;
 
 extern "C" {
+
+zofNum zofNan() {
+	return numeric_limits<zofNum>::quiet_NaN();
+}
+
+zofNum zofInf() {
+	return numeric_limits<zofNum>::infinity();
+}
 
 zofNum zofNumMax(zofNum a, zofNum b) {
 	return a > b ? a : b;

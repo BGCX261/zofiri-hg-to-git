@@ -72,7 +72,7 @@ zofPart humArmLeftNew(void) {
 	zofPartAttach(elbow, lower);
 	// Hand.
 	lowerToHand = zofJointNew("handLeft", zofCapsuleEndPos(zofPartCapsule(lower), -1));
-	zofJointLimitsRotPut(lowerToHand, zofXyz(0,-zofPi/2,0), zofXyz(0,zofPi/2,0));
+	zofJointLimitsRotPut(lowerToHand, zofXyz(0,-zofPi/2,0), zofXyz(0,0.7*zofPi,0));
 	zofPartJointPut(lower, lowerToHand);
 	// Arm.
 	armLeft = zofPartNewGroup("armLeft", shoulder);
@@ -292,15 +292,18 @@ void humUpdate(zofSim sim, zofAny data) {
 	i = (i + 1) % max;
 	//zofJointVelPut(zofPartJoint(humanoid, "//neck/skull"), 0.0035);
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
-	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), zofPi/4);
-	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0);
-	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/4);
-	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), 0.6 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.5 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.2 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? zofPi : -zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), 0.25 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
+	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
+	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), -0.25 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.25 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25 * zofPi);
+	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? zofPi : -zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), 0);
 	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), -0.9);
 	//zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
+	zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0);
+	zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0);
 }
 
 zofPart humWheelNew(void) {

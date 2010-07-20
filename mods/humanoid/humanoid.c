@@ -77,7 +77,7 @@ zofPart humArmNew(zofInt side) {
 	zofPartAttach(elbow, lower);
 	// Hand.
 	lowerToHand = zofJointNew(side < 0 ? "handLeft" : "handRight", zofCapsuleEndPos(zofPartCapsule(lower), -1));
-	zofJointLimitsRotPut(lowerToHand, zofV3(0,-0.5,0), zofV3(0,0.7,0));
+	zofJointLimitsRotPut(lowerToHand, zofV3(0, -(side < 0 ? 0.5 : 0.7), 0), zofV3(0, side < 0 ? 0.7 : 0.5, 0));
 	zofPartJointPut(lower, lowerToHand);
 	// Arm.
 	arm = zofPartNewGroup(side < 0 ? "armLeft" : "armRight", shoulder);
@@ -93,6 +93,7 @@ zofPart humBaseWheeledNew(void) {
 	// Hips.
 	hips = zofPartNewCapsule("hips", 0.12, 0.1);
 	hipsToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(hips),0.8));
+	zofJointLimitsRotPut(hipsToTorso, zofV3(0,-0.5,0), zofV3(0,0.5,0));
 	zofPartJointPut(hips, hipsToTorso);
 	hipsToSupport = zofJointNew("support", zofCapsuleEndPos(zofPartCapsule(hips),-1));
 	zofPartJointPut(hips, hipsToSupport);
@@ -224,6 +225,7 @@ zofPart humHeadNew(void) {
 	// Neck.
 	neck = zofPartNewCapsule("neck", 0.04, 0);
 	neckToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(neck),-0.3));
+	zofJointLimitsRotPut(neckToTorso, zofV3(0,-0.5,0), zofV3(0,0.5,0));
 	zofPartJointPut(neck, neckToTorso);
 	neckToSkull = zofJointNewEx(
 		"skull",
@@ -279,6 +281,7 @@ zofPart humTorsoNew(void) {
 	// Abdomen.
 	abdomen = zofPartNewCapsule("abdomen", 0.08, 0.05);
 	abdomenToChest = zofJointNew("chest", zofCapsuleEndPos(zofPartCapsule(abdomen),0.5));
+	zofJointLimitsRotPut(abdomenToChest, zofV3(-0.05,0,0), zofV3(0.75,0,0));
 	zofPartJointPut(abdomen, abdomenToChest);
 	abdomenToBase = zofJointNew("base", zofCapsuleEndPos(zofPartCapsule(abdomen),-0.5));
 	zofPartJointPut(abdomen, abdomenToBase);
@@ -299,8 +302,9 @@ void humUpdate(zofSim sim, zofAny data) {
 	static const zofInt max = 400;
 	zofPart humanoid = (zofPart)data;
 	i = (i + 1) % max;
-	//zofJointVelPut(zofPartJoint(humanoid, "//neck/skull"), 0.0035);
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
+	zofJointPosPut(zofPartJoint(humanoid, "//neck/torso"), i < max/2 ? 0.25 : -0.25);
+	zofJointPosPut(zofPartJoint(humanoid, "//chest/abdomen"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), 0.25);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armRight"), -0.25);
 	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0);
@@ -310,6 +314,7 @@ void humUpdate(zofSim sim, zofAny data) {
 	//zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25);
 	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? 1 : -1);
 	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), 0);
+	zofJointPosPut(zofPartJoint(humanoid, "//hips/torso"), i < max/2 ? -0.25 : 0.25);
 	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0.15);
 	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.15);
 	//zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0);

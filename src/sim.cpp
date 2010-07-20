@@ -71,7 +71,7 @@ struct Joint: Any {
 	 */
 	btTypedConstraint* createConstraint();
 
-	void limitsRotPut(const zofRad3& min, const zofRad3& max);
+	void limitsRotPut(const zofRat3& min, const zofRat3& max);
 
 	/**
 	 * Returns a mirror of this joint about the X axis, including any necessary changes to joint limits.
@@ -214,7 +214,7 @@ using namespace zof;
 extern "C" {
 
 zofVec4 zofCapsuleEndPos(zofCapsule capsule, zofNum radius_ratio) {
-	return zofCapsuleEndPosEx(capsule, radius_ratio, zofXyz(0,1,0), 1);
+	return zofCapsuleEndPosEx(capsule, radius_ratio, zofV3(0,1,0), 1);
 }
 
 zofVec4 zofCapsuleEndPosEx(
@@ -252,7 +252,7 @@ void zofJointAttach(zofJoint joint, zofJoint kid) {
 	Joint::of(joint)->attach(Joint::of(kid));
 }
 
-void zofJointLimitsRotPut(zofJoint joint, zofRad3 min, zofRad3 max) {
+void zofJointLimitsRotPut(zofJoint joint, zofRat3 min, zofRat3 max) {
 	Joint::of(joint)->limitsRotPut(min, max);
 }
 
@@ -261,12 +261,12 @@ zofString zofJointName(zofJoint joint) {
 }
 
 zofJoint zofJointNew(zofString name, zofM3 pos) {
-	return zofJointNewEx(name, pos, zofXyzw(0,1,0,0));
+	return zofJointNewEx(name, pos, zofV4(0,1,0,0));
 }
 
-zofJoint zofJointNewEx(zofString name, zofM3 pos, zofM3Rad rot) {
+zofJoint zofJointNewEx(zofString name, zofM3 pos, zofM3Rat rot) {
 	Joint* joint = new Joint(name);
-	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3])));
+	joint->transform.setRotation(btQuaternion(vec4ToBt3(rot),btScalar(rot.vals[3]*zofPi)));
 	joint->transform.setOrigin(vec4ToBt3(pos,zofBtScale));
 	return joint->asC();
 }
@@ -404,11 +404,11 @@ zofVec4 zofPartPos(zofPart part) {
 	return bt3ToVec4(Part::of(part)->getTransform().getOrigin(), 1/zofBtScale);
 }
 
-void zofPartPosAdd(zofPart part, zofVec4 pos) {
+void zofPartPosAdd(zofPart part, zofM3 pos) {
 	// TODO
 }
 
-void zofPartPosPut(zofPart part, zofVec4 pos) {
+void zofPartPosPut(zofPart part, zofM3 pos) {
 	Part::of(part)->setPos(vec4ToBt3(pos, zofBtScale));
 }
 
@@ -431,11 +431,11 @@ zofVec4 zofPartRadii(zofPart part) {
 	return radii;
 }
 
-void zofPartRotAdd(zofPart part, zofVec4 rot) {
+void zofPartRotAdd(zofPart part, zofM3Rat rot) {
 	// TODO
 }
 
-void zofPartRotPut(zofPart part, zofVec4 rot) {
+void zofPartRotPut(zofPart part, zofM3Rat rot) {
 	// TODO
 }
 
@@ -730,7 +730,7 @@ btTypedConstraint* Joint::createConstraint() {
 			btVector3 min, max;
 			Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
 			//cerr << "Limits for " << name << ": " << min << " to " << max << endl;
-			constraint->setLimit(min.m_floats[index], max.m_floats[index]);
+			constraint->setLimit(min.m_floats[index] * zofPi, max.m_floats[index] * zofPi);
 			constraint->setMaxMotorImpulse(defaultMaxMotorForce);
 			this->constraint = constraint;
 			other->constraint = constraint;
@@ -743,8 +743,8 @@ btTypedConstraint* Joint::createConstraint() {
 	// TODO Consider other, and make the limits be the extreme of the two?
 	btVector3 min, max;
 	Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
-	constraint->setAngularLowerLimit(min);
-	constraint->setAngularUpperLimit(max);
+	constraint->setAngularLowerLimit(min * zofPi);
+	constraint->setAngularUpperLimit(max * zofPi);
 	Limits::constraintLimits(&min, &max, posLimits, other->posLimits);
 	constraint->setLinearLowerLimit(min*zofBtScale);
 	constraint->setLinearUpperLimit(max*zofBtScale);
@@ -776,7 +776,7 @@ btTypedConstraint* Joint::createConstraint() {
 	return constraint;
 }
 
-void Joint::limitsRotPut(const zofRad3& min, const zofRad3& max) {
+void Joint::limitsRotPut(const zofRat3& min, const zofRat3& max) {
 	rotLimits.min = min;
 	rotLimits.max = max;
 }
@@ -834,7 +834,7 @@ void Joint::posPut(zofNum pos) {
 				constraint->enableMotor(true);
 				// TODO Parameterize target speed and/or target time.
 				// TODO Remember target pos in our joint DB and go through them to update at each step??
-				constraint->setMotorTarget(pos, 0.5);
+				constraint->setMotorTarget(pos * zofPi, 0.5);
 			} else {
 				constraint->enableMotor(false);
 			}
@@ -854,6 +854,7 @@ void Joint::velPut(zofNum vel) {
 	int index;
 	bool rot;
 	if (moveableDof(&index, &rot)) {
+		vel = vel * zofPi;
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
 		if (rot) {
 			if (zofHingeForRot1) {
@@ -950,7 +951,7 @@ void GroupPart::init(BasicPart* part, BasicPart* parent) {
 	// TODO Do I really need to dynamic_cast to guarantee equal pointer values???
 	// TODO The cerr log of pointer below indicates not, but I haven't tested all platforms.
 	Part* partInGroup = part;
-	Part* thisAsPart = dynamic_cast<Part*>(this);
+	Part* thisAsPart = this;
 	// cerr << this << " vs. " << thisAsPart << endl;
 	while (partInGroup != thisAsPart) {
 		if (!partInGroup->group) {

@@ -118,12 +118,17 @@ typedef zofNum zofM;
  */
 typedef zofExtents3 zofExtentsM3;
 typedef zofVec3 zofM3;
-typedef zofVec3 zofRad3;
+
+/**
+ * Here "rat" means "ratio of pi" or in other words, radians/pi.
+ * So, say '0.5' instead of '0.5*zofPi', for example.
+ */
+typedef zofVec3 zofRat3;
 
 /**
  * For axis-angle orientations.
  */
-typedef zofVec4 zofM3Rad;
+typedef zofVec4 zofM3Rat;
 
 // Math opaques.
 
@@ -138,9 +143,9 @@ zofExport zofNum zofNan();
 
 zofExport zofNum zofInf();
 
-zofExport zofVec4 zofXyz(zofNum x, zofNum y, zofNum z);
+zofExport zofVec4 zofV3(zofNum x, zofNum y, zofNum z);
 
-zofExport zofVec4 zofXyzw(zofNum x, zofNum y, zofNum z, zofNum w);
+zofExport zofVec4 zofV4(zofNum x, zofNum y, zofNum z, zofNum w);
 
 
 // More domainish stuff.
@@ -189,7 +194,7 @@ zofExport zofNum zofCapsuleRadius(zofCapsule capsule);
  */
 zofExport void zofJointAttach(zofJoint joint, zofJoint kid);
 
-zofExport void zofJointLimitsRotPut(zofJoint joint, zofRad3 min, zofRad3 max);
+zofExport void zofJointLimitsRotPut(zofJoint joint, zofRat3 min, zofRat3 max);
 
 zofExport zofString zofJointName(zofJoint joint);
 
@@ -198,7 +203,7 @@ zofExport zofString zofJointName(zofJoint joint);
  */
 zofExport zofJoint zofJointNew(zofString name, zofM3 pos);
 
-zofExport zofJoint zofJointNewEx(zofString name, zofM3 pos, zofM3Rad rot);
+zofExport zofJoint zofJointNewEx(zofString name, zofM3 pos, zofM3Rat rot);
 
 zofExport zofJoint zofJointOther(zofJoint joint);
 
@@ -212,6 +217,9 @@ zofExport void zofJointPosPut(zofJoint joint, zofNum pos);
  */
 zofExport void zofJointVelPut(zofJoint joint, zofNum vel);
 
+/**
+ * TODO Do I really want any of this?
+ */
 zofExport zofNum zofMatGet(zofMat, zofMat pos);
 zofExport zofInt zofMatGetInt(zofMat, zofMat pos);
 zofExport zofNum zofMatGet1D(zofMat, zofInt i);
@@ -297,15 +305,15 @@ zofExport zofPartKind zofPartPartKind(zofPart part);
 
 zofExport zofVec4 zofPartPos(zofPart part);
 
-zofExport void zofPartPosAdd(zofPart part, zofVec4 pos);
+zofExport void zofPartPosAdd(zofPart part, zofM3 pos);
 
-zofExport void zofPartPosPut(zofPart part, zofVec4 pos);
+zofExport void zofPartPosPut(zofPart part, zofM3 pos);
 
 zofExport zofVec4 zofPartRadii(zofPart part);
 
-zofExport void zofPartRotAdd(zofPart part, zofVec4 rot);
+zofExport void zofPartRotAdd(zofPart part, zofM3Rat rot);
 
-zofExport void zofPartRotPut(zofPart part, zofVec4 rot);
+zofExport void zofPartRotPut(zofPart part, zofM3Rat rot);
 
 
 zofExport void zofSimPartAdd(zofSim sim, zofPart part);

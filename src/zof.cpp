@@ -72,11 +72,11 @@ zofRefClose zofTypeRefClose(zofType type) {
 	return reinterpret_cast<Type*>(type)->info.close;
 }
 
-zofVec4 zofXyz(zofNum x, zofNum y, zofNum z) {
-	return zofXyzw(x,y,z,0);
+zofVec4 zofV3(zofNum x, zofNum y, zofNum z) {
+	return zofV4(x,y,z,0);
 }
 
-zofVec4 zofXyzw(zofNum x, zofNum y, zofNum z, zofNum w) {
+zofVec4 zofV4(zofNum x, zofNum y, zofNum z, zofNum w) {
 	zofVec4 vec;
 	vec.vals[0] = x;
 	vec.vals[1] = y;

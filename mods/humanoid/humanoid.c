@@ -3,13 +3,13 @@
 #include <string.h>
 #include "zof.h"
 
-zofPart humArmLeftNew(void);
+zofPart humArmNew(zofInt side);
 
 zofPart humBaseWheeledNew(void);
 
-zofPart humFingerLeftNew(zofUint phalanxCount);
+zofPart humFingerNew(zofInt side, zofUint phalanxCount);
 
-zofPart humHandLeftNew(void);
+zofPart humHandNew(zofInt side);
 
 zofPart humHeadNew(void);
 
@@ -37,14 +37,15 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	return zofTrue;
 }
 
-zofPart humArmLeftNew(void) {
-	zofPart armLeft, elbow, lower, shoulder, upper;
+zofPart humArmNew(zofInt side) {
+	zofPart arm, elbow, lower, shoulder, upper;
 	zofJoint
 		elbowToLower, elbowToUpper, lowerToElbow, lowerToHand,
 		shoulderToUpper, shoulderToTorso, upperToElbow, upperToShoulder;
 	// Shoulder.
 	shoulder = zofPartNewCapsule("shoulder", 0.05, 0);
 	shoulderToTorso = zofJointNew("torso", zofXyz(0,0,0));
+	zofJointLimitsRotPut(shoulderToTorso, zofXyz(0,0,side*zofPi/4), zofXyz(0,0,-side*zofPi));
 	zofPartJointPut(shoulder, shoulderToTorso);
 	// Upper.
 	upper = zofPartNewCapsule("upper", 0.03, 0.05);
@@ -71,13 +72,13 @@ zofPart humArmLeftNew(void) {
 	zofPartJointPut(lower, lowerToElbow);
 	zofPartAttach(elbow, lower);
 	// Hand.
-	lowerToHand = zofJointNew("handLeft", zofCapsuleEndPos(zofPartCapsule(lower), -1));
+	lowerToHand = zofJointNew(side < 0 ? "handLeft" : "handRight", zofCapsuleEndPos(zofPartCapsule(lower), -1));
 	zofJointLimitsRotPut(lowerToHand, zofXyz(0,-zofPi/2,0), zofXyz(0,0.7*zofPi,0));
 	zofPartJointPut(lower, lowerToHand);
 	// Arm.
-	armLeft = zofPartNewGroup("armLeft", shoulder);
-	zofPartAttach(armLeft, humHandLeftNew());
-	return armLeft;
+	arm = zofPartNewGroup(side < 0 ? "armLeft" : "armRight", shoulder);
+	zofPartAttach(arm, humHandNew(side));
+	return arm;
 }
 
 zofPart humBaseWheeledNew(void) {
@@ -133,7 +134,7 @@ zofPart humBaseWheeledNew(void) {
 	return zofPartNewGroup("base", hips);
 }
 
-zofPart humFingerLeftNew(zofUint phalanxCount) {
+zofPart humFingerNew(zofInt side, zofUint phalanxCount) {
 	zofInt p;
 	zofPart current, spread;
 	zofJoint fingerToHand;
@@ -141,7 +142,7 @@ zofPart humFingerLeftNew(zofUint phalanxCount) {
 	// TODO Could 6-DOF avoid this? Or do I still fear 6-DOF instability?
 	spread = zofPartNewCapsule("spread", 0.01, 0);
 	fingerToHand = zofJointNew("hand", zofCapsuleEndPos(zofPartCapsule(spread), 0.5));
-	zofJointLimitsRotPut(fingerToHand, zofXyz(-zofPi/5,0,0), zofXyz(-zofPi/5,0,0));
+	zofJointLimitsRotPut(fingerToHand, zofXyz(-zofPi/5,0,0), zofXyz(zofPi/5,0,0));
 	zofPartJointPut(spread, fingerToHand);
 	current = spread;
 	for (p = 0; p < phalanxCount; p++) {
@@ -150,7 +151,7 @@ zofPart humFingerLeftNew(zofUint phalanxCount) {
 		// TODO Number them?
 		next = zofPartNewCapsule("phalanx", 0.01, 0.006);
 		currentToNext = zofJointNew("next", zofCapsuleEndPos(zofPartCapsule(current), -0.5));
-		zofJointLimitsRotPut(currentToNext, zofXyz(0,0,-zofPi/2), zofXyz(0,0,0));
+		zofJointLimitsRotPut(currentToNext, zofXyz(0,0,side*zofPi/2), zofXyz(0,0,0));
 		zofPartJointPut(current, currentToNext);
 		nextToCurrent = zofJointNew("prev", zofCapsuleEndPos(zofPartCapsule(next), 0.5));
 		zofPartJointPut(next, nextToCurrent);
@@ -160,14 +161,14 @@ zofPart humFingerLeftNew(zofUint phalanxCount) {
 	return zofPartNewGroup("fingerLeft", spread);
 }
 
-zofPart humHandLeftNew(void) {
+zofPart humHandNew(zofInt side) {
 	zofInt f;
 	zofString fingerJointName;
 	zofPart thumbTwist, wrist;
 	zofJoint thumbTwistToThumb, thumbTwistToWrist, wristToArm, wristToThumbTwist;
 	// Wrist.
 	wrist = zofPartNewCapsule("wrist", 0.03, 0.005);
-	wristToArm = zofJointNew("armLeft", zofCapsuleEndPos(zofPartCapsule(wrist), 0.3));
+	wristToArm = zofJointNew(side < 0 ? "armLeft" : "armRight", zofCapsuleEndPos(zofPartCapsule(wrist), 0.3));
 	zofPartJointPut(wrist, wristToArm);
 	// Fingers.
 	// TODO Better strings yet???
@@ -175,17 +176,18 @@ zofPart humHandLeftNew(void) {
 	for (f = 0; f < 3; f++) {
 		zofPart finger;
 		zofJoint wristToFinger;
-		finger = humFingerLeftNew(3);
+		finger = humFingerNew(side, 3);
 		sprintf(fingerJointName, "finger%d", f);
-		wristToFinger = zofJointNew(fingerJointName, zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofXyz(1,-2,2*(f-1)), 1));
+		wristToFinger = zofJointNew(fingerJointName, zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofXyz(-side,-2,2*(f-1)), 1));
 		zofPartJointPut(wrist, wristToFinger);
 		zofJointAttach(wristToFinger, zofPartJoint(finger, "hand"));
 	}
 	// TODO zofFree?
 	free(fingerJointName);
 	// Thumb.
+	// TODO How does side affect this mess?
 	thumbTwist = zofPartNewCapsule("thumbTwist", 0.014, 0.004);
-	wristToThumbTwist = zofJointNew("thumbTwist", zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofXyz(1.5,0.7,1), 0));
+	wristToThumbTwist = zofJointNew("thumbTwist", zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofXyz(-side*1.5,0.7,1), 0));
 	zofJointLimitsRotPut(wristToThumbTwist, zofXyz(0,-zofPi/4,0), zofXyz(0,zofPi/2,0));
 	zofPartJointPut(wrist, wristToThumbTwist);
 	thumbTwistToWrist = zofJointNewEx("wrist", zofCapsuleEndPos(zofPartCapsule(thumbTwist),0.2), zofXyzw(0,0,1,-zofPi/2));
@@ -196,10 +198,10 @@ zofPart humHandLeftNew(void) {
 		zofXyzw(0, 1, 0, 0.75*zofPi)
 	);
 	zofPartJointPut(thumbTwist, thumbTwistToThumb);
-	zofJointAttach(thumbTwistToThumb, zofPartJoint(humFingerLeftNew(2), "hand"));
+	zofJointAttach(thumbTwistToThumb, zofPartJoint(humFingerNew(side, 2), "hand"));
 	zofPartAttach(wrist, thumbTwist);
 	// Hand.
-	return zofPartNewGroup("handLeft", wrist);
+	return zofPartNewGroup(side < 0 ? "handLeft" : "handRight", wrist);
 }
 
 zofPart humHeadNew(void) {
@@ -247,13 +249,16 @@ zofPart humHeadNew(void) {
 
 zofPart humHumanoidNew(void) {
 	zofPart humanoid, torso;
+	// Torso, head, and base.
 	torso = humTorsoNew();
 	zofPartAttach(torso, humHeadNew());
 	zofPartAttach(torso, humBaseWheeledNew());
-	zofPartAttach(torso, humArmLeftNew());
-	// TODO Mirror arm.
+	// Arms.
+	zofPartAttach(torso, humArmNew(-1));
+	zofPartAttach(torso, humArmNew(1));
+	// TODO zofPartMirror(armLeft);
+	// Humanoid.
 	humanoid = zofPartNewGroup("humanoid", torso);
-	//humanoid = humBaseWheeledNew();
 	zofPartMaterialPut(humanoid, zofMaterialNew(0xFF808080,1));
 	return humanoid;
 }
@@ -279,8 +284,8 @@ zofPart humTorsoNew(void) {
 	// TODO However, that's less convenient at the moment.
 	// TODO It might even make sense to make shoulders part of the torso.
 	chestToArmLeft = zofJointNew("armLeft", zofCapsuleEndPosEx(zofPartCapsule(chest), 1.4, zofXyz(-1.5,1,0), 1));
-	zofJointLimitsRotPut(chestToArmLeft, zofXyz(0,0,-zofPi/4), zofXyz(0,0,zofPi));
 	zofPartJointPut(chest, chestToArmLeft);
+	zofPartJointPut(chest, zofJointNew("armRight", zofCapsuleEndPosEx(zofPartCapsule(chest), 1.4, zofXyz(1.5,1,0), 1)));
 	// Torso.
 	return zofPartNewGroup("torso", chest);
 }
@@ -293,13 +298,13 @@ void humUpdate(zofSim sim, zofAny data) {
 	//zofJointVelPut(zofPartJoint(humanoid, "//neck/skull"), 0.0035);
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), 0.25 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
+	//zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
+	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
 	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), -0.25 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.25 * zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25 * zofPi);
+	//zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.25 * zofPi);
+	//zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25 * zofPi);
 	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), i < max/2 ? zofPi : -zofPi);
-	zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), 0);
+	//zofJointPosPut(zofPartJoint(humanoid, "//wrist/thumbTwist"), 0);
 	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0.5);
 	zofJointVelPut(zofPartJoint(humanoid, "//hips/wheelRight"), 0.5);
 	//zofJointPosPut(zofPartJoint(humanoid, "//hips/wheelLeft"), 0);

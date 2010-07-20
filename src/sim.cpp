@@ -794,14 +794,14 @@ bool Joint::moveableDof(int* index, bool* rot) {
 	*rot = true;
 	bool multi = false;
 	for (int i = 0; i < 3; i++) {
-		if (rotLimits.min.vals[i] != rotLimits.max.vals[i]) {
+		if (rotLimits.min.vals[i] != rotLimits.max.vals[i] || (other && other->rotLimits.min.vals[i] != other->rotLimits.max.vals[i])) {
 			if (*index >= 0) {
 				multi = true;
 				break;
 			}
 			*index = i;
 		}
-		if (posLimits.min.vals[i] != posLimits.max.vals[i]) {
+		if (posLimits.min.vals[i] != posLimits.max.vals[i] || (other && other->posLimits.min.vals[i] != other->posLimits.max.vals[i])) {
 			if (*index >= 0) {
 				multi = true;
 				break;

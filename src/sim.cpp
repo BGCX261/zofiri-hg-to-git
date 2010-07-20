@@ -729,6 +729,7 @@ btTypedConstraint* Joint::createConstraint() {
 			// Doesn't seem to do what I'd like: constraint->setAxis(axis);
 			btVector3 min, max;
 			Limits::constraintLimits(&min, &max, rotLimits, other->rotLimits);
+			//cerr << "Limits for " << name << ": " << min << " to " << max << endl;
 			constraint->setLimit(min.m_floats[index], max.m_floats[index]);
 			constraint->setMaxMotorImpulse(defaultMaxMotorForce);
 			this->constraint = constraint;
@@ -817,7 +818,7 @@ bool Joint::moveableDof(int* index, bool* rot) {
 }
 
 void Joint::posPut(zofNum pos) {
-	if (!constraint) {
+	if (!(this && constraint)) {
 		return;
 	}
 	// TODO zofIsNan
@@ -829,6 +830,7 @@ void Joint::posPut(zofNum pos) {
 			// Hinge version.
 			btHingeConstraint* constraint = dynamic_cast<btHingeConstraint*>(this->constraint);
 			if (enableMotor) {
+				//cerr << "Setting pos for " << name << " to " << pos << endl;
 				constraint->enableMotor(true);
 				// TODO Parameterize target speed and/or target time.
 				// TODO Remember target pos in our joint DB and go through them to update at each step??

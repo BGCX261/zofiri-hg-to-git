@@ -45,7 +45,11 @@ zofPart humArmNew(zofInt side) {
 	// Shoulder.
 	shoulder = zofPartNewCapsule("shoulder", 0.05, 0);
 	shoulderToTorso = zofJointNew("torso", zofXyz(0,0,0));
-	zofJointLimitsRotPut(shoulderToTorso, zofXyz(0,0,side*zofPi/4), zofXyz(0,0,-side*zofPi));
+	zofJointLimitsRotPut(
+		shoulderToTorso,
+		zofXyz(0, 0, -zofPi * (side < 0 ? 0.25 : 1)),
+		zofXyz(0, 0, zofPi * (side < 0 ? 1 : 0.25))
+	);
 	zofPartJointPut(shoulder, shoulderToTorso);
 	// Upper.
 	upper = zofPartNewCapsule("upper", 0.03, 0.05);
@@ -151,7 +155,7 @@ zofPart humFingerNew(zofInt side, zofUint phalanxCount) {
 		// TODO Number them?
 		next = zofPartNewCapsule("phalanx", 0.01, 0.006);
 		currentToNext = zofJointNew("next", zofCapsuleEndPos(zofPartCapsule(current), -0.5));
-		zofJointLimitsRotPut(currentToNext, zofXyz(0,0,side*zofPi/2), zofXyz(0,0,0));
+		zofJointLimitsRotPut(currentToNext, zofXyz(0, 0, side < 0 ? -zofPi/2 : 0), zofXyz(0, 0, side < 0 ? 0 : zofPi/2));
 		zofPartJointPut(current, currentToNext);
 		nextToCurrent = zofJointNew("prev", zofCapsuleEndPos(zofPartCapsule(next), 0.5));
 		zofPartJointPut(next, nextToCurrent);
@@ -298,8 +302,9 @@ void humUpdate(zofSim sim, zofAny data) {
 	//zofJointVelPut(zofPartJoint(humanoid, "//neck/skull"), 0.0035);
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//chest/armLeft"), 0.25 * zofPi);
-	//zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
-	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
+	zofJointPosPut(zofPartJoint(humanoid, "//chest/armRight"), -0.25 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//shoulder/upper"), 0 * zofPi);
+	zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), i < max/2 ? zofPi/2 : -zofPi/2);
 	//zofJointPosPut(zofPartJoint(humanoid, "//upper/elbow"), -0.25 * zofPi);
 	//zofJointPosPut(zofPartJoint(humanoid, "//elbow/lower"), 0.25 * zofPi);
 	//zofJointPosPut(zofPartJoint(humanoid, "//lower/handLeft"), 0.25 * zofPi);

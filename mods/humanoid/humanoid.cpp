@@ -8,75 +8,88 @@ using namespace std;
 
 namespace hum {
 
+struct Part {
+
+	/**
+	 * Just a convenience for zofPartAttach.
+	 */
+	void attach(Part* part);
+
+	zofPart zof;
+
+};
+
 struct Arm;
-struct BaseWheeled;
 struct Finger;
 struct Hand;
 struct Head;
 struct Humanoid;
 struct Torso;
+struct WheeledBase;
 
-struct Arm {
+struct Arm: Part {
+
+	Arm(int side);
+
 	Hand* hand;
 	zofJoint shoulderToTorso;
 	zofJoint shoulderToUpper;
 	zofJoint upperToElbow;
-	zofPart zof;
+
 };
 
-struct BaseWheeled {
-	zofJoint baseToTorso;
-	vector<zofJoint> baseToWheel;
-	zofPart zof;
-};
-
-struct Finger {
+struct Finger: Part {
 	zofJoint spreadToHand;
 	vector<zofJoint> curl;
-	zofPart zof;
 };
 
-struct Head {
-	zofJoint neckToHead;
+struct Head: Part {
+
+	Head();
+
+	zofJoint neckToSkull;
 	zofJoint neckToTorso;
-	zofPart zof;
+
 };
 
-struct Hand {
+struct Hand: Part {
 	vector<Finger*> fingers;
 	zofJoint lowerToWrist;
 	zofJoint palmToThumbTwist;
 	Finger* thumb;
-	zofPart zof;
 };
 
-struct Humanoid {
+struct Humanoid: Part {
 
 	Humanoid();
 
 	vector<Arm*> arms;
-	BaseWheeled* base;
+	WheeledBase* base;
 	Head* head;
 	Torso* torso;
-	zofPart zof;
+
 };
 
-struct Torso {
+struct Torso: Part {
+
+	Torso();
+
 	zofJoint chestToAbdomen;
-	zofPart zof;
+
 };
 
-zofPart humArmNew(zofInt side);
+struct WheeledBase: Part {
 
-zofPart humBaseWheeledNew(void);
+	WheeledBase();
+
+	zofJoint hipsToTorso;
+	vector<zofJoint> hipsToWheels;
+
+};
 
 zofPart humFingerNew(zofInt side, zofUint phalanxCount);
 
 zofPart humHandNew(zofInt side);
-
-zofPart humHeadNew(void);
-
-zofPart humTorsoNew(void);
 
 /**
  * So far, our tires are simple, but it's so easy to imagine them as
@@ -104,11 +117,13 @@ extern "C" zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 
 namespace hum {
 
-zofPart humArmNew(zofInt side) {
-	zofPart arm, elbow, lower, shoulder, upper;
-	zofJoint
-		elbowToLower, elbowToUpper, lowerToElbow, lowerToHand,
-		shoulderToUpper, shoulderToTorso, upperToElbow, upperToShoulder;
+void Part::attach(Part* part) {
+	zofPartAttach(zof, part->zof);
+}
+
+Arm::Arm(int side) {
+	zofPart elbow, lower, shoulder, upper;
+	zofJoint elbowToLower, elbowToUpper, lowerToElbow, lowerToHand, upperToShoulder;
 	// Shoulder.
 	shoulder = zofPartNewCapsule("shoulder", 0.05, 0);
 	shoulderToTorso = zofJointNew("torso", zofV3(0,0,0));
@@ -147,63 +162,8 @@ zofPart humArmNew(zofInt side) {
 	zofJointLimitsRotPut(lowerToHand, zofV3(0, -(side < 0 ? 0.5 : 0.7), 0), zofV3(0, side < 0 ? 0.7 : 0.5, 0));
 	zofPartJointPut(lower, lowerToHand);
 	// Arm.
-	arm = zofPartNewGroup(side < 0 ? "armLeft" : "armRight", shoulder);
-	zofPartAttach(arm, humHandNew(side));
-	return arm;
-}
-
-zofPart humBaseWheeledNew(void) {
-	zofPart casterBack, hips, support, wheelLeft;
-	zofJoint
-		casterBackToSupport, hipsToSupport, hipsToTorso, hipsToWheelLeft,
-		supportToHips, supportToCasterBack;
-	// Hips.
-	hips = zofPartNewCapsule("hips", 0.12, 0.1);
-	hipsToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(hips),0.8));
-	zofJointLimitsRotPut(hipsToTorso, zofV3(0,-0.5,0), zofV3(0,0.5,0));
-	zofPartJointPut(hips, hipsToTorso);
-	hipsToSupport = zofJointNew("support", zofCapsuleEndPos(zofPartCapsule(hips),-1));
-	zofPartJointPut(hips, hipsToSupport);
-	// Wheels.
-	wheelLeft = humWheelNew();
-	zofPartNamePut(wheelLeft, "wheelLeft");
-	hipsToWheelLeft = zofJointNewEx(
-		"wheelLeft",
-		zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofV3(-1,0,0), -1),
-		// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,0.5)
-		zofV4(0,0,1,-0.5)
-	);
-	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan()), zofXyz(0,0,zofNan()));
-	zofJointLimitsRotPut(hipsToWheelLeft, zofV3(0,zofNan(),0), zofV3(0,zofNan(),0));
-	zofPartJointPut(hips, hipsToWheelLeft);
-	zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
-	zofPartMirror(wheelLeft);
-	// Support.
-	support = zofPartNewCylinder(
-		"support",
-		zofV3(0.8*zofCapsuleRadius(zofPartCapsule(hips)), 0.015, 0.15)
-	);
-	zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
-	supportToHips = zofJointNew("hips", zofV3(0,0,0));
-	zofPartJointPut(support, supportToHips);
-	zofPartAttach(hips, support);
-	// Casters.
-	casterBack = zofPartNewCapsule(
-		"casterBack",
-		// Make the casters just big enough to reach the same base point as the wheels.
-		zofPartRadii(wheelLeft).vals[0] - (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]) - zofPartRadii(support).vals[1],
-		0
-	);
-	zofPartMaterialPut(casterBack, zofPartMaterial(wheelLeft));
-	casterBackToSupport = zofJointNew("support", zofV3(0,0,0));
-	zofPartJointPut(casterBack, casterBackToSupport);
-	supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofV3(0,-1,-1)));
-	zofJointLimitsRotPut(supportToCasterBack, zofV3(zofNan(),zofNan(),zofNan()), zofV3(zofNan(),zofNan(),zofNan()));
-	zofPartJointPut(support, supportToCasterBack);
-	zofPartAttach(support, casterBack);
-	zofPartCopyTo(casterBack, zofPartEndPos(support,zofV3(0,0,1)), "Back", "Front");
-	// Base.
-	return zofPartNewGroup("base", hips);
+	zof = zofPartNewGroup(side < 0 ? "armLeft" : "armRight", shoulder);
+	zofPartAttach(zof, humHandNew(side));
 }
 
 zofPart humFingerNew(zofInt side, zofUint phalanxCount) {
@@ -278,9 +238,9 @@ zofPart humHandNew(zofInt side) {
 	return zofPartNewGroup(side < 0 ? "handLeft" : "handRight", wrist);
 }
 
-zofPart humHeadNew(void) {
+Head::Head() {
 	zofPart eyeLeft, neck, skull;
-	zofJoint eyeLeftToSkull, neckToSkull, neckToTorso, skullToEyeLeft, skullToNeck;
+	zofJoint eyeLeftToSkull, skullToEyeLeft, skullToNeck;
 	// Skull.
 	skull = zofPartNewCapsule("skull", 0.06, 0.01);
 	//zofPartMaterialPut(skull, zofMaterialNew(0xFFA0A0A0, 0.1));
@@ -319,35 +279,36 @@ zofPart humHeadNew(void) {
 	zofPartAttach(skull, eyeLeft);
 	zofPartMirror(eyeLeft);
 	// Head.
-	return zofPartNewGroup("head", skull);
+	zof = zofPartNewGroup("head", skull);
 }
 
 Humanoid::Humanoid() {
-	zofPart torso;
 	// Torso, head, and base.
-	torso = humTorsoNew();
-	zofPartAttach(torso, humHeadNew());
-	zofPartAttach(torso, humBaseWheeledNew());
+	torso = new Torso();
+	torso->attach(head = new Head());
+	torso->attach(base = new WheeledBase());
 	// Arms.
-	zofPartAttach(torso, humArmNew(-1));
-	zofPartAttach(torso, humArmNew(1));
+	Arm* arm;
+	torso->attach(arm = new Arm(-1));
+	arms.push_back(arm);
 	// TODO zofPartMirror(armLeft);
+	torso->attach(arm = new Arm(1));
+	arms.push_back(arm);
 	// Humanoid.
-	zof = zofPartNewGroup("humanoid", torso);
+	zof = zofPartNewGroup("humanoid", torso->zof);
 	zofPartMaterialPut(zof, zofMaterialNew(0xFF808080,1));
 }
 
-zofPart humTorsoNew(void) {
-	zofPart abdomen, chest;
-	zofJoint abdomenToBase, abdomenToChest, chestToAbdomen, chestToArmLeft, chestToHead;
+Torso::Torso() {
+	zofJoint abdomenToBase, abdomenToChest, chestToArmLeft, chestToHead;
 	// Chest.
-	chest = zofPartNewCapsule("chest", 0.1, 0.0725);
+	zofPart chest = zofPartNewCapsule("chest", 0.1, 0.0725);
 	chestToAbdomen = zofJointNew("abdomen", zofCapsuleEndPos(zofPartCapsule(chest),-0.5));
 	zofPartJointPut(chest, chestToAbdomen);
 	chestToHead = zofJointNew("head", zofCapsuleEndPos(zofPartCapsule(chest), 1));
 	zofPartJointPut(chest, chestToHead);
 	// Abdomen.
-	abdomen = zofPartNewCapsule("abdomen", 0.08, 0.05);
+	zofPart abdomen = zofPartNewCapsule("abdomen", 0.08, 0.05);
 	abdomenToChest = zofJointNew("chest", zofCapsuleEndPos(zofPartCapsule(abdomen),0.5));
 	zofJointLimitsRotPut(abdomenToChest, zofV3(-0.05,0,0), zofV3(0.75,0,0));
 	zofPartJointPut(abdomen, abdomenToChest);
@@ -362,7 +323,7 @@ zofPart humTorsoNew(void) {
 	zofPartJointPut(chest, chestToArmLeft);
 	zofPartJointPut(chest, zofJointNew("armRight", zofCapsuleEndPosEx(zofPartCapsule(chest), 1.4, zofV3(1.5,1,0), 1)));
 	// Torso.
-	return zofPartNewGroup("torso", chest);
+	zof = zofPartNewGroup("torso", chest);
 }
 
 
@@ -399,6 +360,62 @@ zofPart humWheelNew(void) {
 	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofV3(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
+}
+
+WheeledBase::WheeledBase() {
+	zofPart casterBack, hips, support, wheelLeft;
+	zofJoint
+		casterBackToSupport, hipsToSupport, hipsToWheelLeft,
+		supportToHips, supportToCasterBack;
+	// Hips.
+	hips = zofPartNewCapsule("hips", 0.12, 0.1);
+	hipsToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(hips),0.8));
+	zofJointLimitsRotPut(hipsToTorso, zofV3(0,-0.5,0), zofV3(0,0.5,0));
+	zofPartJointPut(hips, hipsToTorso);
+	hipsToSupport = zofJointNew("support", zofCapsuleEndPos(zofPartCapsule(hips),-1));
+	zofPartJointPut(hips, hipsToSupport);
+	// Wheels.
+	wheelLeft = humWheelNew();
+	zofPartNamePut(wheelLeft, "wheelLeft");
+	hipsToWheelLeft = zofJointNewEx(
+		"wheelLeft",
+		zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofV3(-1,0,0), -1),
+		// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,0.5)
+		zofV4(0,0,1,-0.5)
+	);
+	hipsToWheels.push_back(hipsToWheelLeft);
+	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan()), zofXyz(0,0,zofNan()));
+	zofJointLimitsRotPut(hipsToWheelLeft, zofV3(0,zofNan(),0), zofV3(0,zofNan(),0));
+	zofPartJointPut(hips, hipsToWheelLeft);
+	zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
+	zofPartMirror(wheelLeft);
+	hipsToWheels.push_back(zofPartJoint(hips, "wheelRight"));
+	// Support.
+	support = zofPartNewCylinder(
+		"support",
+		zofV3(0.8*zofCapsuleRadius(zofPartCapsule(hips)), 0.015, 0.15)
+	);
+	zofPartMaterialPut(support, zofMaterialNew(0xFF505050, 5));
+	supportToHips = zofJointNew("hips", zofV3(0,0,0));
+	zofPartJointPut(support, supportToHips);
+	zofPartAttach(hips, support);
+	// Casters.
+	casterBack = zofPartNewCapsule(
+		"casterBack",
+		// Make the casters just big enough to reach the same base point as the wheels.
+		zofPartRadii(wheelLeft).vals[0] - (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]) - zofPartRadii(support).vals[1],
+		0
+	);
+	zofPartMaterialPut(casterBack, zofPartMaterial(wheelLeft));
+	casterBackToSupport = zofJointNew("support", zofV3(0,0,0));
+	zofPartJointPut(casterBack, casterBackToSupport);
+	supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofV3(0,-1,-1)));
+	zofJointLimitsRotPut(supportToCasterBack, zofV3(zofNan(),zofNan(),zofNan()), zofV3(zofNan(),zofNan(),zofNan()));
+	zofPartJointPut(support, supportToCasterBack);
+	zofPartAttach(support, casterBack);
+	zofPartCopyTo(casterBack, zofPartEndPos(support,zofV3(0,0,1)), "Back", "Front");
+	// Base.
+	zof = zofPartNewGroup("base", hips);
 }
 
 }

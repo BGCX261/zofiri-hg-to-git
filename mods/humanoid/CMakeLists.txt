@@ -7,7 +7,7 @@ link_directories(
 )
 
 add_library(humanoid MODULE
-  humanoid.c
+  humanoid.cpp
 )
 
 target_link_libraries(humanoid

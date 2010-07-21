@@ -482,9 +482,9 @@ void zofSimUpdaterAdd(zofSim sim, void (*updater)(zofSim,zofAny), zofAny data) {
 }
 
 zofExport zofString zofStringNewCopy(zofString contents) {
-	zofString str = (zofString)malloc(strlen(contents) + 1);
+	char* str = (char*)malloc(strlen(contents) + 1);
 	strcpy(str, contents);
-	return str;
+	return const_cast<zofString>(str);
 }
 
 }

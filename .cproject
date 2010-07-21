@@ -25,6 +25,7 @@
 <option id="gnu.cpp.compiler.option.include.paths.1012809989" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/bullet/src}&quot;"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/irrlicht/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/v8/include}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1986326354" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>

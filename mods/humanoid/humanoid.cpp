@@ -1,7 +1,70 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "zof.h"
+#include <vector>
+#include <zof.h>
+
+using namespace std;
+
+namespace hum {
+
+struct Arm;
+struct BaseWheeled;
+struct Finger;
+struct Hand;
+struct Head;
+struct Humanoid;
+struct Torso;
+
+struct Arm {
+	Hand* hand;
+	zofJoint shoulderToTorso;
+	zofJoint shoulderToUpper;
+	zofJoint upperToElbow;
+	zofPart zof;
+};
+
+struct BaseWheeled {
+	zofJoint baseToTorso;
+	vector<zofJoint> baseToWheel;
+	zofPart zof;
+};
+
+struct Finger {
+	zofJoint spreadToHand;
+	vector<zofJoint> curl;
+	zofPart zof;
+};
+
+struct Head {
+	zofJoint neckToHead;
+	zofJoint neckToTorso;
+	zofPart zof;
+};
+
+struct Hand {
+	vector<Finger*> fingers;
+	zofJoint lowerToWrist;
+	zofJoint palmToThumbTwist;
+	Finger* thumb;
+	zofPart zof;
+};
+
+struct Humanoid {
+
+	Humanoid();
+
+	vector<Arm*> arms;
+	BaseWheeled* base;
+	Head* head;
+	Torso* torso;
+	zofPart zof;
+};
+
+struct Torso {
+	zofJoint chestToAbdomen;
+	zofPart zof;
+};
 
 zofPart humArmNew(zofInt side);
 
@@ -13,11 +76,7 @@ zofPart humHandNew(zofInt side);
 
 zofPart humHeadNew(void);
 
-zofPart humHumanoidNew(void);
-
 zofPart humTorsoNew(void);
-
-void humUpdate(zofSim sim, zofAny data);
 
 /**
  * So far, our tires are simple, but it's so easy to imagine them as
@@ -27,15 +86,23 @@ void humUpdate(zofSim sim, zofAny data);
  */
 zofPart humWheelNew(void);
 
-zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
+extern "C" void update(zofSim sim, zofAny data);
+
+}
+
+using namespace hum;
+
+extern "C" zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	// TODO Obviously need more to the humanoid than this.
 	// TODO Especially want group parts.
-	zofPart humanoid = humHumanoidNew();
-	zofPartPosPut(humanoid, zofV3(-0.2,-zofPartExtents(humanoid).min.vals[1],0.2));
-	zofSimPartAdd(sim, humanoid);
-	zofSimUpdaterAdd(sim, humUpdate, humanoid);
+	Humanoid* humanoid = new Humanoid();
+	zofPartPosPut(humanoid->zof, zofV3(-0.2,-zofPartExtents(humanoid->zof).min.vals[1],0.2));
+	zofSimPartAdd(sim, humanoid->zof);
+	zofSimUpdaterAdd(sim, update, humanoid);
 	return zofTrue;
 }
+
+namespace hum {
 
 zofPart humArmNew(zofInt side) {
 	zofPart arm, elbow, lower, shoulder, upper;
@@ -140,7 +207,7 @@ zofPart humBaseWheeledNew(void) {
 }
 
 zofPart humFingerNew(zofInt side, zofUint phalanxCount) {
-	zofInt p;
+	zofUint p;
 	zofPart current, spread;
 	zofJoint fingerToHand;
 	// Spread.
@@ -182,13 +249,15 @@ zofPart humHandNew(zofInt side) {
 		zofPart finger;
 		zofJoint wristToFinger;
 		finger = humFingerNew(side, 3);
-		sprintf(fingerJointName, "finger%d", f);
+		// Yes, the const_cast is evil, but it works for the moment.
+		// TODO Move this to stl strings or some such.
+		sprintf(const_cast<char*>(fingerJointName), "finger%d", f);
 		wristToFinger = zofJointNew(fingerJointName, zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofV3(-side,-2,2*(f-1)), 1));
 		zofPartJointPut(wrist, wristToFinger);
 		zofJointAttach(wristToFinger, zofPartJoint(finger, "hand"));
 	}
 	// TODO zofFree?
-	free(fingerJointName);
+	free(const_cast<char*>(fingerJointName));
 	// Thumb.
 	// TODO How does side affect this mess?
 	thumbTwist = zofPartNewCapsule("thumbTwist", 0.014, 0.004);
@@ -253,8 +322,8 @@ zofPart humHeadNew(void) {
 	return zofPartNewGroup("head", skull);
 }
 
-zofPart humHumanoidNew(void) {
-	zofPart humanoid, torso;
+Humanoid::Humanoid() {
+	zofPart torso;
 	// Torso, head, and base.
 	torso = humTorsoNew();
 	zofPartAttach(torso, humHeadNew());
@@ -264,9 +333,8 @@ zofPart humHumanoidNew(void) {
 	zofPartAttach(torso, humArmNew(1));
 	// TODO zofPartMirror(armLeft);
 	// Humanoid.
-	humanoid = zofPartNewGroup("humanoid", torso);
-	zofPartMaterialPut(humanoid, zofMaterialNew(0xFF808080,1));
-	return humanoid;
+	zof = zofPartNewGroup("humanoid", torso);
+	zofPartMaterialPut(zof, zofMaterialNew(0xFF808080,1));
 }
 
 zofPart humTorsoNew(void) {
@@ -297,10 +365,11 @@ zofPart humTorsoNew(void) {
 	return zofPartNewGroup("torso", chest);
 }
 
-void humUpdate(zofSim sim, zofAny data) {
+
+extern "C" void update(zofSim sim, zofAny data) {
 	static zofInt i = 0;
 	static const zofInt max = 400;
-	zofPart humanoid = (zofPart)data;
+	zofPart humanoid = reinterpret_cast<Humanoid*>(data)->zof;
 	i = (i + 1) % max;
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/skull"), 0);
 	zofJointPosPut(zofPartJoint(humanoid, "//neck/torso"), i < max/2 ? 0.25 : -0.25);
@@ -330,4 +399,6 @@ zofPart humWheelNew(void) {
 	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofV3(0,1,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
+}
+
 }

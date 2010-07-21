@@ -52,7 +52,7 @@ typedef void* zofAny;
 /**
  * Opaquify?
  */
-typedef char* zofString;
+typedef const char* zofString;
 
 zofRefDef(zofErr);
 zofRefDef(zofType);

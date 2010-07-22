@@ -59,7 +59,7 @@ struct Joint: Any {
 	/**
 	 * The kid's part will be transformed relative to this's part.
 	 */
-	void attach(Joint* kid);
+	void attach(Joint* kid, bool swap = false);
 
 	/**
 	 * It doesn't copy part or other over, just the joint info.
@@ -93,6 +93,7 @@ struct Joint: Any {
 	void velPut(zofNum vel);
 
 	btTypedConstraint* constraint;
+	bool first;
 	string name;
 	Part* part;
 	Joint* other;
@@ -294,8 +295,12 @@ zofMaterial zofMaterialNew(zofColor color, zofNum density) {
 }
 
 zofBool zofPartAttach(zofPart part, zofPart kid) {
+	return zofPartAttachSwap(part, kid, zofFalse);
+}
+
+zofBool zofPartAttachSwap(zofPart part, zofPart kid, zofBool swap) {
 	// TODO Some casting operator for general use?
-	return Part::of(part)->attach(Part::of(kid)) ? zofTrue : zofFalse;
+	return Part::of(part)->attach(Part::of(kid), bool(swap)) ? zofTrue : zofFalse;
 }
 
 zofBox zofPartBox(zofPart part) {
@@ -645,6 +650,7 @@ Part* BasicPart::mirror() {
 Joint::Joint(const string& name) {
 	this->name = name;
 	constraint = 0;
+	first = false;
 	other = 0;
 	part = 0;
 	transform.setIdentity();
@@ -653,7 +659,7 @@ Joint::Joint(const string& name) {
 	memset(&rotLimits, 0, sizeof(rotLimits));
 }
 
-void Joint::attach(Joint* kid) {
+void Joint::attach(Joint* kid, bool swap) {
 	// TODO What if already attached??
 	btTransform transform = part->getTransform();
 	//cerr << "part " << part->name << " at " << transform << endl;
@@ -669,10 +675,16 @@ void Joint::attach(Joint* kid) {
 	// Now actually attach joints.
 	other = kid;
 	kid->other = this;
+	if (swap) {
+		kid->first = true;
+	} else {
+		first = true;
+	}
 }
 
 Joint* Joint::copy() {
 	Joint* joint = new Joint(name);
+	joint->first = first;
 	joint->transform = transform;
 	joint->posLimits = posLimits;
 	joint->rotLimits = rotLimits;
@@ -724,7 +736,12 @@ btTypedConstraint* Joint::createConstraint() {
 				//cerr << name << " axes2: " << axesString(a) << endl;
 				//cerr << other->name << " axes2: " << axesString(b) << endl;
 			}
-			btHingeConstraint* constraint = new btHingeConstraint(*part->body, *other->part->body, a, b, false);
+			btHingeConstraint* constraint;
+			if (first) {
+				constraint = new btHingeConstraint(*part->body, *other->part->body, a, b, false);
+			} else {
+				constraint = new btHingeConstraint(*other->part->body, *part->body, b, a, false);
+			}
 			//btVector3 axis(-1,0,0);
 			// Doesn't seem to do what I'd like: constraint->setAxis(axis);
 			btVector3 min, max;
@@ -1014,14 +1031,14 @@ zofPart Part::asC() {
 	return reinterpret_cast<zofPart>(this);
 }
 
-bool Part::attach(Part* kid) {
+bool Part::attach(Part* kid, bool swap) {
 	//cerr << "attach to " << name << " kid " << kid->name << endl;
 	Joint* kidJoint = kid->joint(name);
 	if (kidJoint) {
 		Joint* partJoint = joint(kid->name);
 		if (partJoint) {
 			// TODO What if previously attached to other parts?
-			partJoint->attach(kidJoint);
+			partJoint->attach(kidJoint, swap);
 			return true;
 		}
 	}

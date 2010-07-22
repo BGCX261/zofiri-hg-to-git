@@ -257,6 +257,11 @@ zofExport zofString zofModUri(zofMod mod);
  */
 zofExport zofBool zofPartAttach(zofPart part, zofPart kid);
 
+/**
+ * swap: zofTrue for reversed coordinate frame. Angles are negated.
+ */
+zofExport zofBool zofPartAttachSwap(zofPart part, zofPart kid, zofBool swap);
+
 zofExport zofBox zofPartBox(zofPart part);
 
 zofExport zofCapsule zofPartCapsule(zofPart part);

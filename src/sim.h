@@ -31,7 +31,7 @@ struct Part: Any {
 	/**
 	 * Returns true of successfully attached.
 	 */
-	bool attach(Part* other);
+	bool attach(Part* other, bool swap = false);
 
 	BasicPart* basic();
 

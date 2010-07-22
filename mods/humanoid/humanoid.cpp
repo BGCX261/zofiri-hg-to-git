@@ -13,7 +13,7 @@ struct Part {
 	/**
 	 * Just a convenience for zofPartAttach.
 	 */
-	void attach(Part* part);
+	void attach(Part* part, bool swap = false);
 
 	zofPart zof;
 
@@ -122,8 +122,8 @@ extern "C" zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 
 namespace hum {
 
-void Part::attach(Part* part) {
-	zofPartAttach(zof, part->zof);
+void Part::attach(Part* part, bool swap) {
+	zofPartAttachSwap(zof, part->zof, swap ? zofTrue : zofFalse);
 }
 
 Arm::Arm(int side) {
@@ -132,11 +132,7 @@ Arm::Arm(int side) {
 	// Shoulder.
 	shoulder = zofPartNewCapsule("shoulder", 0.05, 0);
 	shoulderToTorso = zofJointNew("torso", zofV3(0,0,0));
-	zofJointLimitsRotPut(
-		shoulderToTorso,
-		zofV3(0, 0, -(side < 0 ? 0.25 : 1)),
-		zofV3(0, 0, side < 0 ? 1 : 0.25)
-	);
+	zofJointLimitsRotPut(shoulderToTorso, zofV3(0, 0, -0.25), zofV3(0, 0, 1));
 	zofPartJointPut(shoulder, shoulderToTorso);
 	// Upper.
 	upper = zofPartNewCapsule("upper", 0.03, 0.05);
@@ -202,7 +198,7 @@ Hand::Hand(int side) {
 	zofInt f;
 	zofString fingerJointName;
 	zofPart thumbTwist, wrist;
-	zofJoint thumbTwistToThumb, thumbTwistToWrist;
+	zofJoint thumbTwistToThumb, thumbTwistToPalm;
 	// Wrist.
 	wrist = zofPartNewCapsule("wrist", 0.03, 0.005);
 	wristToArm = zofJointNew(side < 0 ? "armLeft" : "armRight", zofCapsuleEndPos(zofPartCapsule(wrist), 0.3));
@@ -227,19 +223,19 @@ Hand::Hand(int side) {
 	// TODO How does the side affect this mess?
 	thumbTwist = zofPartNewCapsule("thumbTwist", 0.014, 0.004);
 	palmToThumbTwist = zofJointNew("thumbTwist", zofCapsuleEndPosEx(zofPartCapsule(wrist), 1, zofV3(-side*1.5,0.7,1), 0));
-	zofJointLimitsRotPut(palmToThumbTwist, zofV3(0, side < 0 ? -0.25 : -0.5, 0), zofV3(0, side < 0 ? 0.5 : 0.25, 0));
+	zofJointLimitsRotPut(palmToThumbTwist, zofV3(0, -0.25, 0), zofV3(0, 0.5, 0));
 	zofPartJointPut(wrist, palmToThumbTwist);
-	thumbTwistToWrist = zofJointNewEx("wrist", zofCapsuleEndPos(zofPartCapsule(thumbTwist),0.2), zofV4(0,0,1,-0.5));
-	zofPartJointPut(thumbTwist, thumbTwistToWrist);
+	thumbTwistToPalm = zofJointNewEx("wrist", zofCapsuleEndPos(zofPartCapsule(thumbTwist),0.2), zofV4(0,0,1,side*0.5));
+	zofPartJointPut(thumbTwist, thumbTwistToPalm);
 	thumbTwistToThumb = zofJointNewEx(
 		"thumb",
-		zofCapsuleEndPosEx(zofPartCapsule(thumbTwist), -1, zofV3(-1,2,0), -1),
-		zofV4(0, 1, 0, 0.75)
+		zofCapsuleEndPosEx(zofPartCapsule(thumbTwist), -1, zofV3(side,2,0), -1),
+		zofV4(0, 1, 0, -side*0.75)
 	);
 	zofPartJointPut(thumbTwist, thumbTwistToThumb);
 	thumb = new Finger(side, 2);
 	zofJointAttach(thumbTwistToThumb, zofPartJoint(thumb->zof, "hand"));
-	zofPartAttach(wrist, thumbTwist);
+	zofPartAttachSwap(wrist, thumbTwist, side < 0 ? zofFalse : zofTrue);
 	// Hand.
 	zof = zofPartNewGroup(side < 0 ? "handLeft" : "handRight", wrist);
 }
@@ -298,7 +294,7 @@ Humanoid::Humanoid() {
 	torso->attach(arm = new Arm(-1));
 	arms.push_back(arm);
 	// TODO zofPartMirror(armLeft);
-	torso->attach(arm = new Arm(1));
+	torso->attach(arm = new Arm(1), true);
 	arms.push_back(arm);
 	// Humanoid.
 	zof = zofPartNewGroup("humanoid", torso->zof);
@@ -349,11 +345,11 @@ extern "C" void update(zofSim sim, zofAny data) {
 	zofJointPosPut(humanoid->arms[0]->hand->wristToArm, 0.25);
 	zofJointPosPut(humanoid->arms[0]->hand->palmToThumbTwist, 0);//i < max/2 ? 1 : -1);
 	// Right arm.
-	zofJointPosPut(humanoid->arms[1]->shoulderToTorso, 0);
-	zofJointPosPut(humanoid->arms[1]->shoulderToUpper, 0.5);
+	zofJointPosPut(humanoid->arms[1]->shoulderToTorso, 0.5);
+	zofJointPosPut(humanoid->arms[1]->shoulderToUpper, 0);
 	zofJointPosPut(humanoid->arms[1]->upperToElbow, 0.25);
 	zofJointPosPut(humanoid->arms[1]->elbowToLower, 0.25);
-	zofJointPosPut(humanoid->arms[1]->hand->wristToArm, 0);
+	zofJointPosPut(humanoid->arms[1]->hand->wristToArm, -0.5);
 	zofJointPosPut(humanoid->arms[1]->hand->palmToThumbTwist, i < max/2 ? 1 : -1);
 	// Base.
 	zofJointPosPut(humanoid->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);

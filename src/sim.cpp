@@ -1213,6 +1213,9 @@ Sim::Sim() {
 	viz = 0;
 	// Weaken gravity a bit. Copes this way better at larger ratios.
 	dynamics->setGravity(0.1 * unitsRatio * dynamics->getGravity());
+	// Add a plane by default.
+	// TODO Support removing this at some point.
+	dynamics->addRigidBody(createPlane());
 }
 
 Sim::~Sim() {

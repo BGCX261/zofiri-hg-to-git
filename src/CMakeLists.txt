@@ -26,7 +26,6 @@ add_library(zof SHARED
 
 add_executable(zofiri
 	zofiri.cpp
-	../test/world.cpp
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)

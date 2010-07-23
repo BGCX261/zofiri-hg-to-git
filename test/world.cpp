@@ -240,8 +240,6 @@ bool Stacker::trackToTarget(zofColor color) {
 }
 
 World::World(Sim* s): sim(s) {
-	btRigidBody* plane = sim->createPlane();
-	sim->dynamics->addRigidBody(plane);
 	// Tables.
 	buildTable(sim->cm(btVector3(15,3,15)), sim->cm(btVector3(20,60,20)));
 	buildTable(sim->cm(btVector3(25,3,25)), sim->cm(btVector3(-30,60,-30)));

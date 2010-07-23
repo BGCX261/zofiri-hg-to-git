@@ -8,6 +8,10 @@ link_directories(
 
 add_library(humanoid MODULE
   humanoid.cpp
+  bot.cpp
+  control.cpp
+  house.cpp
+  hum.cpp
 )
 
 target_link_libraries(humanoid

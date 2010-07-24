@@ -25,10 +25,10 @@ void update(zofSim sim, Humanoid* humanoid) {
 	zofJointPosPut(humanoid->arms[1]->hand->palmToThumbTwist, 0);//i < max/2 ? 1 : -1);
 	// Base.
 	zofJointPosPut(humanoid->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);
-	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);
-	//zofJointVelPut(humanoid->base->hipsToWheels[1], 0.15);
 	zofJointPosPut(humanoid->base->hipsToWheels[0], 0);
 	zofJointPosPut(humanoid->base->hipsToWheels[1], 0);
+	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);
+	//zofJointVelPut(humanoid->base->hipsToWheels[1], -0.15);
 }
 
 }

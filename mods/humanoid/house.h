@@ -5,6 +5,12 @@
 
 namespace hum {
 
+struct House {
+
+	static void build(zofSim sim);
+
+};
+
 struct Table {
 
 	Table();

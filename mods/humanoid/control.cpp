@@ -17,12 +17,12 @@ void update(zofSim sim, Humanoid* humanoid) {
 	zofJointPosPut(humanoid->arms[0]->hand->wristToArm, 0.25);
 	zofJointPosPut(humanoid->arms[0]->hand->palmToThumbTwist, 0);//i < max/2 ? 1 : -1);
 	// Right arm.
-	zofJointPosPut(humanoid->arms[1]->shoulderToTorso, 0.5);
+	zofJointPosPut(humanoid->arms[1]->shoulderToTorso, 0.25);
 	zofJointPosPut(humanoid->arms[1]->shoulderToUpper, 0);
 	zofJointPosPut(humanoid->arms[1]->upperToElbow, 0.25);
 	zofJointPosPut(humanoid->arms[1]->elbowToLower, 0.25);
 	zofJointPosPut(humanoid->arms[1]->hand->wristToArm, -0.5);
-	zofJointPosPut(humanoid->arms[1]->hand->palmToThumbTwist, i < max/2 ? 1 : -1);
+	zofJointPosPut(humanoid->arms[1]->hand->palmToThumbTwist, 0);//i < max/2 ? 1 : -1);
 	// Base.
 	zofJointPosPut(humanoid->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);
 	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);

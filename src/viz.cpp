@@ -500,7 +500,7 @@ void IrrViz::run() {
 
 	// ICameraSceneNode* camera =
 	// Normal:
-	scene()->addCameraSceneNode(0, sim->m(vector3df(-0.8,1.2,0.8)), sim->m(vector3df(-0.05,0.5,-0.05)));
+	scene()->addCameraSceneNode(0, sim->m(vector3df(-1.2,1.8,1.2)), sim->m(vector3df(-0.05,1,-0.05)));
 	// Close-up on hand:
 	//ICameraSceneNode* camera = scene()->addCameraSceneNode(0, 1e-2*vector3df(-10,140,10), 1e-2*vector3df(10,90,-10));
 	//camera->setPosition(camera->getPosition() - 0.5 * (camera->getPosition() - camera->getTarget()));

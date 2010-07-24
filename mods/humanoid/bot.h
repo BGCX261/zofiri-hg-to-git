@@ -80,18 +80,18 @@ struct WheeledBase: Part {
 
 	WheeledBase();
 
+	/**
+	 * So far, our tires are simple, but it's so easy to imagine them as
+	 * independent parts, and they could have caps or whatnot, too.
+	 *
+	 * TODO Introduce size parameters and so on.
+	 */
+	zofPart makeWheel(void);
+
 	zofJoint hipsToTorso;
 	vector<zofJoint> hipsToWheels;
 
 };
-
-/**
- * So far, our tires are simple, but it's so easy to imagine them as
- * independent parts, and they could have caps or whatnot, too.
- *
- * TODO Introduce size parameters and so on.
- */
-zofPart humWheelNew(void);
 
 }
 

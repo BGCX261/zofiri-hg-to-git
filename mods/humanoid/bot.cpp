@@ -28,7 +28,7 @@ Arm::Arm(int side) {
 	zofPartJointPut(upper, upperToElbow);
 	elbowToUpper = zofJointNew("upper", zofCapsuleEndPos(zofPartCapsule(elbow), 0.2));
 	zofPartJointPut(elbow, elbowToUpper);
-	zofPartAttach(upper, elbow);
+	zofPartAttachSwap(upper, elbow, side < 0 ? zofFalse : zofTrue);
 	// Lower.
 	lower = zofPartNewCapsule("lower", 0.05, 0.08);
 	elbowToLower = zofJointNew("lower", zofCapsuleEndPos(zofPartCapsule(elbow), -0.5));
@@ -39,12 +39,12 @@ Arm::Arm(int side) {
 	zofPartAttach(elbow, lower);
 	// Hand joints.
 	lowerToHand = zofJointNew(side < 0 ? "handLeft" : "handRight", zofCapsuleEndPos(zofPartCapsule(lower), -1));
-	zofJointLimitsRotPut(lowerToHand, zofV3(0, -(side < 0 ? 0.5 : 0.7), 0), zofV3(0, side < 0 ? 0.7 : 0.5, 0));
+	zofJointLimitsRotPut(lowerToHand, zofV3(0,-0.5,0), zofV3(0,0.7,0));
 	zofPartJointPut(lower, lowerToHand);
 	// Arm.
 	zof = zofPartNewGroup(side < 0 ? "armLeft" : "armRight", shoulder);
 	// Actually attach hand last since we want it separate from the arm group.
-	attach(hand = new Hand(side));
+	attach(hand = new Hand(side), side > 0);
 }
 
 Finger::Finger(int side, int phalanxCount) {
@@ -63,11 +63,11 @@ Finger::Finger(int side, int phalanxCount) {
 		next = zofPartNewCapsule("phalanx", 0.015, 0.01);
 		currentToNext = zofJointNew("next", zofCapsuleEndPos(zofPartCapsule(current), -0.5));
 		curls.push_back(currentToNext);
-		zofJointLimitsRotPut(currentToNext, zofV3(0, 0, side < 0 ? -0.5 : 0), zofV3(0, 0, side < 0 ? 0 : 0.5));
+		zofJointLimitsRotPut(currentToNext, zofV3(0,0,0), zofV3(0,0,0.5));
 		zofPartJointPut(current, currentToNext);
 		nextToCurrent = zofJointNew("prev", zofCapsuleEndPos(zofPartCapsule(next), 0.5));
 		zofPartJointPut(next, nextToCurrent);
-		zofJointAttach(currentToNext, nextToCurrent);
+		zofJointAttachSwap(currentToNext, nextToCurrent, side < 0 ? zofTrue : zofFalse);
 		current = next;
 	}
 	zof = zofPartNewGroup("fingerLeft", spread);
@@ -208,10 +208,8 @@ Torso::Torso() {
 }
 
 WheeledBase::WheeledBase() {
-	zofPart casterBack, hips, support, wheelLeft;
-	zofJoint
-		casterBackToSupport, hipsToSupport, hipsToWheelLeft,
-		supportToHips, supportToCasterBack;
+	zofPart casterBack, hips, support, wheel;
+	zofJoint casterBackToSupport, hipsToSupport, supportToHips, supportToCasterBack;
 	// Hips.
 	hips = zofPartNewCapsule("hips", 0.19, 0.14);
 	hipsToTorso = zofJointNew("torso", zofCapsuleEndPos(zofPartCapsule(hips),0.8));
@@ -220,21 +218,21 @@ WheeledBase::WheeledBase() {
 	hipsToSupport = zofJointNew("support", zofCapsuleEndPos(zofPartCapsule(hips),-1));
 	zofPartJointPut(hips, hipsToSupport);
 	// Wheels.
-	wheelLeft = makeWheel();
-	zofPartNamePut(wheelLeft, "wheelLeft");
-	hipsToWheelLeft = zofJointNewEx(
-		"wheelLeft",
-		zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofV3(-1,0,0), -1),
-		// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,0.5)
-		zofV4(0,0,1,-0.5)
-	);
-	hipsToWheels.push_back(hipsToWheelLeft);
-	// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan()), zofXyz(0,0,zofNan()));
-	zofJointLimitsRotPut(hipsToWheelLeft, zofV3(0,zofNan(),0), zofV3(0,zofNan(),0));
-	zofPartJointPut(hips, hipsToWheelLeft);
-	zofJointAttach(hipsToWheelLeft, zofPartJoint(wheelLeft, "body"));
-	zofPartMirror(wheelLeft);
-	hipsToWheels.push_back(zofPartJoint(hips, "wheelRight"));
+	for (int side = -1; side <= 1; side += 2) {
+		wheel = makeWheel(side);
+		zofJoint hipsToWheel = zofJointNewEx(
+			side < 0 ? "wheelLeft" : "wheelRight",
+			zofCapsuleEndPosEx(zofPartCapsule(hips), 1, zofV3(side,0,0), -1),
+			// With hinges, the Y seems fine, so ignore this: zofXyzw(0,1,0,0.5)
+			zofV4(0,0,1,-0.5)
+		);
+		hipsToWheels.push_back(hipsToWheel);
+		// With hinges, the Y seems fine, so ignore this: zofJointLimitsRotPut(hipsToWheelLeft, zofXyz(0,0,zofNan()), zofXyz(0,0,zofNan()));
+		zofJointLimitsRotPut(hipsToWheel, zofV3(0,zofNan(),0), zofV3(0,zofNan(),0));
+		zofPartJointPut(hips, hipsToWheel);
+		zofPartAttachSwap(hips, wheel, zofTrue);
+		// TODO Someday: zofPartMirror(wheelLeft);
+	}
 	// Support.
 	support = zofPartNewCylinder(
 		"support",
@@ -248,10 +246,10 @@ WheeledBase::WheeledBase() {
 	casterBack = zofPartNewCapsule(
 		"casterBack",
 		// Make the casters just big enough to reach the same base point as the wheels.
-		zofPartRadii(wheelLeft).vals[0] - (zofPartPos(wheelLeft).vals[1] - zofPartPos(support).vals[1]) - zofPartRadii(support).vals[1],
+		zofPartRadii(wheel).vals[0] - (zofPartPos(wheel).vals[1] - zofPartPos(support).vals[1]) - zofPartRadii(support).vals[1],
 		0
 	);
-	zofPartMaterialPut(casterBack, zofPartMaterial(wheelLeft));
+	zofPartMaterialPut(casterBack, zofPartMaterial(wheel));
 	casterBackToSupport = zofJointNew("support", zofV3(0,0,0));
 	zofPartJointPut(casterBack, casterBackToSupport);
 	supportToCasterBack = zofJointNew("casterBack", zofPartEndPos(support,zofV3(0,-1,-1)));
@@ -263,13 +261,13 @@ WheeledBase::WheeledBase() {
 	zof = zofPartNewGroup("base", hips);
 }
 
-zofPart WheeledBase::makeWheel() {
+zofPart WheeledBase::makeWheel(int side) {
 	zofPart wheel;
 	zofJoint wheelToBody;
-	wheel = zofPartNewCylinder("wheel", zofV3(0.25,0.04,0.25));
+	wheel = zofPartNewCylinder(side < 0 ? "wheelLeft" : "wheelRight", zofV3(0.25,0.04,0.25));
 	zofPartMaterialPut(wheel, zofMaterialNew(0xFF202020, 20));
 	// With hinges, the Y seems fine, so ignore this: wheelToBody = zofJointNewEx("body", zofPartEndPos(wheel,zofXyz(0,1,0)),zofXyzw(1,0,0,-0.5));
-	wheelToBody = zofJointNew("body", zofPartEndPos(wheel,zofV3(0,1,0)));
+	wheelToBody = zofJointNew("hips", zofPartEndPos(wheel,zofV3(0,-side,0)));
 	zofPartJointPut(wheel, wheelToBody);
 	return wheel;
 }

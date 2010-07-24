@@ -249,8 +249,12 @@ zofExport zofNum zofCapsuleRadius(zofCapsule capsule) {
 }
 
 void zofJointAttach(zofJoint joint, zofJoint kid) {
+	zofJointAttachSwap(joint, kid, zofFalse);
+}
+
+void zofJointAttachSwap(zofJoint joint, zofJoint kid, zofBool swap) {
 	// TODO Return anything?
-	Joint::of(joint)->attach(Joint::of(kid));
+	Joint::of(joint)->attach(Joint::of(kid), swap ? true : false);
 }
 
 void zofJointLimitsRotPut(zofJoint joint, zofRat3 min, zofRat3 max) {
@@ -926,13 +930,14 @@ void GroupPart::extents(btVector3* min, btVector3* max) {
 				partMin = transform(partMin);
 				partMax = transform(partMax);
 				//cerr << "  Min " << partMin << " and max " << partMax << endl;
+				// After the transforms, mins and maxes might not be mins and maxes anymore.
 				// TODO Batch forms of min and max would sure be nice.
-				min_->setX(btMin(min_->getX(),partMin.getX()));
-				min_->setY(btMin(min_->getY(),partMin.getY()));
-				min_->setZ(btMin(min_->getZ(),partMin.getZ()));
-				max_->setX(btMax(max_->getX(),partMax.getX()));
-				max_->setY(btMax(max_->getY(),partMax.getY()));
-				max_->setZ(btMax(max_->getZ(),partMax.getZ()));
+				min_->setX(btMin(min_->getX(),btMin(partMin.getX(),partMax.getX())));
+				min_->setY(btMin(min_->getY(),btMin(partMin.getY(),partMax.getY())));
+				min_->setZ(btMin(min_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
+				max_->setX(btMax(max_->getX(),btMin(partMin.getX(),partMax.getX())));
+				max_->setY(btMax(max_->getY(),btMin(partMin.getY(),partMax.getY())));
+				max_->setZ(btMax(max_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
 			}
 		}
 	} walker(this, min, max);

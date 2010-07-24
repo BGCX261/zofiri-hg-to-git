@@ -5,7 +5,15 @@
 
 namespace hum {
 
-void update(zofSim sim, Humanoid* humanoid);
+struct Controller {
+
+	Controller(Humanoid* humanoid);
+
+	void update();
+
+	Humanoid* humanoid;
+
+};
 
 }
 

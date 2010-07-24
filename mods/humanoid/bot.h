@@ -86,7 +86,7 @@ struct WheeledBase: Part {
 	 *
 	 * TODO Introduce size parameters and so on.
 	 */
-	zofPart makeWheel(void);
+	zofPart makeWheel(int side);
 
 	zofJoint hipsToTorso;
 	vector<zofJoint> hipsToWheels;

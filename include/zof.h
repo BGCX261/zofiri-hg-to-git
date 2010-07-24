@@ -194,6 +194,8 @@ zofExport zofNum zofCapsuleRadius(zofCapsule capsule);
  */
 zofExport void zofJointAttach(zofJoint joint, zofJoint kid);
 
+zofExport void zofJointAttachSwap(zofJoint joint, zofJoint kid, zofBool swap);
+
 zofExport void zofJointLimitsRotPut(zofJoint joint, zofRat3 min, zofRat3 max);
 
 zofExport zofString zofJointName(zofJoint joint);

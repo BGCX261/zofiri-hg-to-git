@@ -1,9 +1,33 @@
 #include "control.h"
+#include <iostream>
+#include <math.h>
 
 namespace hum {
 
 Controller::Controller(Humanoid* humanoid) {
 	this->humanoid = humanoid;
+}
+
+void Controller::setVel(double pos, double rot) {
+	zofJoint toWheelLeft = humanoid->base->hipsToWheels[0];
+	zofJoint toWheelRight = humanoid->base->hipsToWheels[1];
+	zofPart wheelLeft = zofJointPart(zofJointOther(toWheelLeft));
+	zofPart wheelRight = zofJointPart(zofJointOther(toWheelRight));
+	// The wheel radius is easy.
+	zofNum radius = zofPartRadii(wheelLeft).vals[0];
+	// Calculate the spread between the wheels.
+	zofM3 posLeft = zofPartPos(wheelLeft);
+	zofM3 posRight = zofPartPos(wheelRight);
+	zofNum dX = posRight.vals[0] - posLeft.vals[0];
+	zofNum dY = posRight.vals[1] - posLeft.vals[1];
+	zofNum dZ = posRight.vals[2] - posLeft.vals[2];
+	zofNum dist = sqrt(dX*dX + dY*dY + dZ*dZ) / 2;
+	// A bit of algebra for individual rotation velocities.
+	zofNum rotLeft = (dist * rot + pos) / radius;
+	zofNum rotRight = 2*pos/radius - rotLeft;
+	// Then set the velocities, converting from radians to rats.
+	zofJointVelPut(toWheelLeft, rotLeft/(2*zofPi));
+	zofJointVelPut(toWheelRight, rotRight/(2*zofPi));
 }
 
 void Controller::update() {
@@ -52,6 +76,7 @@ void Controller::update() {
 	zofJointPosPut(humanoid->base->hipsToWheels[1], 0);
 	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);
 	//zofJointVelPut(humanoid->base->hipsToWheels[1], 0.15);
+	setVel(0.25, 0.5);
 }
 
 }

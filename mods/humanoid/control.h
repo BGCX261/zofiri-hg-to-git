@@ -9,11 +9,9 @@ struct Controller {
 
 	Controller(Humanoid* humanoid);
 
-	void setVel(double pos, double rot);
-
 	void update();
 
-	Humanoid* humanoid;
+	Humanoid* bot;
 
 };
 

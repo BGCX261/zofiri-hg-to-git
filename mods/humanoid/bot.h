@@ -88,6 +88,12 @@ struct WheeledBase: Part {
 	 */
 	zofPart makeWheel(int side);
 
+	/**
+	 * Sets the positional (translational) and rotational (angular)
+	 * velocities of the base.
+	 */
+	void setVel(zofM pos, zofRat rot);
+
 	zofJoint hipsToTorso;
 	vector<zofJoint> hipsToWheels;
 

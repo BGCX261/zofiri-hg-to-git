@@ -1,4 +1,6 @@
 #include "bot.h"
+#include <iostream>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -259,6 +261,29 @@ WheeledBase::WheeledBase() {
 	zofPartCopyTo(casterBack, zofPartEndPos(support,zofV3(0,0,1)), "Back", "Front");
 	// Base.
 	zof = zofPartNewGroup("base", hips);
+}
+
+void WheeledBase::setVel(zofM pos, zofRat rot) {
+	zofPart wheelLeft = zofJointPart(zofJointOther(hipsToWheels[0]));
+	zofPart wheelRight = zofJointPart(zofJointOther(hipsToWheels[1]));
+	// The wheel radius is easy.
+	zofNum radius = zofPartRadii(wheelLeft).vals[0];
+	// Calculate the spread between the wheels.
+	zofM3 posLeft = zofPartPos(wheelLeft);
+	zofM3 posRight = zofPartPos(wheelRight);
+	zofNum dX = posRight.vals[0] - posLeft.vals[0];
+	zofNum dY = posRight.vals[1] - posLeft.vals[1];
+	zofNum dZ = posRight.vals[2] - posLeft.vals[2];
+	zofNum dist = sqrt(dX*dX + dY*dY + dZ*dZ) / 2;
+	// A bit of algebra for individual rotation velocities.
+	zofNum rotLeft = (dist * rot*zofPi + pos) / radius;
+	zofNum rotRight = 2*pos/radius - rotLeft;
+	rotLeft /= zofPi;
+	rotRight /= zofPi;
+	//cerr << "Rotation left " << rotLeft << " and right " << rotRight << endl;
+	// Then set the velocities, converting from radians to rats.
+	zofJointVelPut(hipsToWheels[0], rotLeft);
+	zofJointVelPut(hipsToWheels[1], rotRight);
 }
 
 zofPart WheeledBase::makeWheel(int side) {

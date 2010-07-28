@@ -875,7 +875,7 @@ void Joint::velPut(zofNum vel) {
 	int index;
 	bool rot;
 	if (moveableDof(&index, &rot)) {
-		vel = vel * zofPi;
+		vel *= zofPi;
 		//cerr << "Setting target vel for " << name << " to " << vel << endl;
 		if (rot) {
 			if (zofHingeForRot1) {

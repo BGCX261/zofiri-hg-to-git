@@ -114,15 +114,17 @@ typedef zofExtents4 zofExtents3;
 typedef zofNum zofM;
 
 /**
- * For positions or sizes (meters cubed).
- */
-typedef zofExtents3 zofExtentsM3;
-typedef zofVec3 zofM3;
-
-/**
  * Here "rat" means "ratio of pi" or in other words, radians/pi.
  * So, say '0.5' instead of '0.5*zofPi', for example.
  */
+typedef zofNum zofRat;
+
+/**
+ * For positions or sizes (meters cubed).
+ */
+typedef zofVec3 zofM3;
+typedef zofExtents3 zofExtentsM3;
+
 typedef zofVec3 zofRat3;
 
 /**

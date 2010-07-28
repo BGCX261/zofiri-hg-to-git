@@ -1,49 +1,26 @@
 #include "control.h"
 #include <iostream>
-#include <math.h>
 
 namespace hum {
 
 Controller::Controller(Humanoid* humanoid) {
-	this->humanoid = humanoid;
-}
-
-void Controller::setVel(double pos, double rot) {
-	zofJoint toWheelLeft = humanoid->base->hipsToWheels[0];
-	zofJoint toWheelRight = humanoid->base->hipsToWheels[1];
-	zofPart wheelLeft = zofJointPart(zofJointOther(toWheelLeft));
-	zofPart wheelRight = zofJointPart(zofJointOther(toWheelRight));
-	// The wheel radius is easy.
-	zofNum radius = zofPartRadii(wheelLeft).vals[0];
-	// Calculate the spread between the wheels.
-	zofM3 posLeft = zofPartPos(wheelLeft);
-	zofM3 posRight = zofPartPos(wheelRight);
-	zofNum dX = posRight.vals[0] - posLeft.vals[0];
-	zofNum dY = posRight.vals[1] - posLeft.vals[1];
-	zofNum dZ = posRight.vals[2] - posLeft.vals[2];
-	zofNum dist = sqrt(dX*dX + dY*dY + dZ*dZ) / 2;
-	// A bit of algebra for individual rotation velocities.
-	zofNum rotLeft = (dist * rot + pos) / radius;
-	zofNum rotRight = 2*pos/radius - rotLeft;
-	// Then set the velocities, converting from radians to rats.
-	zofJointVelPut(toWheelLeft, rotLeft/(2*zofPi));
-	zofJointVelPut(toWheelRight, rotRight/(2*zofPi));
+	this->bot = humanoid;
 }
 
 void Controller::update() {
 	static int i = 0;
 	static const int max = 400;
 	i = (i + 1) % max;
-	zofJointPosPut(humanoid->head->neckToSkull, 0);
-	zofJointPosPut(humanoid->head->neckToTorso, 0);//i < max/2 ? 0.25 : -0.25);
-	zofJointPosPut(humanoid->torso->chestToAbdomen, 0);
+	zofJointPosPut(bot->head->neckToSkull, 0);
+	zofJointPosPut(bot->head->neckToTorso, 0);//i < max/2 ? 0.25 : -0.25);
+	zofJointPosPut(bot->torso->chestToAbdomen, 0);
 	// Arms.
 	for (int a = 0; a < 2; a++) {
-		zofJointPosPut(humanoid->arms[a]->shoulderToTorso, 0.25);
-		zofJointPosPut(humanoid->arms[a]->shoulderToUpper, 0);
-		zofJointPosPut(humanoid->arms[a]->upperToElbow, -0.25);//i < max/2 ? 0.5 : -0.5);
-		zofJointPosPut(humanoid->arms[a]->elbowToLower, 0.25);
-		Hand* hand = humanoid->arms[a]->hand;
+		zofJointPosPut(bot->arms[a]->shoulderToTorso, 0.25);
+		zofJointPosPut(bot->arms[a]->shoulderToUpper, 0);
+		zofJointPosPut(bot->arms[a]->upperToElbow, -0.25);//i < max/2 ? 0.5 : -0.5);
+		zofJointPosPut(bot->arms[a]->elbowToLower, 0.25);
+		Hand* hand = bot->arms[a]->hand;
 		zofJointPosPut(hand->wristToArm, 0.25);
 		zofJointPosPut(hand->palmToThumbTwist, 0);//i < max/2 ? 1 : -1);
 		struct FingerController {
@@ -71,12 +48,12 @@ void Controller::update() {
 		}
 	}
 	// Base.
-	zofJointPosPut(humanoid->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);
-	zofJointPosPut(humanoid->base->hipsToWheels[0], 0);
-	zofJointPosPut(humanoid->base->hipsToWheels[1], 0);
+	zofJointPosPut(bot->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);
+	//zofJointPosPut(bot->base->hipsToWheels[0], 0);
+	//zofJointPosPut(bot->base->hipsToWheels[1], 0);
 	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);
 	//zofJointVelPut(humanoid->base->hipsToWheels[1], 0.15);
-	setVel(0.25, 0.5);
+	bot->base->setVel(0.25, 0.15);
 }
 
 }

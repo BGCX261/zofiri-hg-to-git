@@ -7,11 +7,15 @@ namespace hum {
 
 struct Controller {
 
-	Controller(Humanoid* humanoid);
+	Controller(Bot* bot);
 
 	void update();
 
-	Humanoid* bot;
+	Bot* bot;
+
+	zofM3 targetPos;
+
+	zofRat3 targetRot;
 
 };
 

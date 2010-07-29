@@ -3,8 +3,8 @@
 
 namespace hum {
 
-Controller::Controller(Humanoid* humanoid) {
-	this->bot = humanoid;
+Controller::Controller(Bot* bot) {
+	this->bot = bot;
 }
 
 void Controller::update() {
@@ -51,8 +51,8 @@ void Controller::update() {
 	zofJointPosPut(bot->base->hipsToTorso, 0);//i < max/2 ? -0.25 : 0.25);
 	//zofJointPosPut(bot->base->hipsToWheels[0], 0);
 	//zofJointPosPut(bot->base->hipsToWheels[1], 0);
-	//zofJointVelPut(humanoid->base->hipsToWheels[0], 0.15);
-	//zofJointVelPut(humanoid->base->hipsToWheels[1], 0.15);
+	//zofJointVelPut(bot->base->hipsToWheels[0], 0.15);
+	//zofJointVelPut(bot->base->hipsToWheels[1], 0.15);
 	bot->base->setVel(0.25, 0.15);
 }
 

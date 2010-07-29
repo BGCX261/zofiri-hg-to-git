@@ -49,6 +49,23 @@ Arm::Arm(int side) {
 	attach(hand = new Hand(side), side > 0);
 }
 
+Bot::Bot() {
+	// Torso, head, and base.
+	torso = new Torso();
+	torso->attach(head = new Head());
+	torso->attach(base = new WheeledBase());
+	// Arms.
+	Arm* arm;
+	torso->attach(arm = new Arm(-1));
+	arms.push_back(arm);
+	// TODO zofPartMirror(armLeft);
+	torso->attach(arm = new Arm(1), true);
+	arms.push_back(arm);
+	// Bot.
+	zof = zofPartNewGroup("bot", torso->zof);
+	zofPartMaterialPut(zof, zofMaterialNew(0xFF808080,1));
+}
+
 Finger::Finger(int side, int phalanxCount) {
 	zofPart current, spread;
 	// Spread.
@@ -163,23 +180,6 @@ Head::Head() {
 	zofPartMirror(eyeLeft);
 	// Head.
 	zof = zofPartNewGroup("head", skull);
-}
-
-Humanoid::Humanoid() {
-	// Torso, head, and base.
-	torso = new Torso();
-	torso->attach(head = new Head());
-	torso->attach(base = new WheeledBase());
-	// Arms.
-	Arm* arm;
-	torso->attach(arm = new Arm(-1));
-	arms.push_back(arm);
-	// TODO zofPartMirror(armLeft);
-	torso->attach(arm = new Arm(1), true);
-	arms.push_back(arm);
-	// Humanoid.
-	zof = zofPartNewGroup("humanoid", torso->zof);
-	zofPartMaterialPut(zof, zofMaterialNew(0xFF808080,1));
 }
 
 Torso::Torso() {

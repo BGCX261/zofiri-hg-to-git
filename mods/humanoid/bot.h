@@ -12,7 +12,7 @@ struct Arm;
 struct Finger;
 struct Hand;
 struct Head;
-struct Humanoid;
+struct Bot;
 struct Torso;
 struct WheeledBase;
 
@@ -25,6 +25,17 @@ struct Arm: Part {
 	zofJoint shoulderToTorso;
 	zofJoint shoulderToUpper;
 	zofJoint upperToElbow;
+
+};
+
+struct Bot: Part {
+
+	Bot();
+
+	vector<Arm*> arms;
+	WheeledBase* base;
+	Head* head;
+	Torso* torso;
 
 };
 
@@ -54,17 +65,6 @@ struct Hand: Part {
 	zofJoint wristToArm;
 	zofJoint palmToThumbTwist;
 	Finger* thumb;
-
-};
-
-struct Humanoid: Part {
-
-	Humanoid();
-
-	vector<Arm*> arms;
-	WheeledBase* base;
-	Head* head;
-	Torso* torso;
 
 };
 

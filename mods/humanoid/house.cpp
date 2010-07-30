@@ -2,7 +2,7 @@
 
 namespace hum {
 
-void House::build(zofSim sim) {
+House::House() {
 	zofM3 wallEastRadii = zofV3(0.075,1.25,2);
 	zofPart wallEast = zofPartNewBox("wallEast", wallEastRadii);
 	zofPartJointPut(wallEast, zofJointNew("wallSouth", zofV3(0,0,wallEastRadii.vals[0]-wallEastRadii.vals[2])));
@@ -16,7 +16,7 @@ void House::build(zofSim sim) {
 	zofPartMaterialPut(cabinetSoutheastLower, zofMaterialNew(0xFF806040,1));
 	zofPartJointPut(cabinetSoutheastLower, zofJointNew("wallEast", zofPartEndPos(cabinetSoutheastLower,zofV3(1,-1,-1))));
 	// Countertop southeast.
-	zofPart countertopSoutheast = zofPartNewBox("countertop", zofV3(cabinetSoutheastLowerRadii.vals[0]+0.01,0.02,cabinetSoutheastLowerRadii.vals[2]));
+	countertopSoutheast = zofPartNewBox("countertop", zofV3(cabinetSoutheastLowerRadii.vals[0]+0.01,0.02,cabinetSoutheastLowerRadii.vals[2]));
 	zofPartMaterialPut(countertopSoutheast, zofMaterialNew(0xFFFFFFFF,1));
 	zofPartJointPut(countertopSoutheast, zofJointNew("cabinet", zofPartEndPos(countertopSoutheast,zofV3(1,-1,-1))));
 	zofPartJointPut(cabinetSoutheastLower, zofJointNew("countertop", zofPartEndPos(cabinetSoutheastLower, zofV3(1,1,-1))));
@@ -28,7 +28,8 @@ void House::build(zofSim sim) {
 	zofPart walls = zofPartNewGroup("walls", wallEast);
 	zofPartMaterialPut(walls, zofMaterialNew(0xFFFFE0A0,1));
 	zofPartPosPut(walls, zofV3(2,-zofPartExtents(walls).min.vals[1],0));
-	zofSimPartAdd(sim, walls);
+	// House.
+	zof = zofPartNewGroup("house", walls);
 }
 
 }

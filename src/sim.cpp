@@ -307,6 +307,15 @@ zofBool zofPartAttachSwap(zofPart part, zofPart kid, zofBool swap) {
 	return Part::of(part)->attach(Part::of(kid), bool(swap)) ? zofTrue : zofFalse;
 }
 
+zofExtentsM3 zofPartBounds(zofPart part) {
+	zofExtentsM3 extents;
+	btVector3 min, max;
+	Part::of(part)->bounds(&min, &max);
+	extents.min = bt3ToVec4(min, 1/zofBtScale);
+	extents.max = bt3ToVec4(max, 1/zofBtScale);
+	return extents;
+}
+
 zofBox zofPartBox(zofPart part) {
 	return zofPartPartKind(part) == zofPartKindBox ? (zofBox)part : zofNull;
 }
@@ -538,6 +547,10 @@ BasicPart::~BasicPart() {
 	delete body;
 }
 
+void BasicPart::bounds(btVector3* min, btVector3* max) {
+	body->getAabb(*min, *max);
+}
+
 Part* BasicPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
 	// TODO Merge with mirror (and others later)?
 	// TODO Copy the shape? Well, especially for meshes (for mirroring). Maybe others if mutable someday.
@@ -649,6 +662,115 @@ Part* BasicPart::mirror() {
 		mirroredOther->attach(attachedJoint);
 	}
 	return mirrorPart;
+}
+
+GroupPart::GroupPart(const string& name, Part* root): Part(name) {
+	body = root->basic()->body;
+	init(root->basic());
+}
+
+void GroupPart::bounds(btVector3* min, btVector3* max) {
+	min->setZero();
+	max->setZero();
+	struct ExtentsWalker: Walker {
+		GroupPart* group; btVector3* min_; btVector3* max_;
+		ExtentsWalker(GroupPart* group_, btVector3* min__, btVector3* max__): group(group_), min_(min__), max_(max__) {}
+		void handle(BasicPart* part) {
+			//cerr << "Walking at " << part->name << endl;
+			if (part->inGroup(group)) {
+				btVector3 partMin, partMax;
+				part->bounds(&partMin, &partMax);
+				min_->setX(btMin(min_->getX(),partMin.getX()));
+				min_->setY(btMin(min_->getY(),partMin.getY()));
+				min_->setZ(btMin(min_->getZ(),partMin.getZ()));
+				max_->setX(btMax(max_->getX(),partMax.getX()));
+				max_->setY(btMax(max_->getY(),partMax.getY()));
+				max_->setZ(btMax(max_->getZ(),partMax.getZ()));
+			}
+		}
+	} walker(this, min, max);
+	walker.walk(basic());
+	//cerr << "Group min " << *min << " and max " << *max << endl;
+}
+
+Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
+	// TODO !!
+	return 0;
+}
+
+void GroupPart::extents(btVector3* min, btVector3* max) {
+	min->setZero();
+	max->setZero();
+	struct ExtentsWalker: Walker {
+		GroupPart* group; btVector3* min_; btVector3* max_;
+		ExtentsWalker(GroupPart* group_, btVector3* min__, btVector3* max__): group(group_), min_(min__), max_(max__) {}
+		void handle(BasicPart* part) {
+			//cerr << "Walking at " << part->name << endl;
+			if (part->inGroup(group)) {
+				// TODO All mins and maxes should be done in the coordinate frame of the group part!!!!
+				btVector3 partMin, partMax;
+				part->extents(&partMin, &partMax);
+				const btTransform& transform = part->getTransform();
+				partMin = transform(partMin);
+				partMax = transform(partMax);
+				//cerr << "  Min " << partMin << " and max " << partMax << endl;
+				// After the transforms, mins and maxes might not be mins and maxes anymore.
+				// TODO Batch forms of min and max would sure be nice.
+				min_->setX(btMin(min_->getX(),btMin(partMin.getX(),partMax.getX())));
+				min_->setY(btMin(min_->getY(),btMin(partMin.getY(),partMax.getY())));
+				min_->setZ(btMin(min_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
+				max_->setX(btMax(max_->getX(),btMin(partMin.getX(),partMax.getX())));
+				max_->setY(btMax(max_->getY(),btMin(partMin.getY(),partMax.getY())));
+				max_->setZ(btMax(max_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
+			}
+		}
+	} walker(this, min, max);
+	walker.walk(basic());
+	const btTransform& transform = getTransform();
+	*min = transform.invXform(*min);
+	*max = transform.invXform(*max);
+	//cerr << "Group min " << *min << " and max " << *max << endl;
+}
+
+void GroupPart::init(BasicPart* part, BasicPart* parent) {
+	// Recurse around, finding detached joints.
+	//cerr << "init " << name << " at " << part->name << endl;
+	map<string,Joint*>& joints = part->joints;
+	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
+		Joint* joint = j->second;
+		Joint* other = joint->other;
+		if (other) {
+			BasicPart* kid = other->part->basic();
+			if (kid != parent) {
+				init(kid, part);
+			}
+		} else {
+			// Add detached joints to the group for nice access.
+			// This assumes (somewhat fairly) that they'll have unique names.
+			//cerr << "joint " << name << " to " << joint->name << endl;
+			this->joints[joint->name] = joint;
+		}
+	}
+	// Go up the group chain until none set, then set to this.
+	// Note that this is a case where bottom-up is less efficient.
+	// However, part hierarchies don't seem likely to be deep, so probably okay.
+	// TODO Do I really need to dynamic_cast to guarantee equal pointer values???
+	// TODO The cerr log of pointer below indicates not, but I haven't tested all platforms.
+	Part* partInGroup = part;
+	Part* thisAsPart = this;
+	// cerr << this << " vs. " << thisAsPart << endl;
+	while (partInGroup != thisAsPart) {
+		if (!partInGroup->group) {
+			partInGroup->group = this;
+			//cerr << "group " << name << " for " << partInGroup->name << endl;
+		}
+		partInGroup = partInGroup->group;
+	}
+}
+
+Part* GroupPart::mirror() {
+	// TODO !!
+	return 0;
 }
 
 Joint::Joint(const string& name) {
@@ -903,90 +1025,6 @@ void Joint::velPut(zofNum vel) {
 			constraint->getTranslationalLimitMotor()->m_enableMotor[index] = enableMotor;
 		}
 	}
-}
-
-GroupPart::GroupPart(const string& name, Part* root): Part(name) {
-	body = root->basic()->body;
-	init(root->basic());
-}
-
-Part* GroupPart::copyTo(const btVector3& pos, const string& oldSub, const string& newSub) {
-	// TODO !!
-	return 0;
-}
-
-void GroupPart::extents(btVector3* min, btVector3* max) {
-	min->setZero();
-	max->setZero();
-	struct ExtentsWalker: Walker {
-		GroupPart* group; btVector3* min_; btVector3* max_;
-		ExtentsWalker(GroupPart* group_, btVector3* min__, btVector3* max__): group(group_), min_(min__), max_(max__) {}
-		void handle(BasicPart* part) {
-			//cerr << "Walking at " << part->name << endl;
-			if (part->inGroup(group)) {
-				btVector3 partMin, partMax;
-				part->extents(&partMin, &partMax);
-				const btTransform& transform = part->getTransform();
-				partMin = transform(partMin);
-				partMax = transform(partMax);
-				//cerr << "  Min " << partMin << " and max " << partMax << endl;
-				// After the transforms, mins and maxes might not be mins and maxes anymore.
-				// TODO Batch forms of min and max would sure be nice.
-				min_->setX(btMin(min_->getX(),btMin(partMin.getX(),partMax.getX())));
-				min_->setY(btMin(min_->getY(),btMin(partMin.getY(),partMax.getY())));
-				min_->setZ(btMin(min_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
-				max_->setX(btMax(max_->getX(),btMin(partMin.getX(),partMax.getX())));
-				max_->setY(btMax(max_->getY(),btMin(partMin.getY(),partMax.getY())));
-				max_->setZ(btMax(max_->getZ(),btMin(partMin.getZ(),partMax.getZ())));
-			}
-		}
-	} walker(this, min, max);
-	walker.walk(basic());
-	const btTransform& transform = getTransform();
-	*min = transform.invXform(*min);
-	*max = transform.invXform(*max);
-	//cerr << "Group min " << *min << " and max " << *max << endl;
-}
-
-void GroupPart::init(BasicPart* part, BasicPart* parent) {
-	// Recurse around, finding detached joints.
-	//cerr << "init " << name << " at " << part->name << endl;
-	map<string,Joint*>& joints = part->joints;
-	for (map<string,Joint*>::iterator j = joints.begin(); j != joints.end(); j++) {
-		Joint* joint = j->second;
-		Joint* other = joint->other;
-		if (other) {
-			BasicPart* kid = other->part->basic();
-			if (kid != parent) {
-				init(kid, part);
-			}
-		} else {
-			// Add detached joints to the group for nice access.
-			// This assumes (somewhat fairly) that they'll have unique names.
-			//cerr << "joint " << name << " to " << joint->name << endl;
-			this->joints[joint->name] = joint;
-		}
-	}
-	// Go up the group chain until none set, then set to this.
-	// Note that this is a case where bottom-up is less efficient.
-	// However, part hierarchies don't seem likely to be deep, so probably okay.
-	// TODO Do I really need to dynamic_cast to guarantee equal pointer values???
-	// TODO The cerr log of pointer below indicates not, but I haven't tested all platforms.
-	Part* partInGroup = part;
-	Part* thisAsPart = this;
-	// cerr << this << " vs. " << thisAsPart << endl;
-	while (partInGroup != thisAsPart) {
-		if (!partInGroup->group) {
-			partInGroup->group = this;
-			//cerr << "group " << name << " for " << partInGroup->name << endl;
-		}
-		partInGroup = partInGroup->group;
-	}
-}
-
-Part* GroupPart::mirror() {
-	// TODO !!
-	return 0;
 }
 
 Material::Material(zofColor c): color(c), density(1) {

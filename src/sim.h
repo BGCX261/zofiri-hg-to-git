@@ -35,6 +35,8 @@ struct Part: Any {
 
 	BasicPart* basic();
 
+	virtual void bounds(btVector3* min, btVector3* max) = 0;
+
 	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub) = 0;
 
 	virtual void extents(btVector3* min, btVector3* max) = 0;
@@ -105,6 +107,8 @@ struct BasicPart: Part {
 
 	virtual ~BasicPart();
 
+	virtual void bounds(btVector3* min, btVector3* max);
+
 	static zofExport BasicPart* of(btCollisionObject* body);
 
 	static BasicPart* of(zofBox box);
@@ -136,6 +140,8 @@ struct GroupPart: Part {
 	GroupPart(const string& name, Part* root);
 
 	// TODO Destructor to delete whole tree.
+
+	virtual void bounds(btVector3* min, btVector3* max);
 
 	virtual Part* copyTo(const btVector3& pos, const string& oldSub, const string& newSub);
 

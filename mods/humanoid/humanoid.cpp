@@ -12,15 +12,27 @@ void humUpdate(zofSim sim, zofAny data) {
 }
 
 zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
-	House::build(sim);
-	Bot* bot = new Bot();
-	zofPartPosPut(bot->zof, zofV3(0,-zofPartExtents(bot->zof).min.vals[1],0));
+	// House.
+	House* house = new House;
+	zofSimPartAdd(sim, house->zof);
+	// Bot.
+	Bot* bot = new Bot;
+	zofExtentsM3 botExtents = zofPartExtents(bot->zof);
+	zofPartPosPut(bot->zof, zofV3(0,-botExtents.min.vals[1],0));
 	zofSimPartAdd(sim, bot->zof);
+	// Controller.
 	Controller* controller = new Controller(bot);
+	zofM3 counterPos = zofPartPos(house->countertopSoutheast);
+	zofExtentsM3 counterBounds = zofPartBounds(house->countertopSoutheast);
+	controller->targetPos = zofV3(
+		// The counter AABB only works if the counter is axis-aligned, too. For now, it is.
+		counterBounds.min.vals[0] - botExtents.max.vals[2] - 0.1,
+		0,
+		counterPos.vals[2]
+	);
+	controller->targetRot = zofV4(0,1,0,0.5); // Facing east (positive X).
 	zofSimUpdaterAdd(sim, humUpdate, controller);
-	//cerr << "Head at: " << zofPartPos(bot->head->zof).vals[1] << endl;
-	//zofExtentsM3 extents = zofPartExtents(bot->zof);
-	//cerr << "Height: " << (extents.max.vals[1] - extents.min.vals[1]) << endl;
+	// Done.
 	return zofTrue;
 }
 

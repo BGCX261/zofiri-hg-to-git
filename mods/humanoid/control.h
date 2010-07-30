@@ -15,7 +15,7 @@ struct Controller {
 
 	zofM3 targetPos;
 
-	zofRat3 targetRot;
+	zofM3Rat targetRot;
 
 };
 

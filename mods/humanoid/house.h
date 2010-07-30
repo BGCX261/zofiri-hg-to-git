@@ -5,9 +5,11 @@
 
 namespace hum {
 
-struct House {
+struct House: Part {
 
-	static void build(zofSim sim);
+	House();
+
+	zofPart countertopSoutheast;
 
 };
 

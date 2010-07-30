@@ -266,6 +266,14 @@ zofExport zofBool zofPartAttach(zofPart part, zofPart kid);
  */
 zofExport zofBool zofPartAttachSwap(zofPart part, zofPart kid, zofBool swap);
 
+/**
+ * Like zofPartExtents but in the global coordinate frame. In other words,
+ * this provides an axis-aligned bounding box (AABB).
+ *
+ * TODO Same thing for arbitrary coordinate frames?
+ */
+zofExport zofExtentsM3 zofPartBounds(zofPart part);
+
 zofExport zofBox zofPartBox(zofPart part);
 
 zofExport zofCapsule zofPartCapsule(zofPart part);

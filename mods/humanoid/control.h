@@ -13,9 +13,9 @@ struct Controller {
 
 	Bot* bot;
 
-	zofM3 targetPos;
+	zofM3 goalPos;
 
-	zofM3Rat targetRot;
+	zofM3Rat goalRot;
 
 };
 

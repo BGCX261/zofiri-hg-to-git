@@ -408,7 +408,7 @@ zofPart zofPartNewCapsule(zofString name, zofNum radius, zofNum half_spread) {
 	return part->asC();
 }
 
-zofPart zofPartNewCylinder(zofString name, zofVec4 radii) {
+zofPart zofPartNewCylinder(zofString name, zofM3 radii) {
 	btVector3 bt_radii = vec4ToBt3(radii, zofBtScale);
 	BasicPart* part = new BasicPart(name, new btCylinderShape(bt_radii));
 	return part->asC();
@@ -418,7 +418,7 @@ zofPart zofPartNewGroup(zofString name, zofPart root) {
 	return (new GroupPart(name, Part::of(root)))->asC();
 }
 
-zofVec4 zofPartPos(zofPart part) {
+zofM3 zofPartPos(zofPart part) {
 	return bt3ToVec4(Part::of(part)->getTransform().getOrigin(), 1/zofBtScale);
 }
 
@@ -430,9 +430,9 @@ void zofPartPosPut(zofPart part, zofM3 pos) {
 	Part::of(part)->setPos(vec4ToBt3(pos, zofBtScale));
 }
 
-zofVec4 zofPartRadii(zofPart part) {
+zofM3 zofPartRadii(zofPart part) {
 	// TODO What about non-centered origins?
-	zofVec4 radii;
+	zofM3 radii;
 	switch (zofPartPartKind(part)) {
 	case zofPartKindBox:
 	case zofPartKindCylinder: {
@@ -447,6 +447,12 @@ zofVec4 zofPartRadii(zofPart part) {
 		break;
 	}
 	return radii;
+}
+
+zofM3Rat zofPartRot(zofPart part) {
+	btQuaternion rot = Part::of(part)->getTransform().getRotation();
+	btVector3 axis = rot.getAxis();
+	return zofV4(axis.getX(), axis.getY(), axis.getZ(), rot.getAngle()/zofPi);
 }
 
 void zofPartRotAdd(zofPart part, zofM3Rat rot) {

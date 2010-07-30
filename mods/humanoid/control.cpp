@@ -1,7 +1,10 @@
 #include "control.h"
 #include <iostream>
+#include <math.h>
 
 namespace hum {
+
+void driveToTarget(Controller* controller);
 
 Controller::Controller(Bot* bot) {
 	this->bot = bot;
@@ -53,7 +56,19 @@ void Controller::update() {
 	//zofJointPosPut(bot->base->hipsToWheels[1], 0);
 	//zofJointVelPut(bot->base->hipsToWheels[0], 0.15);
 	//zofJointVelPut(bot->base->hipsToWheels[1], 0.15);
-	bot->base->setVel(0.25, 0.15);
+	driveToTarget(this);
+}
+
+void driveToTarget(Controller* controller) {
+	zofM3 botPos = zofPartPos(controller->bot->zof);
+	zofM dX = controller->goalPos.vals[0] - botPos.vals[0];
+	zofM dZ = controller->goalPos.vals[2] - botPos.vals[2];
+	zofRat ratsToGoal = atan2(dX,dZ) / zofPi;
+	zofM3Rat botRot = zofPartRot(controller->bot->zof);
+	// TODO Verify positive Y axis?
+	zofRat dAngle = ratsToGoal - botRot.vals[3];
+	//cerr << "dAngle " << dAngle << " for " << dX << ", " << dZ << endl;
+	controller->bot->base->setVel(0, dAngle);
 }
 
 }

@@ -314,19 +314,21 @@ zofExport zofPart zofPartNewBox(zofString name, zofVec4 radii);
 
 zofExport zofPart zofPartNewCapsule(zofString name, zofNum radius, zofNum halfSpread);
 
-zofExport zofPart zofPartNewCylinder(zofString name, zofVec4 radii);
+zofExport zofPart zofPartNewCylinder(zofString name, zofM3 radii);
 
 zofExport zofPart zofPartNewGroup(zofString name, zofPart root);
 
 zofExport zofPartKind zofPartPartKind(zofPart part);
 
-zofExport zofVec4 zofPartPos(zofPart part);
+zofExport zofM3 zofPartPos(zofPart part);
 
 zofExport void zofPartPosAdd(zofPart part, zofM3 pos);
 
 zofExport void zofPartPosPut(zofPart part, zofM3 pos);
 
-zofExport zofVec4 zofPartRadii(zofPart part);
+zofExport zofM3 zofPartRadii(zofPart part);
+
+zofExport zofM3Rat zofPartRot(zofPart part);
 
 zofExport void zofPartRotAdd(zofPart part, zofM3Rat rot);
 

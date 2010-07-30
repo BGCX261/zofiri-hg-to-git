@@ -24,13 +24,13 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	Controller* controller = new Controller(bot);
 	zofM3 counterPos = zofPartPos(house->countertopSoutheast);
 	zofExtentsM3 counterBounds = zofPartBounds(house->countertopSoutheast);
-	controller->targetPos = zofV3(
+	controller->goalPos = zofV3(
 		// The counter AABB only works if the counter is axis-aligned, too. For now, it is.
 		counterBounds.min.vals[0] - botExtents.max.vals[2] - 0.1,
 		0,
 		counterPos.vals[2]
 	);
-	controller->targetRot = zofV4(0,1,0,0.5); // Facing east (positive X).
+	controller->goalRot = zofV4(0,1,0,0.5); // Facing east (positive X).
 	zofSimUpdaterAdd(sim, humUpdate, controller);
 	// Done.
 	return zofTrue;

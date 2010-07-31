@@ -60,15 +60,31 @@ void Controller::update() {
 }
 
 void driveToTarget(Controller* controller) {
+	zofM posVel = 0;
+	zofRat rotVel = 0;
 	zofM3 botPos = zofPartPos(controller->bot->zof);
+	zofM3Rat botRot = zofPartRot(controller->bot->zof);
 	zofM dX = controller->goalPos.vals[0] - botPos.vals[0];
 	zofM dZ = controller->goalPos.vals[2] - botPos.vals[2];
-	zofRat ratsToGoal = atan2(dX,dZ) / zofPi;
-	zofM3Rat botRot = zofPartRot(controller->bot->zof);
-	// TODO Verify positive Y axis?
-	zofRat dAngle = ratsToGoal - botRot.vals[3];
-	//cerr << "dAngle " << dAngle << " for " << dX << ", " << dZ << endl;
-	controller->bot->base->setVel(0, dAngle);
+	zofM dist = sqrt(dX*dX + dZ*dZ);
+	posVel = min(dist, 0.25);
+	if (dist > 0.2) {
+		zofRat ratsToGoal = atan2(dX,dZ) / zofPi;
+		// TODO Verify positive Y axis?
+		zofRat dAngle = ratsToGoal - botRot.vals[3];
+		//cerr << "dAngle " << dAngle << " for " << dX << ", " << dZ << endl;
+		if (dAngle > 0.1) {
+			// If angle off too much, don't drive.
+			// TODO Get more sophisticated about arcs.
+			posVel = 0;
+		}
+		rotVel = dAngle;
+	} else {
+		posVel = 0;
+		rotVel = controller->goalRot.vals[4] - botRot.vals[3];
+		//cerr << "At goal: dRot " << rotVel << endl;
+	}
+	controller->bot->base->setVel(posVel, rotVel);
 }
 
 }

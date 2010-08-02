@@ -71,6 +71,7 @@ void driveToTarget(Controller* controller) {
 	if (dist > 0.2) {
 		zofRat ratsToGoal = atan2(dX,dZ) / zofPi;
 		// TODO Verify positive Y axis?
+		// TODO Watch for angle wrap-arounds near -1/1.
 		zofRat dAngle = ratsToGoal - botRot.vals[3];
 		//cerr << "dAngle " << dAngle << " for " << dX << ", " << dZ << endl;
 		if (dAngle > 0.1) {
@@ -81,7 +82,7 @@ void driveToTarget(Controller* controller) {
 		rotVel = dAngle;
 	} else {
 		posVel = 0;
-		rotVel = controller->goalRot.vals[4] - botRot.vals[3];
+		rotVel = controller->goalRot.vals[3] - botRot.vals[3];
 		//cerr << "At goal: dRot " << rotVel << endl;
 	}
 	controller->bot->base->setVel(posVel, rotVel);

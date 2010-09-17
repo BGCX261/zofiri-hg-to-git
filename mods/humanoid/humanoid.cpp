@@ -15,6 +15,7 @@ zofModExport zofBool zofSimInit(zofMod mod, zofSim sim) {
 	// House.
 	House* house = new House;
 	zofSimPartAdd(sim, house->zof);
+	house->placeItems(sim);
 	// Bot.
 	Bot* bot = new Bot;
 	zofExtentsM3 botExtents = zofPartExtents(bot->zof);

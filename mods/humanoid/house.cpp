@@ -1,5 +1,8 @@
 #include "house.h"
 
+#include <iostream>
+using namespace std;
+
 namespace hum {
 
 House::House() {
@@ -30,6 +33,34 @@ House::House() {
 	zofPartPosPut(walls, zofV3(2,-zofPartExtents(walls).min.vals[1],0));
 	// House.
 	zof = zofPartNewGroup("house", walls);
+}
+
+void House::placeItems(zofSim sim) {
+	// Some kind of dark brown spice with a red lid.
+	Part* shaker = new Shaker(0xFFFF0000, 0xFF705030);
+	zofM3 counterPos = zofPartPos(countertopSoutheast);
+	zofExtentsM3 counterBounds = zofPartBounds(countertopSoutheast);
+	zofExtentsM3 shakerExtents = zofPartExtents(shaker->zof);
+	zofPartPosPut(shaker->zof, zofV3(
+		counterPos.vals[0],
+		counterBounds.max.vals[1] - shakerExtents.min.vals[1],
+		counterPos.vals[2]
+	));
+	zofSimPartAdd(sim, shaker->zof);
+}
+
+Shaker::Shaker(zofColor lidColor, zofColor bottleColor) {
+	// Bottle.
+	zofPart bottle = zofPartNewCylinder("bottle", zofV3(0.025,0.0375,0.025));
+	zofPartMaterialPut(bottle, zofMaterialNew(bottleColor,1));
+	zofPartJointPut(bottle, zofJointNew("lid", zofPartEndPos(bottle,zofV3(0,1,0))));
+	// Lid.
+	zofPart lid = zofPartNewCylinder("lid", zofV3(0.025,0.0125,0.025));
+	zofPartMaterialPut(lid, zofMaterialNew(lidColor,1));
+	zofPartJointPut(lid, zofJointNew("bottle", zofPartEndPos(lid,zofV3(0,-1,0))));
+	zofPartAttach(bottle, lid);
+	// Shaker.
+	zof = zofPartNewGroup("shaker", bottle);
 }
 
 }

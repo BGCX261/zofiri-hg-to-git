@@ -328,8 +328,8 @@ zofPart zofPartCopyTo(zofPart part, zofM3 pos, zofString oldSub, zofString newSu
 	return Part::of(part)->copyTo(vec4ToBt3(pos, zofBtScale), string(oldSub), string(newSub))->asC();
 }
 
-zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios) {
-	zofVec4 radii = zofPartRadii(part);
+zofM3 zofPartEndPos(zofPart part, zofVec3 ratios) {
+	zofM3 radii = zofPartRadii(part);
 	for (int i = 0; i < 4; i++) {
 		radii.vals[i] *= ratios.vals[i];
 	}

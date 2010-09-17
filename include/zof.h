@@ -280,8 +280,11 @@ zofExport zofCapsule zofPartCapsule(zofPart part);
 
 zofExport zofPart zofPartCopyTo(zofPart part, zofM3 pos, zofString oldSub, zofString newSub);
 
-zofExport zofVec4 zofPartEndPos(zofPart part, zofVec4 ratios);
+zofExport zofM3 zofPartEndPos(zofPart part, zofVec3 ratios);
 
+/**
+ * Bounding box relative to part frame.
+ */
 zofExport zofExtentsM3 zofPartExtents(zofPart part);
 
 zofExport zofJoint zofPartJoint(zofPart part, zofString name);

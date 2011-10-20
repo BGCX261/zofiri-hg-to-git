@@ -17,27 +17,6 @@ using namespace video;
 
 namespace zof {
 
-struct EventReceiver: IEventReceiver {
-
-	EventReceiver(Viz* viz) {
-		this->viz = viz;
-	}
-
-	virtual bool OnEvent(const SEvent& event) {
-		if (event.EventType == EET_KEY_INPUT_EVENT) {
-			// Space to step is for convenience in debugging.
-			// Probably refine this later as well as add other handlers.
-			if (event.KeyInput.Char == ' ') {
-				viz->sim->update();
-			}
-		}
-		return false;
-	}
-
-	Viz* viz;
-
-};
-
 struct IrrViz: Viz {
 
 	IrrViz(Sim* sim);
@@ -68,11 +47,6 @@ struct IrrViz: Viz {
 	 */
 	IMesh* createSphereMesh(btSphereShape* shape, u32 latCount, u32 longCount);
 
-	/**
-	 * Lives only during the life of run.
-	 */
-	IrrlichtDevice* device;
-
 	virtual void run();
 
 	ISceneManager* scene() {
@@ -84,6 +58,48 @@ struct IrrViz: Viz {
 	IVideoDriver* video() {
 		return device->getVideoDriver();
 	}
+
+	ICameraSceneNode* camera;
+
+	/**
+	 * Lives only during the life of run.
+	 */
+	IrrlichtDevice* device;
+
+};
+
+struct EventReceiver: IEventReceiver {
+
+	EventReceiver(IrrViz* viz) {
+		this->viz = viz;
+	}
+
+	virtual bool OnEvent(const SEvent& event) {
+		if (event.EventType == EET_KEY_INPUT_EVENT) {
+			// Space to step is for convenience in debugging.
+			// Probably refine this later as well as add other handlers.
+			if (event.KeyInput.Char == ' ') {
+				viz->sim->update();
+			}
+			switch (event.KeyInput.Key) {
+			case KEY_DOWN:
+				break;
+			case KEY_LEFT:
+				break;
+			case KEY_RIGHT:
+				break;
+			case KEY_UP:
+				// TODO Go in the direction of: viz->camera->getTarget()
+				break;
+			default:
+				// Who cares.
+				break;
+			}
+		}
+		return false;
+	}
+
+	IrrViz* viz;
 
 };
 
@@ -498,10 +514,9 @@ void IrrViz::run() {
 		addBody(object);
 	}
 
-	// ICameraSceneNode* camera =
-	// Normal:
-	scene()->addCameraSceneNode(0, sim->m(vector3df(-1.2,1.8,1.2)), sim->m(vector3df(-0.05,1,-0.05)));
-	// Close-up on hand:
+	// Standard camera:
+	camera = scene()->addCameraSceneNode(0, sim->m(vector3df(-1.2,1.8,1.2)), sim->m(vector3df(-0.05,1,-0.05)));
+	// Old fancy shmancy stuff:
 	//ICameraSceneNode* camera = scene()->addCameraSceneNode(0, 1e-2*vector3df(-10,140,10), 1e-2*vector3df(10,90,-10));
 	//camera->setPosition(camera->getPosition() - 0.5 * (camera->getPosition() - camera->getTarget()));
 	//camera->setUpVector(vector3df(0,0,1));
